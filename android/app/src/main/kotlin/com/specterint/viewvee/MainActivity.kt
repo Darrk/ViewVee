@@ -1,4 +1,4 @@
-package com.example.viewvee
+package com.specterint.viewvee
 
 import android.content.Context
 import android.net.wifi.WifiManager

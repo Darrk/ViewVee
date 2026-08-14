@@ -10,12 +10,14 @@ class AppSession {
   const AppSession({
     required this.isSignedIn,
     required this.isGuest,
+    this.accountId,
     this.watchMode,
     this.isPremium = false,
   });
 
   final bool isSignedIn;
   final bool isGuest;
+  final int? accountId;
   final WatchMode? watchMode;
   final bool isPremium;
 }
@@ -37,7 +39,9 @@ class AuthRepository {
     final preferences = await SharedPreferences.getInstance();
     final guest = preferences.getBool(_guestKey) ?? false;
     final authenticated = guest ? false : await _restoreIdentitySession();
-    if (authenticated) await _syncProfileFromIdentity();
+    final identityUser = authenticated
+        ? await _syncProfileFromIdentity()
+        : null;
     final modeName = preferences.getString(_modeKey);
     WatchMode? watchMode;
     for (final mode in WatchMode.values) {
@@ -46,6 +50,7 @@ class AuthRepository {
     return AppSession(
       isSignedIn: authenticated || guest,
       isGuest: guest,
+      accountId: identityUser?.id,
       watchMode: watchMode,
       isPremium: preferences.getBool(premiumUnlockedKey) ?? false,
     );
@@ -138,7 +143,7 @@ class AuthRepository {
     await preferences.remove(_guestKey);
   }
 
-  Future<void> _syncProfileFromIdentity({
+  Future<WorkingTimerUser?> _syncProfileFromIdentity({
     String fallbackFirstName = '',
     String fallbackLastName = '',
     String fallbackEmail = '',
@@ -167,7 +172,7 @@ class AuthRepository {
         lastName.isEmpty &&
         email.isEmpty) {
       if (clearWhenUnavailable) await _clearStoredProfile(preferences);
-      return;
+      return null;
     }
 
     await Future.wait([
@@ -181,6 +186,7 @@ class AuthRepository {
           ? preferences.remove(profileEmailKey)
           : preferences.setString(profileEmailKey, email),
     ]);
+    return identityUser;
   }
 
   Future<void> _clearStoredProfile([SharedPreferences? preferences]) async {

@@ -169,9 +169,10 @@ void main() {
         email: 'jana@example.cz',
       );
 
-    await AuthRepository(auth: auth).restoreSession();
+    final session = await AuthRepository(auth: auth).restoreSession();
 
     final preferences = await SharedPreferences.getInstance();
+    expect(session.accountId, 42);
     expect(preferences.getString(AuthRepository.profileFirstNameKey), 'Jana');
     expect(
       preferences.getString(AuthRepository.profileLastNameKey),

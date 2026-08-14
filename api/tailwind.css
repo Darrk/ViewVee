@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  ::selection { @apply bg-cyan-300 text-slate-950; }
+}
+
+@layer components {
+  .site-shell { @apply mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10; }
+  .gradient-text { @apply bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-400 bg-clip-text text-transparent; }
+  .button-primary { @apply inline-flex items-center justify-center rounded-xl bg-cyan-300 px-6 py-3.5 font-extrabold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:-translate-y-0.5 hover:bg-cyan-200 focus:outline-none focus:ring-4 focus:ring-cyan-300/20; }
+  .button-secondary { @apply inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 px-6 py-3.5 font-extrabold text-white transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-white/10; }
+  .eyebrow { @apply text-sm font-black uppercase tracking-[.18em] text-cyan-300; }
+  .section-title { @apply mt-4 text-3xl font-black tracking-tight text-white sm:text-5xl; }
+  .section-copy { @apply mt-5 text-lg leading-8 text-slate-400; }
+  .feature-card { @apply rounded-3xl border border-white/10 bg-white/[.045] p-7 transition hover:-translate-y-1 hover:border-cyan-300/20 hover:bg-white/[.065]; }
+  .feature-card h3 { @apply mt-6 text-xl font-extrabold; }
+  .feature-card p { @apply mt-3 leading-7 text-slate-400; }
+  .feature-icon { @apply flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-300/10 text-cyan-300 ring-1 ring-cyan-300/15; }
+  .feature-icon svg { @apply h-6 w-6; }
+  .metric { @apply rounded-xl border border-white/5 bg-white/5 px-2 py-3; }
+  .metric strong { @apply block text-sm text-cyan-200; }
+  .metric span { @apply mt-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500; }
+  .step-card { @apply rounded-2xl border border-white/10 bg-slate-900/70 p-6; }
+  .step-card > span { @apply text-sm font-black text-cyan-300; }
+  .step-card h3 { @apply mt-8 text-lg font-extrabold; }
+  .step-card p { @apply mt-2 text-sm leading-6 text-slate-400; }
+
+  .form-page { @apply min-h-screen bg-slate-50 text-slate-900 antialiased; background-image: radial-gradient(circle at 80% 0%, rgba(34,211,238,.13), transparent 28%), radial-gradient(circle at 10% 65%, rgba(59,130,246,.08), transparent 30%); }
+  .form-shell { @apply mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-14; }
+  .form-brand { @apply mx-auto mb-8 flex w-fit items-center gap-3 text-xl font-black tracking-tight text-slate-900; }
+  .form-brand img { @apply h-11 w-11 rounded-xl shadow-lg shadow-cyan-700/10; }
+  .form-wordmark { @apply mx-auto mb-7 block w-52 overflow-hidden rounded-2xl sm:w-60; }
+  .form-wordmark img { @apply block h-auto w-full; }
+  .form-card { @apply rounded-3xl border border-slate-200/80 bg-white p-6 shadow-2xl shadow-slate-900/10 sm:p-10; }
+  .form-eyebrow { @apply text-xs font-black uppercase tracking-[.16em]; }
+  .form-title { @apply mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl; }
+  .form-intro { @apply mt-4 text-base leading-7 text-slate-600 sm:text-lg; }
+  .form-notice { @apply mt-7 flex flex-col gap-1 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm leading-6 text-slate-700; }
+  .form-notice strong { @apply text-slate-950; }
+  .form-label { @apply mb-2 block text-sm font-bold text-slate-800; }
+  .form-input { @apply block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-950 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-cyan-600 focus:ring-4 focus:ring-cyan-100; }
+  .form-hint { @apply mt-2 text-xs leading-5 text-slate-500; }
+  .confirmation-box { @apply flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-700 transition hover:border-cyan-200 hover:bg-cyan-50/40; }
+  .confirmation-checkbox { @apply mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-cyan-700 focus:ring-cyan-600; }
+  .form-submit { @apply w-full rounded-xl px-5 py-3.5 font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 focus:outline-none focus:ring-4 disabled:cursor-wait disabled:opacity-60; }
+  .status-message { @apply rounded-xl border px-4 py-3 text-sm font-semibold leading-6; }
+  .form-footnote { @apply mt-9 border-t border-slate-200 pt-7; }
+  .form-footnote h2 { @apply font-extrabold text-slate-900; }
+  .form-footnote p { @apply mt-2 text-sm leading-6 text-slate-600; }
+  .form-links { @apply mt-7 flex flex-wrap items-center justify-center gap-3 text-sm font-bold text-cyan-700; }
+  .form-links a { @apply transition hover:text-cyan-900 hover:underline; }
+  .form-links span { @apply text-slate-300; }
+}

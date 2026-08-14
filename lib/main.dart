@@ -141,6 +141,7 @@ class _ViewveeAppState extends State<ViewveeApp> {
         builder: (_) => AccountMenuScreen(
           isGuest: session.isGuest,
           isPremium: session.isPremium,
+          accountId: session.accountId,
           watchMode: session.watchMode,
           themeMode: _themeMode,
           initialDestination: destination,

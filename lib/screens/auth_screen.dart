@@ -455,13 +455,8 @@ class _AuthScreenState extends State<AuthScreen> {
               title: const VvText('Souhlasím s podmínkami použití'),
             ),
             TextButton(
-              onPressed: () => launchUrl(
-                Uri.parse(
-                  Platform.isIOS
-                      ? 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'
-                      : 'https://www.specterint.com/wt_terms_of_use.html',
-                ),
-              ),
+              onPressed: () =>
+                  launchUrl(Uri.parse('https://viewvee.com/terms-of-use.html')),
               child: const VvText('Přečíst podmínky použití'),
             ),
           ],

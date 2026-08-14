@@ -1,4 +1,4 @@
-package com.example.viewvee
+package com.specterint.viewvee
 
 import android.app.NotificationChannel
 import android.app.NotificationManager

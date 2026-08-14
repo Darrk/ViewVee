@@ -19,6 +19,7 @@ void main() {
         ViewveeDrawerDestination.account,
     ThemeMode themeMode = ThemeMode.light,
     bool isPremium = true,
+    int? accountId,
   }) {
     return MaterialApp(
       theme: buildViewveeTheme(),
@@ -28,6 +29,7 @@ void main() {
         key: UniqueKey(),
         isGuest: false,
         isPremium: isPremium,
+        accountId: accountId,
         watchMode: WatchMode.baby,
         themeMode: themeMode,
         initialDestination: initialDestination,
@@ -115,7 +117,7 @@ void main() {
     expect(preferences.getString('profile.phone'), isNull);
   });
 
-  testWidgets('account deletion requires confirmation and opens a request', (
+  testWidgets('account deletion requires confirmation and opens account page', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({
@@ -123,7 +125,25 @@ void main() {
       'profile.lastName': 'Nováková',
       'profile.email': 'jana@example.cz',
     });
-    await tester.pumpWidget(buildSubject());
+    Uri? openedUri;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildViewveeTheme(),
+        home: AccountMenuScreen(
+          isGuest: false,
+          isPremium: true,
+          accountId: 42,
+          watchMode: WatchMode.baby,
+          themeMode: ThemeMode.light,
+          onWatchModeChanged: (_) async {},
+          onThemeModeChanged: (_) async {},
+          onPasswordReset: (_) async {},
+          onAddDevice: (_) async {},
+          onSignOut: () {},
+          openExternalUrl: (uri) async => openedUri = uri,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('deleteAccountMenuItem')));
@@ -134,12 +154,9 @@ void main() {
     await tester.tap(find.byKey(const Key('continueAccountDeletionButton')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Smazání účtu'), findsOneWidget);
-    expect(find.text('support@specterint.com'), findsOneWidget);
-    expect(find.text('Žádost o smazání účtu'), findsOneWidget);
     expect(
-      find.textContaining('Žádám o trvalé smazání svého účtu ViewVee'),
-      findsOneWidget,
+      openedUri,
+      Uri.parse('https://viewvee.com/account/delete?accountId=42'),
     );
   });
 

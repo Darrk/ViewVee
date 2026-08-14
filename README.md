@@ -25,16 +25,18 @@ Internet build lze nakonfigurovat pomoci `--dart-define`:
 
 ```sh
 flutter run \
-	--dart-define=VIEWVEE_SIGNALING_URL=wss://signal.example.com/viewvee/ws \
+	--dart-define=VIEWVEE_SIGNALING_URL=wss://signal.viewvee.com/viewvee/ws \
 	--dart-define=VIEWVEE_STUN_URLS=stun:stun.example.com:3478 \
-	--dart-define=VIEWVEE_TURN_URL=turns:turn.example.com:5349 \
+	--dart-define=VIEWVEE_TURN_URL=turns:turn.viewvee.com:5349 \
 	--dart-define=VIEWVEE_TURN_USERNAME=user \
 	--dart-define=VIEWVEE_TURN_CREDENTIAL=credential
 ```
 
-Pro spojeni telefonu v ruznych sitich je produkcni TURN povinny. Pri release
-build procesu predejte TURN udaje z CI nebo backendu a neukladejte je do
-repozitare.
+Signal server `wss://signal.viewvee.com/viewvee/ws` a TURN server
+`turns:turn.viewvee.com:5349` jsou vychozi, takze jejich URL neni nutne
+predavat. Pro spojeni telefonu v ruznych sitich je produkcni TURN povinny. Pri
+release build procesu predejte `VIEWVEE_TURN_USERNAME` a
+`VIEWVEE_TURN_CREDENTIAL` z CI nebo backendu a neukladejte je do repozitare.
 
 ## Platformy
 
@@ -42,8 +44,8 @@ iOS vyzaduje deployment target 15.5. Projekt obsahuje popisy opravneni pro
 kameru, mikrofon a lokalni sit a deklaraci Bonjour sluzby `_viewvee._tcp`.
 
 Android vyzaduje SDK, JDK 17 a opravneni pro kameru, mikrofon, foreground
-service a multicast discovery. Pred publikaci je nutne nahradit vyvojove
-`com.example.viewvee` vlastnim application/bundle ID a nastavit release signing.
+service a multicast discovery. Application/bundle ID je
+`com.specterint.viewvee`. Pred publikaci je nutne nastavit release signing.
 
 ## Autentizace
 
@@ -59,6 +61,15 @@ Pro beh nastavte `VIEWVEE_IDENTITY_URL`, `VIEWVEE_AUTH_CLIENT_ID`,
 secret z Working Timeru se nesmi kopirovat ani commitovat; Viewvee potrebuje
 vlastni registraci klienta.
 
+## Pravni dokumenty
+
+Pravni dokumenty pro publikaci jsou v `api/web/privacy-policy.html` a
+`api/web/terms-of-use.html`. Aplikace odkazuje na jejich produkcni adresy
+`https://viewvee.com/privacy-policy.html` a
+`https://viewvee.com/terms-of-use.html`. Verejne informace o smazani dat jsou
+na `https://viewvee.com/account/data-delete`; prihlaseny uzivatel smaze ucet
+pres `https://viewvee.com/account/delete`.
+
 ## Overeni
 
 ```sh
@@ -70,3 +81,36 @@ flutter build apk --debug
 
 Pred vydanim otestujte iOS-iOS, Android-Android a iOS-Android na fyzickych
 telefonech ve stejne Wi-Fi i v oddelenych sitich pres TURN.
+
+## Web a požadavky na smazání dat
+
+Produkční web obsluhuje Go server na portu `8080`. Server poskytuje statické
+webové soubory, zdravotní kontrolu `/healthz` a formuláře `/account/delete` a
+`/account/data-delete`. Požadavky se posílají podpoře přes SMTP a před smazáním
+je nutné ověřit vlastníka účtu. Sestavení webového kontejneru nekompiluje
+Flutter aplikaci.
+
+Landing page a formuláře používají předkompilovaný Tailwind stylesheet
+`api/web/css/tailwind.css`. Po změně Tailwind tříd jej obnovte příkazem:
+
+```sh
+cd api && npx --yes tailwindcss@3.4.17 -c tailwind.config.js \
+  -i tailwind.css -o web/css/tailwind.css --minify
+```
+
+Formuláře odesílají e-mail přes AWS SES SMTP na pevnou adresu
+`support@specterint.com`. Výchozí server je
+`email-smtp.eu-central-1.amazonaws.com:587` s TLS a odesílatel
+`ViewVee Support <info@specterint.com>`. Nasazení musí dodat přihlašovací údaje
+`SMTP_USERNAME` a `SMTP_PASSWORD`. Volitelně lze změnit `SMTP_HOST`,
+`SMTP_PORT`, `SMTP_FROM` a `SMTP_FROM_NAME`. Obraz sestavíte a odešlete do AWS
+ECR pomocí:
+
+```sh
+./build.sh
+```
+
+Skript ve výchozím nastavení publikuje víceplatformový obraz
+`139685415139.dkr.ecr.eu-central-1.amazonaws.com/specterint/viewvee-web:latest`.
+Registry, region, repozitář, tag a platformy lze změnit proměnnými
+`AWS_ACCOUNT_ID`, `AWS_REGION`, `ECR_REPOSITORY`, `IMAGE_TAG` a `PLATFORMS`.

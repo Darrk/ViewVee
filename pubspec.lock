@@ -1590,8 +1590,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "3c2f9df56ca495c24f65fea029fe15cdd606f00c"
-      resolved-ref: "3c2f9df56ca495c24f65fea029fe15cdd606f00c"
+      ref: master
+      resolved-ref: "2fb7096397e0f925db95f71f4faf6d59436c08e7"
       url: "git@github.com:SpecterInteractive/SpecterCore.git"
     source: git
     version: "1.0.0+1"

@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ViewVee (Android Emulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "emulatorId": "Pixel_7_API_36"
+    },
+    {
+      "name": "ViewVee Web (Go Server)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:8080/",
+      "webRoot": "${workspaceFolder}/api/web",
+      "preLaunchTask": "Start ViewVee Go Web Server",
+      "postDebugTask": "Stop ViewVee Go Web Server"
+    }
+  ]
+}

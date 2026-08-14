@@ -25,6 +25,7 @@ class AccountMenuScreen extends StatefulWidget {
     super.key,
     required this.isGuest,
     required this.isPremium,
+    this.accountId,
     required this.watchMode,
     required this.themeMode,
     required this.onWatchModeChanged,
@@ -32,11 +33,13 @@ class AccountMenuScreen extends StatefulWidget {
     required this.onPasswordReset,
     required this.onAddDevice,
     required this.onSignOut,
+    this.openExternalUrl,
     this.initialDestination = ViewveeDrawerDestination.account,
   });
 
   final bool isGuest;
   final bool isPremium;
+  final int? accountId;
   final WatchMode? watchMode;
   final ThemeMode themeMode;
   final Future<void> Function(WatchMode mode) onWatchModeChanged;
@@ -44,6 +47,7 @@ class AccountMenuScreen extends StatefulWidget {
   final Future<void> Function(String email) onPasswordReset;
   final Future<void> Function(DevicePairingAction action) onAddDevice;
   final VoidCallback onSignOut;
+  final Future<void> Function(Uri uri)? openExternalUrl;
   final ViewveeDrawerDestination initialDestination;
 
   @override
@@ -434,21 +438,19 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _ContactSupportSheet(
-        name: _personalDetails.fullName,
-        email: _personalDetails.email,
-        title: 'Smazání účtu',
-        description:
-            'Odešlete žádost z e-mailu spojeného s účtem. Podpora vám potvrdí jeho trvalé smazání.',
-        initialSubject: 'Žádost o smazání účtu',
-        initialMessage:
-            'Žádám o trvalé smazání svého účtu ViewVee a souvisejících osobních údajů.',
-      ),
+    final uri = Uri.https(
+      'viewvee.com',
+      '/account/delete',
+      widget.accountId == null
+          ? null
+          : {'accountId': widget.accountId.toString()},
     );
+    final openExternalUrl = widget.openExternalUrl;
+    if (openExternalUrl != null) {
+      await openExternalUrl(uri);
+    } else {
+      await launchUrl(uri);
+    }
   }
 }
 
@@ -956,7 +958,8 @@ class _AboutPage extends StatelessWidget {
             color: ViewveeColors.teal,
             title: 'Soukromí a podmínky',
             subtitle: 'Právní informace ViewVee',
-            onTap: () {},
+            onTap: () =>
+                launchUrl(Uri.parse('https://viewvee.com/privacy-policy.html')),
           ),
         ],
       ),
@@ -1978,27 +1981,17 @@ class _SupportPage extends StatelessWidget {
 }
 
 class _ContactSupportSheet extends StatefulWidget {
-  const _ContactSupportSheet({
-    required this.name,
-    required this.email,
-    this.title = 'Kontaktovat podporu',
-    this.description = 'Popište nám, s čím potřebujete pomoci.',
-    this.initialSubject = '',
-    this.initialMessage = '',
-  });
+  const _ContactSupportSheet({required this.name, required this.email});
 
   final String name;
   final String email;
-  final String title;
-  final String description;
-  final String initialSubject;
-  final String initialMessage;
 
   @override
   State<_ContactSupportSheet> createState() => _ContactSupportSheetState();
 }
 
 class _ContactSupportSheetState extends State<_ContactSupportSheet> {
+  static const _supportDescription = 'Popište nám, s čím potřebujete pomoci.';
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
@@ -2012,8 +2005,8 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.name);
     _emailController = TextEditingController(text: widget.email);
-    _subjectController = TextEditingController(text: widget.initialSubject);
-    _messageController = TextEditingController(text: widget.initialMessage);
+    _subjectController = TextEditingController();
+    _messageController = TextEditingController();
   }
 
   @override
@@ -2042,7 +2035,7 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               VvText(
-                widget.title,
+                'Kontaktovat podporu',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 22,
@@ -2051,7 +2044,7 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
               ),
               const SizedBox(height: 6),
               VvText(
-                widget.description,
+                _supportDescription,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

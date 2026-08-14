@@ -63,7 +63,7 @@ class AudioMonitorService {
                serverUri: Uri.parse(
                  const String.fromEnvironment(
                    'VIEWVEE_SIGNALING_URL',
-                   defaultValue: 'wss://babywave.app/baby-monitor/ws',
+                   defaultValue: 'wss://signal.viewvee.com/viewvee/ws',
                  ),
                ),
              ),
@@ -247,7 +247,10 @@ class AudioMonitorService {
         ).split(','),
       },
     ];
-    const turnUrl = String.fromEnvironment('VIEWVEE_TURN_URL');
+    const turnUrl = String.fromEnvironment(
+      'VIEWVEE_TURN_URL',
+      defaultValue: 'turns:turn.viewvee.com:5349',
+    );
     const turnUsername = String.fromEnvironment('VIEWVEE_TURN_USERNAME');
     const turnCredential = String.fromEnvironment('VIEWVEE_TURN_CREDENTIAL');
     if (turnUrl.isNotEmpty &&
