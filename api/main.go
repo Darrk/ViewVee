@@ -43,6 +43,14 @@ type deletionRequest struct {
 	Website   string `json:"website"`
 }
 
+type contactRequest struct {
+	Name    string `json:"name"`
+	Email   string `json:"email"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
+	Website string `json:"website"`
+}
+
 type mailSender interface {
 	Send(context.Context, string, string, string) error
 }
@@ -111,10 +119,53 @@ func newHandler(cfg config, sender mailSender) http.Handler {
 	})
 	registerDeletionRoute(mux, cfg, sender, limiter, "/account/delete", "account", "Account deletion request", "account/delete/index.html")
 	registerDeletionRoute(mux, cfg, sender, limiter, "/account/data-delete", "data", "Data deletion request", "account/data-delete/index.html")
+	mux.HandleFunc("POST /support/contact", func(w http.ResponseWriter, r *http.Request) {
+		handleContactRequest(w, r, sender, limiter)
+	})
 
 	files := http.FileServer(http.Dir(cfg.staticDir))
 	mux.Handle("/", spaHandler(cfg.staticDir, files))
 	return securityHeaders(mux)
+}
+
+func handleContactRequest(w http.ResponseWriter, r *http.Request, sender mailSender, limiter *rateLimiter) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+	defer r.Body.Close()
+
+	var request contactRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Invalid request body.")
+		return
+	}
+	request.Name = strings.TrimSpace(request.Name)
+	request.Email = strings.TrimSpace(request.Email)
+	request.Subject = strings.TrimSpace(request.Subject)
+	request.Message = strings.TrimSpace(request.Message)
+	if request.Website != "" {
+		writeJSON(w, http.StatusAccepted, map[string]string{"message": "Message received."})
+		return
+	}
+	if request.Name == "" || len(request.Name) > 100 || len(request.Email) > 320 || request.Subject == "" || len(request.Subject) > 150 || request.Message == "" || len(request.Message) > 4000 || !validEmail(request.Email) {
+		writeJSONError(w, http.StatusBadRequest, "Enter your name, a valid email address, a subject, and a message.")
+		return
+	}
+	if !limiter.Allow("support:" + clientIP(r)) {
+		w.Header().Set("Retry-After", "3600")
+		writeJSONError(w, http.StatusTooManyRequests, "Too many messages. Please try again later.")
+		return
+	}
+
+	subject := "[ViewVee Support] " + request.Subject
+	body := fmt.Sprintf("New support message from the ViewVee website.\n\nName: %s\nEmail: %s\nTimestamp (UTC): %s\n\nMessage:\n%s\n", request.Name, request.Email, time.Now().UTC().Format(time.RFC3339), request.Message)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := sender.Send(ctx, request.Email, subject, body); err != nil {
+		slog.Error("failed to send support message", "error", err)
+		writeJSONError(w, http.StatusServiceUnavailable, "The message could not be sent. Please email support@specterint.com.")
+		return
+	}
+	slog.Info("support message submitted")
+	writeJSON(w, http.StatusAccepted, map[string]string{"message": "Thanks. Your message was sent to ViewVee support."})
 }
 
 func registerDeletionRoute(mux *http.ServeMux, cfg config, sender mailSender, limiter *rateLimiter, path, kind, label, page string) {

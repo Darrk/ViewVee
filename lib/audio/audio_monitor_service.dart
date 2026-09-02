@@ -717,7 +717,7 @@ class AudioMonitorService {
       _monitorTickCount += 1;
       await _sendControl({
         'kind': 'telemetry',
-        if (batteryLevel != null) 'battery': batteryLevel,
+        'battery': ?batteryLevel,
         'soundLevel': soundLevel,
       });
       if (_soundDetectionEnabled &&

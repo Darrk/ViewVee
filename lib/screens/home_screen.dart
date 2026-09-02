@@ -896,8 +896,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       var permission = await Permission.microphone.status;
-      if (!permission.isGranted)
+      if (!permission.isGranted) {
         permission = await Permission.microphone.request();
+      }
       if (!permission.isGranted) {
         throw StateError('Povolte přístup k mikrofonu v nastavení telefonu.');
       }
@@ -1006,8 +1007,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     try {
       final joined = await _audioMonitor.joinAsReceiver(pairingValue);
-      if (!joined && mounted)
+      if (!joined && mounted) {
         setState(() => _audioError = 'Kamera nebyla nalezena.');
+      }
     } catch (error) {
       if (mounted) setState(() => _audioError = error.toString());
     } finally {
@@ -1021,8 +1023,9 @@ class _HomeScreenState extends State<HomeScreen> {
       final enable = !_microphone;
       if (enable) {
         var permission = await Permission.microphone.status;
-        if (!permission.isGranted)
+        if (!permission.isGranted) {
           permission = await Permission.microphone.request();
+        }
         if (!permission.isGranted) {
           throw StateError('Mikrofon není povolený.');
         }

@@ -1,141 +1,327 @@
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ViewVee turns two phones into a private camera and monitor for the people, pets, and places that matter.">
-  <meta name="theme-color" content="#071b2e">
-  <title>ViewVee · Stay close from anywhere</title>
-  <link rel="icon" type="image/png" href="/viewvee-icon.png">
-  <link rel="apple-touch-icon" href="/viewvee-icon.png">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="stylesheet" href="/css/tailwind.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description"
+        content="ViewVee turns two phones into a private camera and monitor for the people, pets, and places that matter.">
+    <meta name="application-name" content="ViewVee">
+    <meta name="theme-color" content="#f5f7fc" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0a1322" media="(prefers-color-scheme: dark)">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ViewVee · Stay close from anywhere">
+    <meta property="og:description"
+        content="Turn two phones into a private camera and monitor for your baby, pet, or home.">
+    <meta property="og:image" content="/images/app-setup-light.png">
+    <title>ViewVee · Stay close from anywhere</title>
+    <link rel="icon" type="image/png" href="/viewvee-icon.png">
+    <link rel="apple-touch-icon" href="/viewvee-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/css/tailwind.css">
+    <link rel="stylesheet" href="/css/landing.css?v=20">
+    <script defer src="/js/landing-i18n.js?v=9"></script>
+    <script defer src="/js/landing-translations-1.js?v=6"></script>
+    <script defer src="/js/landing-translations-2.js?v=2"></script>
+    <script defer src="/js/landing-translations-3.js?v=2"></script>
+    <script defer src="/js/landing-translations-4.js?v=2"></script>
+    <script defer src="/js/landing-translations-5.js?v=2"></script>
+    <script defer src="/js/landing-translations-6.js?v=2"></script>
+    <script defer src="/js/contact-form.js?v=1"></script>
 </head>
-<body class="bg-slate-950 text-white antialiased">
-  <header class="absolute inset-x-0 top-0 z-20">
-    <nav class="site-shell flex h-20 items-center justify-between" aria-label="Main navigation">
-      <a href="/" class="flex items-center gap-3 text-xl font-black tracking-tight">
-        <img src="/viewvee-icon-dark.png" class="h-11 w-10 rounded-xl object-cover shadow-lg shadow-cyan-500/20" alt="ViewVee logo">
-        <span>ViewVee</span>
-      </a>
-      <div class="hidden items-center gap-8 text-sm font-semibold text-slate-300 sm:flex">
-        <a class="transition hover:text-cyan-300" href="#features">Features</a>
-        <a class="transition hover:text-cyan-300" href="#how-it-works">How it works</a>
-        <a class="transition hover:text-cyan-300" href="mailto:support@specterint.com">Support</a>
-      </div>
-    </nav>
-  </header>
 
-  <main>
-    <section class="relative isolate overflow-hidden pt-20">
-      <div class="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_72%_25%,rgba(34,211,238,0.20),transparent_32%),radial-gradient(circle_at_20%_70%,rgba(59,130,246,0.18),transparent_34%)]"></div>
-      <div class="absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-slate-950 to-transparent"></div>
-      <div class="site-shell grid min-h-[760px] items-center gap-16 py-24 lg:grid-cols-[1.05fr_.95fr]">
-        <div class="max-w-2xl">
-          <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-200">
-            <span class="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.9)]"></span>
-            Private monitoring with devices you already own
-          </div>
-          <h1 class="text-balance text-5xl font-black leading-[1.04] tracking-tight sm:text-6xl lg:text-7xl">
-            Stay close to what <span class="gradient-text">matters most.</span>
-          </h1>
-          <p class="mt-7 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
-            Turn one phone into a secure camera and another into a live monitor. Watch over your baby, pet, or home on Wi-Fi or from anywhere.
-          </p>
-          <div class="mt-10 flex flex-col gap-3 sm:flex-row">
-            <a href="#how-it-works" class="button-primary">See how it works</a>
-            <a href="mailto:support@specterint.com" class="button-secondary">Contact support</a>
-          </div>
-          <div class="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm font-semibold text-slate-400">
-            <span class="flex items-center gap-2"><span class="text-cyan-300">✓</span> Encrypted WebRTC</span>
-            <span class="flex items-center gap-2"><span class="text-cyan-300">✓</span> Local Wi-Fi mode</span>
-            <span class="flex items-center gap-2"><span class="text-cyan-300">✓</span> iOS &amp; Android</span>
-          </div>
-        </div>
-
-        <div class="relative mx-auto w-full max-w-lg">
-          <div class="absolute -inset-10 rounded-full bg-cyan-400/10 blur-3xl"></div>
-          <div class="relative rounded-[2rem] border border-white/10 bg-white/[.07] p-5 shadow-2xl shadow-cyan-950/50 backdrop-blur-xl">
-            <div class="relative aspect-[4/5] overflow-hidden rounded-[1.35rem] bg-gradient-to-br from-slate-800 to-slate-900 p-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-400/15 text-cyan-300">
-                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 10l4.6-2.3a1 1 0 011.4.9v6.8a1 1 0 01-1.4.9L15 14M5 6h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/></svg>
-                  </span>
-                  <div><p class="font-bold">Nursery camera</p><p class="text-xs text-slate-400">Connected securely</p></div>
-                </div>
-                <span class="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold text-emerald-300">LIVE</span>
-              </div>
-              <div class="mt-6 flex h-[58%] items-center justify-center rounded-2xl border border-white/5 bg-slate-950/60">
-                <div class="text-center">
-                  <div class="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-cyan-300/10 ring-1 ring-cyan-300/20">
-                    <img src="/viewvee-icon-dark.png" class="h-20 w-[4.25rem] rounded-2xl object-cover opacity-90" alt="">
-                  </div>
-                  <p class="mt-5 text-sm font-semibold text-slate-300">Private video stream</p>
-                  <p class="mt-1 text-xs text-slate-500">End-to-end media encryption</p>
-                </div>
-              </div>
-              <div class="mt-5 grid grid-cols-3 gap-3 text-center">
-                <div class="metric"><strong>HD</strong><span>Video</span></div>
-                <div class="metric"><strong>42 ms</strong><span>Latency</span></div>
-                <div class="metric"><strong>86%</strong><span>Battery</span></div>
-              </div>
+<body class="vv-page">
+    <header class="vv-header">
+        <nav class="vv-shell vv-nav" data-i18n-aria-label="mainNavigation" aria-label="Main navigation">
+            <a class="vv-brand" href="/" aria-label="ViewVee home">
+                <picture class="vv-nav-mark">
+                    <source srcset="/viewvee-icon-dark.png" media="(prefers-color-scheme: dark)">
+                    <img src="/viewvee-icon.png" alt="" width="1024" height="1024">
+                </picture>
+                <span>ViewVee</span>
+            </a>
+            <div class="vv-nav-links">
+                <a href="#features" data-i18n="features">Features</a>
+                <a href="#how-it-works" data-i18n="howItWorks">How it works</a>
+                <a href="#contact" data-i18n="support">Support</a>
+                <label class="vv-language">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"></path>
+                    </svg>
+                    <span class="vv-language-code" id="language-code" aria-hidden="true">EN</span>
+                    <span class="vv-sr-only" data-i18n="language">Language</span>
+                    <select id="language-select" data-i18n-aria-label="language" aria-label="Language"></select>
+                </label>
             </div>
-          </div>
+        </nav>
+    </header>
+
+    <main>
+        <section class="vv-hero">
+            <div class="vv-shell vv-hero-grid">
+                <div class="vv-hero-copy vv-reveal">
+                    <div class="vv-hero-brand">
+                        <picture class="vv-hero-logo-wrap">
+                            <source srcset="/images/viewvee-logo-transparent-dark.png?v=1"
+                                media="(prefers-color-scheme: dark)">
+                            <img class="vv-hero-logo" src="/images/viewvee-logo-transparent.png?v=1" alt="" width="1000"
+                                height="660">
+                        </picture>
+                        <span class="vv-animated-eye" aria-hidden="true">
+                            <span class="vv-eye-pupil"></span>
+                            <span class="vv-eye-highlight-orbit"><span class="vv-eye-highlight"></span></span>
+                        </span>
+                        <h1 class="vv-sr-only">ViewVee. See more. Care more.</h1>
+                    </div>
+                    <p class="vv-hero-benefit"><span data-i18n="heroTitlePrefix">Stay close to what</span> <span
+                            data-i18n="heroTitleHighlight">matters most.</span></p>
+                    <p class="vv-lead" data-i18n="heroBody">Turn one phone into a secure camera and another into a live
+                        monitor. Watch over your baby, pet, or home on Wi-Fi or from anywhere.</p>
+                    <div class="vv-actions">
+                        <a class="vv-button vv-button-primary" href="#how-it-works"><span data-i18n="seeHowItWorks">See
+                                how it works</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" aria-hidden="true">
+                                <path d="M5 12h14M13 6l6 6-6 6"></path>
+                            </svg></a>
+                        <a class="vv-button vv-button-secondary" href="#contact"><svg viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                <path d="M4 5h16v12H7l-3 3V5z"></path>
+                            </svg><span data-i18n="contactSupport">Contact support</span></a>
+                    </div>
+                    <ul class="vv-proof" aria-label="Platform and privacy highlights">
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5"></path>
+                            </svg><span data-i18n="encryptedWebrtc">Encrypted WebRTC</span></li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5"></path>
+                            </svg><span data-i18n="localWifiMode">Local Wi-Fi mode</span></li>
+                        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                aria-hidden="true">
+                                <path d="M20 6L9 17l-5-5"></path>
+                            </svg><span data-i18n="iosAndroid">iOS &amp; Android</span></li>
+                    </ul>
+                </div>
+                <div class="vv-product-shot vv-reveal vv-reveal-delay">
+                    <div class="vv-phone vv-phone-setup">
+                        <img id="app-setup-screenshot" src="/images/app-setup-en.png?v=20260902-complete" width="470"
+                            height="932" alt="ViewVee monitoring mode screen in English" fetchpriority="high">
+                    </div>
+                    <div class="vv-phone vv-phone-menu">
+                        <img id="app-role-screenshot" src="/images/app-real-role-en-dark.png?v=20260902-complete"
+                            width="470" height="932" alt="ViewVee device role selection screen in English dark mode"
+                            fetchpriority="high">
+                    </div>
+                    <div class="vv-shot-note" aria-hidden="true">
+                        <span class="vv-shot-note-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg></span>
+                        <span><strong data-i18n="connectedSecurely">Connected securely</strong><span
+                                data-i18n="privateVideoStream">Private video stream</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vv-signal" aria-label="ViewVee key capabilities">
+            <div class="vv-shell vv-signal-grid">
+                <div class="vv-signal-item"><strong data-i18n="encryptedWebrtc">Encrypted WebRTC</strong><span
+                        data-i18n="endToEndEncryption">End-to-end media encryption</span></div>
+                <div class="vv-signal-item"><strong data-i18n="localWifiMode">Local Wi-Fi mode</strong><span
+                        data-i18n="nearOrFar">Near or far</span></div>
+                <div class="vv-signal-item"><strong data-i18n="iosAndroid">iOS &amp; Android</strong><span
+                        data-i18n="stepsEyebrow">Ready in minutes</span></div>
+            </div>
+        </section>
+
+        <section id="features" class="vv-section">
+            <div class="vv-shell">
+                <div class="vv-section-head vv-section-head-center">
+                    <p class="vv-eyebrow" data-i18n="featuresEyebrow">Made for peace of mind</p>
+                    <h2 data-i18n="featuresTitle">A simple monitor with serious privacy.</h2>
+                    <p class="vv-section-intro" data-i18n="featuresBody">Fast pairing, clear video, and useful alerts
+                        without buying another single-purpose device.</p>
+                </div>
+                <div class="vv-feature-grid">
+                    <article class="vv-feature">
+                        <span class="vv-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" aria-hidden="true">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M9 12l2 2 4-4"></path>
+                            </svg></span>
+                        <h3 data-i18n="secureByDesign">Secure by design</h3>
+                        <p data-i18n="secureByDesignBody">Pair devices with a private QR secret. Signaling is
+                            authenticated and media travels over encrypted WebRTC.</p>
+                    </article>
+                    <article class="vv-feature">
+                        <span class="vv-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" aria-hidden="true">
+                                <path d="M5 12.5a10 10 0 0114 0M2 9a15 15 0 0120 0M8.5 16a5 5 0 017 0M12 20h.01"></path>
+                            </svg></span>
+                        <h3 data-i18n="nearOrFar">Near or far</h3>
+                        <p data-i18n="nearOrFarBody">Connect directly on the same Wi-Fi, or use secure internet relay
+                            when the two phones are on different networks.</p>
+                    </article>
+                    <article class="vv-feature">
+                        <span class="vv-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.8" aria-hidden="true">
+                                <path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"></path>
+                            </svg></span>
+                        <h3 data-i18n="knowWhenItMatters">Know when it matters</h3>
+                        <p data-i18n="knowWhenItMattersBody">Receive motion, sound, and connection alerts. Monitor
+                            battery status and record important moments locally.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="vv-section vv-section-soft">
+            <div class="vv-shell">
+                <div class="vv-section-head">
+                    <p class="vv-eyebrow" data-i18n="stepsEyebrow">Ready in minutes</p>
+                    <h2 data-i18n="stepsTitle">Two phones. One secure connection.</h2>
+                    <p class="vv-section-intro" data-i18n="stepsBody">ViewVee guides you through every step, from
+                        choosing a role to starting the live view.</p>
+                </div>
+                <ol class="vv-steps">
+                    <li class="vv-step">
+                        <h3 data-i18n="chooseRoles">Choose roles</h3>
+                        <p data-i18n="chooseRolesBody">Use one device as the camera and another as the monitor.</p>
+                    </li>
+                    <li class="vv-step">
+                        <h3 data-i18n="scanToPair">Scan to pair</h3>
+                        <p data-i18n="scanToPairBody">Connect securely with a private QR code or pairing flow.</p>
+                    </li>
+                    <li class="vv-step">
+                        <h3 data-i18n="startWatching">Start watching</h3>
+                        <p data-i18n="startWatchingBody">See, listen, talk, and receive alerts wherever you are.</p>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <section class="vv-section">
+            <div class="vv-shell vv-privacy">
+                <div class="vv-privacy-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        <path d="M9 12l2 2 4-4"></path>
+                    </svg></div>
+                <div class="vv-privacy-copy">
+                    <p class="vv-eyebrow" data-i18n="encryptedWebrtc">Encrypted WebRTC</p>
+                    <h2 data-i18n="secureByDesign">Secure by design</h2>
+                    <p class="vv-section-intro" data-i18n="secureByDesignBody">Pair devices with a private QR secret.
+                        Signaling is authenticated and media travels over encrypted WebRTC.</p>
+                    <ul>
+                        <li data-i18n="endToEndEncryption">End-to-end media encryption</li>
+                        <li data-i18n="localWifiMode">Local Wi-Fi mode</li>
+                        <li data-i18n="privateVideoStream">Private video stream</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="vv-section vv-section-soft">
+            <div class="vv-shell vv-faq">
+                <div class="vv-section-head vv-section-head-center">
+                    <p class="vv-eyebrow" data-i18n="faqEyebrow">Frequently asked questions</p>
+                    <h2 data-i18n="faqTitle">Everything you need to get started.</h2>
+                </div>
+                <details>
+                    <summary data-i18n="faqDevicesQuestion">Do I need two phones?</summary>
+                    <p data-i18n="faqDevicesAnswer">Yes. One phone works as the camera and another as the monitor. An
+                        older spare phone is perfect for the camera.</p>
+                </details>
+                <details>
+                    <summary data-i18n="faqRemoteQuestion">Can I watch from outside my home Wi-Fi?</summary>
+                    <p data-i18n="faqRemoteAnswer">Yes. ViewVee connects directly when both phones share a Wi-Fi
+                        network and uses a secure internet relay when they are on different networks.</p>
+                </details>
+                <details>
+                    <summary data-i18n="faqPrivacyQuestion">Is my video private?</summary>
+                    <p data-i18n="faqPrivacyAnswer">Devices pair using a private QR secret. Signaling is authenticated
+                        and your media travels over encrypted WebRTC.</p>
+                </details>
+                <details>
+                    <summary data-i18n="faqPlatformsQuestion">Can I pair an iPhone with an Android phone?</summary>
+                    <p data-i18n="faqPlatformsAnswer">Yes. ViewVee supports iOS and Android, including pairing devices
+                        across the two platforms.</p>
+                </details>
+                <details>
+                    <summary data-i18n="faqRecordingsQuestion">Where are recordings saved?</summary>
+                    <p data-i18n="faqRecordingsAnswer">Recordings are saved locally on the device that captured them,
+                        so you stay in control of your recorded moments.</p>
+                </details>
+            </div>
+        </section>
+
+        <section id="contact" class="vv-section">
+            <div class="vv-shell">
+                <div class="vv-cta">
+                    <div class="vv-cta-content">
+                        <p class="vv-eyebrow" data-i18n="contactEyebrow">ViewVee support</p>
+                        <h2 data-i18n="contactTitle">How can we help?</h2>
+                        <p class="vv-section-intro" data-i18n="contactBody">Send us a message and our support team
+                            will reply by email.</p>
+                        <a class="vv-contact-email" href="mailto:support@specterint.com">support@specterint.com</a>
+                    </div>
+                    <form id="support-form" class="vv-contact-form" action="/support/contact" method="post">
+                        <div class="vv-contact-row">
+                            <label><span data-i18n="contactName">Name</span><input name="name" type="text"
+                                    maxlength="100" autocomplete="name" required></label>
+                            <label><span data-i18n="contactEmail">Email</span><input name="email" type="email"
+                                    maxlength="320" autocomplete="email" required></label>
+                        </div>
+                        <label><span data-i18n="contactSubject">Subject</span><input name="subject" type="text"
+                                maxlength="150" required></label>
+                        <label><span data-i18n="contactMessage">Message</span><textarea name="message" maxlength="4000"
+                                required></textarea></label>
+                        <label class="vv-contact-trap" aria-hidden="true">Website<input name="website" type="text"
+                                tabindex="-1" autocomplete="off"></label>
+                        <div class="vv-contact-footer">
+                            <button class="vv-button vv-button-primary" type="submit"><span
+                                    data-i18n="contactSubmit">Send message</span><svg viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                    <path d="M22 2L11 13"></path>
+                                    <path d="M22 2L15 22l-4-9-9-4 20-7z"></path>
+                                </svg></button>
+                            <p id="contact-status" class="vv-contact-status" role="status" aria-live="polite"></p>
+                        </div>
+                        <span hidden data-contact-message="sending" data-i18n="contactSending">Sending…</span>
+                        <span hidden data-contact-message="success" data-i18n="contactSuccess">Thanks. Your message
+                            was sent to ViewVee support.</span>
+                        <span hidden data-contact-message="error" data-i18n="contactError">The message could not be
+                            sent. Please try again or email us directly.</span>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="vv-footer">
+        <div class="vv-shell vv-footer-main">
+            <div class="vv-footer-brand"><a class="vv-brand" href="/">
+                    <picture>
+                        <source srcset="/viewvee-icon-dark.png" media="(prefers-color-scheme: dark)"><img
+                            src="/viewvee-icon.png" data-i18n-alt="logoAlt" alt="ViewVee logo">
+                    </picture><span>ViewVee</span>
+                </a>
+                <p data-i18n="heroBody">Turn one phone into a secure camera and another into a live monitor. Watch over
+                    your baby, pet, or home on Wi-Fi or from anywhere.</p>
+            </div>
+            <nav class="vv-footer-links" aria-label="Legal and support"><a href="#contact"
+                    data-i18n="support">Support</a><a href="/privacy-policy.html" data-i18n="privacy">Privacy</a><a
+                    href="/terms-of-use.html" data-i18n="terms">Terms</a><a href="/account/data-delete"
+                    data-i18n="deleteData">Delete data</a><a href="/account/delete" data-i18n="deleteAccount">Delete
+                    account</a></nav>
         </div>
-      </div>
-    </section>
-
-    <section id="features" class="site-shell py-24 sm:py-32">
-      <div class="mx-auto max-w-2xl text-center">
-        <p class="eyebrow">Made for peace of mind</p>
-        <h2 class="section-title">A simple monitor with serious privacy.</h2>
-        <p class="section-copy">Fast pairing, clear video, and useful alerts without buying another single-purpose device.</p>
-      </div>
-      <div class="mt-14 grid gap-5 md:grid-cols-3">
-        <article class="feature-card">
-          <span class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
-          <h3>Secure by design</h3><p>Pair devices with a private QR secret. Signaling is authenticated and media travels over encrypted WebRTC.</p>
-        </article>
-        <article class="feature-card">
-          <span class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg></span>
-          <h3>Near or far</h3><p>Connect directly on the same Wi-Fi, or use secure internet relay when the two phones are on different networks.</p>
-        </article>
-        <article class="feature-card">
-          <span class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 00-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span>
-          <h3>Know when it matters</h3><p>Receive motion, sound, and connection alerts. Monitor battery status and record important moments locally.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="how-it-works" class="border-y border-white/5 bg-white/[.025]">
-      <div class="site-shell py-24 sm:py-32">
-        <div class="grid gap-14 lg:grid-cols-[.8fr_1.2fr] lg:items-center">
-          <div><p class="eyebrow">Ready in minutes</p><h2 class="section-title">Two phones.<br>One secure connection.</h2><p class="section-copy">ViewVee guides you through every step, from choosing a role to starting the live view.</p></div>
-          <ol class="grid gap-4 sm:grid-cols-3">
-            <li class="step-card"><span>01</span><h3>Choose roles</h3><p>Use one device as the camera and another as the monitor.</p></li>
-            <li class="step-card"><span>02</span><h3>Scan to pair</h3><p>Connect securely with a private QR code or pairing flow.</p></li>
-            <li class="step-card"><span>03</span><h3>Start watching</h3><p>See, listen, talk, and receive alerts wherever you are.</p></li>
-          </ol>
-        </div>
-      </div>
-    </section>
-
-    <section class="site-shell py-24 sm:py-32">
-      <div class="overflow-hidden rounded-[2rem] border border-cyan-300/15 bg-gradient-to-br from-cyan-400/15 via-blue-500/10 to-transparent px-6 py-14 text-center sm:px-12 sm:py-20">
-        <img src="/viewvee-icon-dark.png" class="mx-auto h-20 w-[4.25rem] rounded-2xl object-cover" alt="ViewVee">
-        <h2 class="mt-6 text-3xl font-black tracking-tight sm:text-5xl">Keep an eye on what you love.</h2>
-        <p class="mx-auto mt-5 max-w-2xl text-lg text-slate-300">ViewVee gives your spare phone a meaningful second life—and gives you a clearer view when you cannot be in the room.</p>
-        <a href="mailto:support@specterint.com" class="button-primary mt-9">Talk to ViewVee support</a>
-      </div>
-    </section>
-  </main>
-
-  <footer class="border-t border-white/5">
-    <div class="site-shell flex flex-col gap-5 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-      <p>© 2026 Specter Interactive. ViewVee.</p>
-      <div class="flex flex-wrap gap-5"><a class="hover:text-cyan-300" href="/privacy-policy.html">Privacy</a><a class="hover:text-cyan-300" href="/terms-of-use.html">Terms</a><a class="hover:text-cyan-300" href="/account/data-delete">Delete data</a><a class="hover:text-cyan-300" href="/account/delete">Delete account</a></div>
-    </div>
-  </footer>
+        <div class="vv-shell vv-footer-bottom"><span>© 2026 Specter Interactive. ViewVee.</span><span
+                data-i18n="iosAndroid">iOS &amp; Android</span></div>
+    </footer>
 </body>
+
 </html>

@@ -110,8 +110,9 @@ class InternetAudioSignaling implements AudioSignaling {
         throw const FormatException('Invalid signaling frame.');
       }
       final decoded = jsonDecode(raw);
-      if (decoded is! Map)
+      if (decoded is! Map) {
         throw const FormatException('Invalid signaling JSON.');
+      }
       final message = Map<String, dynamic>.from(decoded);
       switch (message['type']) {
         case 'registered':
@@ -185,7 +186,7 @@ class InternetAudioSignaling implements AudioSignaling {
       'type': 'relay',
       'payload': codec.encode({
         'type': type,
-        if (payload != null) 'payload': payload,
+        'payload': ?payload,
       }),
     });
   }
@@ -266,7 +267,8 @@ class InternetAudioSignaling implements AudioSignaling {
   }
 
   static void _completeError(Completer<void>? completer, Object error) {
-    if (completer != null && !completer.isCompleted)
+    if (completer != null && !completer.isCompleted) {
       completer.completeError(error);
+    }
   }
 }

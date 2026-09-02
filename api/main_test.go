@@ -39,6 +39,38 @@ func TestAccountDeletionRequest(t *testing.T) {
 	}
 }
 
+func TestContactRequest(t *testing.T) {
+	sender := &fakeSender{}
+	handler := newHandler(config{staticDir: "web"}, sender)
+	body := `{"name":"Jamie Doe","email":"jamie@example.com","subject":"Pairing help","message":"My devices cannot connect."}`
+	request := httptest.NewRequest(http.MethodPost, "/support/contact", strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("expected %d, got %d: %s", http.StatusAccepted, response.Code, response.Body.String())
+	}
+	if sender.replyTo != "jamie@example.com" || sender.subject != "[ViewVee Support] Pairing help" || !strings.Contains(sender.body, "Name: Jamie Doe") || !strings.Contains(sender.body, "My devices cannot connect.") {
+		t.Fatalf("unexpected email: subject=%q body=%q", sender.subject, sender.body)
+	}
+}
+
+func TestContactRequestValidatesRequiredFields(t *testing.T) {
+	sender := &fakeSender{}
+	handler := newHandler(config{staticDir: "web"}, sender)
+	request := httptest.NewRequest(http.MethodPost, "/support/contact", strings.NewReader(`{"email":"not-an-email"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("expected %d, got %d", http.StatusBadRequest, response.Code)
+	}
+}
+
 func TestDeletionRequestRequiresConfirmation(t *testing.T) {
 	sender := &fakeSender{}
 	handler := newHandler(config{staticDir: "web"}, sender)

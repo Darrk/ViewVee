@@ -53,7 +53,7 @@ class AudioPairingCredentials {
       'v': protocolVersion,
       'mode': mode.name,
       'secret': secret,
-      if (sessionId != null) 'session': sessionId!,
+      'session': ?sessionId,
     },
   ).toString();
 

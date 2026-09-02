@@ -1,0 +1,1414 @@
+:root {
+    color-scheme: light dark;
+    --vv-navy: #08162f;
+    --vv-teal: #09bfaf;
+    --vv-blue: #168fe5;
+    --vv-violet: #6537e8;
+    --vv-canvas: #f5f7fc;
+    --vv-surface: #ffffff;
+    --vv-outline: #dce2ef;
+    --vv-muted: #5c667a;
+    --vv-soft-teal: #e4f8f6;
+    --vv-soft-blue: #e6f3fd;
+    --vv-soft-violet: #ede8ff;
+    --vv-shadow: 0 24px 70px rgb(8 22 47 / 0.14);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body.vv-page {
+    margin: 0;
+    overflow-x: hidden;
+    background: var(--vv-canvas);
+    color: var(--vv-navy);
+    font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    line-height: 1.5;
+    letter-spacing: 0;
+}
+
+.vv-page a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.vv-page button,
+.vv-page select,
+.vv-page input,
+.vv-page textarea {
+    font: inherit;
+}
+
+.vv-page img {
+    max-width: 100%;
+}
+
+.vv-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.vv-shell {
+    width: min(1180px, calc(100% - 40px));
+    margin-inline: auto;
+}
+
+.vv-header {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 20;
+    height: 84px;
+    border-bottom: 1px solid rgb(220 226 239 / 0.82);
+    background: rgb(255 255 255 / 0.78);
+    box-shadow: 0 8px 28px rgb(8 22 47 / 0.05);
+    backdrop-filter: blur(16px);
+}
+
+.vv-nav {
+    display: flex;
+    height: 84px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.vv-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 44px;
+    font-size: 21px;
+    font-weight: 800;
+}
+
+.vv-header .vv-brand {
+    color: var(--vv-navy);
+    font-weight: 700;
+}
+
+.vv-brand picture {
+    display: inline-flex;
+}
+
+.vv-brand img {
+    width: 42px;
+    height: 46px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.vv-header .vv-brand img {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+}
+
+.vv-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.vv-nav-links a {
+    color: var(--vv-muted);
+    transition: color 160ms ease;
+}
+
+.vv-nav-links a:hover {
+    color: var(--vv-blue);
+}
+
+.vv-language {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 72px;
+    min-height: 44px;
+    padding: 0 11px;
+    border: 1px solid var(--vv-outline);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.75);
+}
+
+.vv-language svg {
+    width: 18px;
+    height: 18px;
+    color: var(--vv-blue);
+}
+
+.vv-language-code {
+    min-width: 2ch;
+    color: var(--vv-navy);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    text-align: center;
+}
+
+.vv-language select {
+    position: absolute;
+    inset: -1px;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    max-width: none;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--vv-navy);
+    opacity: 0;
+    cursor: pointer;
+}
+
+.vv-language:focus-within {
+    outline: 2px solid var(--vv-blue);
+    outline-offset: 2px;
+}
+
+.vv-hero {
+    position: relative;
+    min-height: 760px;
+    padding: 146px 0 80px;
+    isolation: isolate;
+}
+
+.vv-hero::before {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    content: "";
+    background:
+        linear-gradient(rgb(22 143 229 / 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(22 143 229 / 0.06) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+
+.vv-hero::after {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
+    background: linear-gradient(120deg, rgb(9 191 175 / 0.12), transparent 36%, rgb(22 143 229 / 0.09) 66%, rgb(101 55 232 / 0.08));
+}
+
+.vv-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.75fr);
+    align-items: center;
+    gap: 88px;
+}
+
+.vv-hero-copy {
+    min-width: 0;
+    max-width: 680px;
+}
+
+.vv-hero-brand {
+    position: relative;
+    width: min(100%, 440px);
+}
+
+.vv-hero-logo-wrap {
+    display: block;
+}
+
+.vv-hero-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.vv-animated-eye {
+    position: absolute;
+    top: 25.76%;
+    left: 43.2%;
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+}
+
+.vv-eye-pupil {
+    position: absolute;
+    top: 19px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 72% 28%, #293653 0, #17223e 58%, #071127 100%);
+    clip-path: circle(50% at 50% 50%);
+}
+
+.vv-eye-highlight-orbit {
+    position: absolute;
+    top: 21px;
+    left: 12px;
+    width: 37px;
+    height: 37px;
+    transform-origin: 50% 50%;
+    will-change: transform;
+    animation: vv-eye-turn 1600ms linear infinite;
+}
+
+.vv-eye-highlight {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: white;
+    clip-path: circle(50% at 50% 50%);
+}
+
+.vv-hero-benefit {
+    max-width: 620px;
+    margin: 28px 0 0;
+    color: var(--vv-navy);
+    font-size: 25px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.vv-lead {
+    max-width: 620px;
+    margin: 26px 0 0;
+    color: var(--vv-muted);
+    font-size: 19px;
+    line-height: 1.65;
+}
+
+.vv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 34px;
+}
+
+.vv-button {
+    display: inline-flex;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 0 21px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.vv-button:hover {
+    transform: translateY(-2px);
+}
+
+.vv-button-primary {
+    background: var(--vv-navy);
+    color: white !important;
+    box-shadow: 0 12px 30px rgb(8 22 47 / 0.18);
+}
+
+.vv-button-primary:hover {
+    background: #142746;
+}
+
+.vv-button-secondary {
+    border-color: var(--vv-outline);
+    background: rgb(255 255 255 / 0.82);
+    color: var(--vv-navy) !important;
+}
+
+.vv-button-secondary:hover {
+    border-color: var(--vv-blue);
+}
+
+.vv-button svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vv-proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px 26px;
+    margin: 32px 0 0;
+    padding: 0;
+    color: var(--vv-muted);
+    font-size: 13px;
+    font-weight: 700;
+    list-style: none;
+}
+
+.vv-proof li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vv-proof svg {
+    width: 17px;
+    height: 17px;
+    color: var(--vv-teal);
+}
+
+.vv-product-shot {
+    position: relative;
+    width: min(100%, 510px);
+    min-height: 620px;
+    justify-self: center;
+}
+
+.vv-product-shot::before {
+    position: absolute;
+    inset: 8% -16% 4%;
+    z-index: -1;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgb(9 191 175 / 0.25), rgb(22 143 229 / 0.18), rgb(101 55 232 / 0.2));
+    filter: blur(40px);
+    content: "";
+    animation: vv-glow-breathe 5s ease-in-out 800ms both;
+}
+
+.vv-phone {
+    position: absolute;
+    width: 56%;
+    aspect-ratio: 470 / 932;
+    overflow: hidden;
+    border: 7px solid #101c32;
+    border-radius: 34px;
+    background: #f4f7fc;
+    color: #08162f;
+    box-shadow: 0 28px 70px rgb(8 22 47 / 0.24);
+}
+
+.vv-phone-setup {
+    top: 60px;
+    left: 0;
+    z-index: 2;
+    transform: rotate(-6deg);
+    animation: vv-phone-from-left 900ms cubic-bezier(.16, 1, .3, 1) 240ms both;
+}
+
+.vv-phone-menu {
+    top: 6px;
+    right: 0;
+    z-index: 3;
+    background: #071323;
+    transform: rotate(6deg);
+    animation: vv-phone-from-right 900ms cubic-bezier(.16, 1, .3, 1) 360ms both;
+}
+
+.vv-phone img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.vv-shot-note {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 188px;
+    padding: 13px;
+    border: 1px solid var(--vv-outline);
+    border-radius: 8px;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 16px 38px rgb(8 22 47 / 0.13);
+    backdrop-filter: blur(12px);
+    transform: translateX(-50%);
+    animation: vv-connection-arrive 540ms cubic-bezier(.2, .8, .2, 1) 980ms both;
+}
+
+.vv-shot-note-icon {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--vv-soft-teal);
+    color: #087f76;
+}
+
+.vv-shot-note-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.vv-shot-note strong {
+    display: block;
+    font-size: 12px;
+}
+
+.vv-shot-note span {
+    display: block;
+    margin-top: 1px;
+    color: var(--vv-muted);
+    font-size: 10px;
+}
+
+.vv-signal {
+    border-block: 1px solid var(--vv-outline);
+    background: var(--vv-surface);
+}
+
+.vv-signal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.vv-signal-item {
+    padding: 25px 28px;
+    text-align: center;
+}
+
+.vv-signal-item+.vv-signal-item {
+    border-left: 1px solid var(--vv-outline);
+}
+
+.vv-signal-item strong {
+    display: block;
+    color: var(--vv-navy);
+    font-size: 16px;
+}
+
+.vv-signal-item span {
+    display: block;
+    margin-top: 4px;
+    color: var(--vv-muted);
+    font-size: 13px;
+}
+
+.vv-section {
+    padding: 104px 0;
+}
+
+.vv-section-soft {
+    border-block: 1px solid var(--vv-outline);
+    background: rgb(228 248 246 / 0.46);
+}
+
+.vv-section-head {
+    max-width: 680px;
+    margin-bottom: 48px;
+}
+
+.vv-section-head-center {
+    margin-inline: auto;
+    text-align: center;
+}
+
+.vv-eyebrow {
+    margin: 0 0 12px;
+    color: #087f76;
+    font-size: 12px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.vv-section h2 {
+    margin: 0;
+    color: var(--vv-navy);
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 1.1;
+    font-weight: 850;
+}
+
+.vv-section-intro {
+    margin: 18px 0 0;
+    color: var(--vv-muted);
+    font-size: 17px;
+    line-height: 1.7;
+}
+
+.vv-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border: 1px solid var(--vv-outline);
+    border-radius: 8px;
+    background: var(--vv-surface);
+    box-shadow: 0 18px 50px rgb(8 22 47 / 0.06);
+}
+
+.vv-feature {
+    min-height: 280px;
+    padding: 32px;
+}
+
+.vv-feature+.vv-feature {
+    border-left: 1px solid var(--vv-outline);
+}
+
+.vv-feature-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 8px;
+}
+
+.vv-feature:nth-child(1) .vv-feature-icon {
+    background: var(--vv-soft-teal);
+    color: #087f76;
+}
+
+.vv-feature:nth-child(2) .vv-feature-icon {
+    background: var(--vv-soft-blue);
+    color: var(--vv-blue);
+}
+
+.vv-feature:nth-child(3) .vv-feature-icon {
+    background: var(--vv-soft-violet);
+    color: var(--vv-violet);
+}
+
+.vv-feature-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.vv-feature h3 {
+    margin: 25px 0 0;
+    font-size: 20px;
+}
+
+.vv-feature p {
+    margin: 11px 0 0;
+    color: var(--vv-muted);
+    line-height: 1.7;
+}
+
+.vv-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 26px;
+    counter-reset: steps;
+}
+
+.vv-step {
+    position: relative;
+    padding-top: 21px;
+    border-top: 3px solid var(--vv-outline);
+    counter-increment: steps;
+}
+
+.vv-step::before {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    margin-bottom: 20px;
+    border-radius: 50%;
+    background: var(--vv-navy);
+    color: white;
+    font-size: 12px;
+    font-weight: 850;
+    content: "0" counter(steps);
+}
+
+.vv-step:nth-child(2) {
+    border-color: var(--vv-blue);
+}
+
+.vv-step:nth-child(2)::before {
+    background: var(--vv-blue);
+}
+
+.vv-step:nth-child(3) {
+    border-color: var(--vv-violet);
+}
+
+.vv-step:nth-child(3)::before {
+    background: var(--vv-violet);
+}
+
+.vv-step h3 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.vv-step p {
+    margin: 8px 0 0;
+    color: var(--vv-muted);
+    line-height: 1.65;
+}
+
+.vv-privacy {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    align-items: center;
+    gap: 70px;
+}
+
+.vv-privacy-mark {
+    position: relative;
+    display: grid;
+    width: 260px;
+    aspect-ratio: 1;
+    place-items: center;
+    margin-inline: auto;
+    border: 1px solid var(--vv-outline);
+    border-radius: 50%;
+    background: var(--vv-surface);
+}
+
+.vv-privacy-mark::before,
+.vv-privacy-mark::after {
+    position: absolute;
+    border: 1px solid rgb(9 191 175 / 0.25);
+    border-radius: 50%;
+    content: "";
+}
+
+.vv-privacy-mark::before {
+    inset: 22px;
+}
+
+.vv-privacy-mark::after {
+    inset: 46px;
+    border-color: rgb(22 143 229 / 0.28);
+}
+
+.vv-privacy-mark svg {
+    z-index: 1;
+    width: 72px;
+    height: 72px;
+    color: var(--vv-teal);
+}
+
+.vv-privacy-copy ul {
+    display: grid;
+    gap: 13px;
+    margin: 26px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.vv-privacy-copy li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: var(--vv-muted);
+}
+
+.vv-privacy-copy li::before {
+    color: var(--vv-teal);
+    font-weight: 900;
+    content: "\2713";
+}
+
+.vv-faq {
+    max-width: 820px;
+    margin-inline: auto;
+}
+
+.vv-faq details {
+    border-top: 1px solid var(--vv-outline);
+}
+
+.vv-faq details:last-child {
+    border-bottom: 1px solid var(--vv-outline);
+}
+
+.vv-faq summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 0;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+}
+
+.vv-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.vv-faq summary::after {
+    color: var(--vv-blue);
+    font-size: 25px;
+    font-weight: 400;
+    content: "+";
+}
+
+.vv-faq details[open] summary::after {
+    content: "\2212";
+}
+
+.vv-faq details p {
+    margin: -5px 0 24px;
+    color: var(--vv-muted);
+    line-height: 1.7;
+}
+
+.vv-cta {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(380px, 1.1fr);
+    gap: 64px;
+    overflow: hidden;
+    padding: 64px;
+    border: 1px solid rgb(101 55 232 / 0.18);
+    border-radius: 8px;
+    background: var(--vv-navy);
+    color: white;
+}
+
+.vv-cta::after {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 44%;
+    background: linear-gradient(135deg, rgb(9 191 175 / 0.35), rgb(22 143 229 / 0.2), rgb(101 55 232 / 0.38));
+    clip-path: polygon(35% 0, 100% 0, 100% 100%, 0 100%);
+    content: "";
+    pointer-events: none;
+}
+
+.vv-cta-content {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+}
+
+.vv-cta .vv-eyebrow {
+    color: #63e0d5;
+}
+
+.vv-cta h2 {
+    color: white;
+}
+
+.vv-cta p {
+    max-width: 600px;
+    color: #cdd5e3;
+}
+
+.vv-cta .vv-button-primary {
+    background: var(--vv-teal);
+    color: var(--vv-navy) !important;
+}
+
+.vv-cta .vv-button-primary:hover {
+    background: #35d2c4;
+}
+
+.vv-contact-email {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 18px;
+    color: white !important;
+    font-weight: 750;
+}
+
+.vv-contact-email:hover {
+    text-decoration: underline;
+}
+
+.vv-contact-form {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 18px;
+}
+
+.vv-contact-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.vv-contact-form label {
+    display: grid;
+    gap: 7px;
+    color: #f3f6fc;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.vv-contact-form input,
+.vv-contact-form textarea {
+    width: 100%;
+    border: 1px solid rgb(255 255 255 / 0.24);
+    border-radius: 6px;
+    outline: 0;
+    background: rgb(255 255 255 / 0.96);
+    color: var(--vv-navy);
+}
+
+.vv-contact-form input {
+    height: 48px;
+    padding: 0 14px;
+}
+
+.vv-contact-form textarea {
+    min-height: 138px;
+    padding: 12px 14px;
+    resize: vertical;
+}
+
+.vv-contact-form input:focus,
+.vv-contact-form textarea:focus {
+    border-color: var(--vv-teal);
+    box-shadow: 0 0 0 3px rgb(9 191 175 / 0.24);
+}
+
+.vv-contact-trap {
+    position: absolute;
+    left: -10000px;
+}
+
+.vv-contact-footer {
+    display: flex;
+    min-height: 50px;
+    align-items: center;
+    gap: 18px;
+}
+
+.vv-contact-status {
+    margin: 0 !important;
+    color: #dbe4f3 !important;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.vv-contact-status.is-success {
+    color: #8ff3e9 !important;
+}
+
+.vv-contact-status.is-error {
+    color: #ffc2c2 !important;
+}
+
+.vv-contact-form button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.vv-footer {
+    border-top: 1px solid var(--vv-outline);
+    background: var(--vv-surface);
+}
+
+.vv-footer-main {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 50px;
+    padding: 48px 0 34px;
+}
+
+.vv-footer-brand {
+    max-width: 380px;
+}
+
+.vv-footer-brand p {
+    margin: 15px 0 0;
+    color: var(--vv-muted);
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.vv-footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 15px 25px;
+    color: var(--vv-muted);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.vv-footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
+.vv-footer-links a:hover {
+    color: var(--vv-blue);
+}
+
+.vv-footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 0;
+    border-top: 1px solid var(--vv-outline);
+    color: var(--vv-muted);
+    font-size: 12px;
+}
+
+.vv-reveal {
+    animation: vv-rise 650ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.vv-reveal-delay {
+    animation-delay: 120ms;
+}
+
+@keyframes vv-rise {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes vv-eye-turn {
+    to {
+        transform: rotate(1turn);
+    }
+}
+
+@keyframes vv-phone-from-left {
+    from {
+        opacity: 0;
+        transform: translate3d(-48px, 22px, 0) rotate(-10deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: rotate(-6deg);
+    }
+}
+
+@keyframes vv-phone-from-right {
+    from {
+        opacity: 0;
+        transform: translate3d(48px, 12px, 0) rotate(10deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: rotate(6deg);
+    }
+}
+
+@keyframes vv-connection-arrive {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 14px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%);
+    }
+}
+
+@keyframes vv-glow-breathe {
+    0% {
+        opacity: 0;
+        transform: scale(0.88);
+    }
+
+    45% {
+        opacity: 1;
+        transform: scale(1.04);
+    }
+
+    100% {
+        opacity: 0.78;
+        transform: scale(1);
+    }
+}
+
+@media (max-width: 900px) {
+    .vv-nav-links>a {
+        display: none;
+    }
+
+    .vv-hero {
+        padding-top: 130px;
+    }
+
+    .vv-hero-grid {
+        grid-template-columns: 1fr;
+        gap: 65px;
+    }
+
+    .vv-hero-copy {
+        text-align: center;
+        margin-inline: auto;
+    }
+
+    .vv-hero-brand {
+        width: fit-content;
+        max-width: 440px;
+        margin-inline: auto;
+    }
+
+    .vv-hero-benefit {
+        margin-inline: auto;
+    }
+
+    .vv-lead {
+        margin-inline: auto;
+    }
+
+    .vv-actions,
+    .vv-proof {
+        justify-content: center;
+    }
+
+    .vv-product-shot {
+        width: min(88vw, 500px);
+    }
+
+    .vv-product-shot::before {
+        inset-inline: 0;
+    }
+
+    .vv-feature-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vv-feature {
+        min-height: auto;
+    }
+
+    .vv-feature+.vv-feature {
+        border-top: 1px solid var(--vv-outline);
+        border-left: 0;
+    }
+
+    .vv-privacy {
+        grid-template-columns: 1fr;
+        gap: 45px;
+    }
+}
+
+@media (max-width: 640px) {
+    .vv-shell {
+        width: min(100% - 28px, 1180px);
+    }
+
+    .vv-header,
+    .vv-nav {
+        height: 72px;
+    }
+
+    .vv-nav {
+        gap: 8px;
+    }
+
+    .vv-brand {
+        gap: 8px;
+        font-size: 17px;
+    }
+
+    .vv-brand img {
+        width: 35px;
+        height: 39px;
+    }
+
+    .vv-header .vv-brand img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .vv-header .vv-brand {
+        font-size: 18px;
+    }
+
+    .vv-language {
+        width: 70px;
+        min-width: 70px;
+        max-width: none;
+        padding: 0 9px;
+    }
+
+    .vv-language select {
+        width: 100%;
+        max-width: none;
+    }
+
+    .vv-hero {
+        min-height: auto;
+        padding: 108px 0 70px;
+        overflow: hidden;
+    }
+
+    .vv-hero-grid {
+        gap: 36px;
+    }
+
+    .vv-product-shot {
+        min-height: clamp(410px, 116vw, 500px);
+    }
+
+    .vv-phone-setup {
+        top: clamp(28px, 10vw, 44px);
+        left: clamp(8px, 4vw, 18px);
+    }
+
+    .vv-phone-menu {
+        right: clamp(8px, 4vw, 18px);
+    }
+
+    .vv-hero-brand {
+        width: min(100%, 270px);
+    }
+
+    .vv-animated-eye {
+        width: 37px;
+        height: 37px;
+    }
+
+    .vv-eye-pupil {
+        top: 12px;
+        left: 6px;
+        width: 25px;
+        height: 25px;
+    }
+
+    .vv-eye-highlight-orbit {
+        top: 13px;
+        left: 7px;
+        width: 23px;
+        height: 23px;
+    }
+
+    .vv-eye-highlight {
+        width: 8px;
+        height: 8px;
+    }
+
+    .vv-hero-benefit {
+        margin-top: 24px;
+        font-size: 22px;
+    }
+
+    .vv-lead {
+        margin-top: 18px;
+        font-size: 17px;
+    }
+
+    .vv-actions {
+        flex-direction: column;
+        margin-top: 24px;
+    }
+
+    .vv-button {
+        width: 100%;
+    }
+
+    .vv-proof {
+        display: none;
+    }
+
+    .vv-shot-note {
+        left: 50%;
+        bottom: 12px;
+        width: 170px;
+    }
+
+    .vv-signal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vv-signal-item+.vv-signal-item {
+        border-top: 1px solid var(--vv-outline);
+        border-left: 0;
+    }
+
+    .vv-section {
+        padding: 76px 0;
+    }
+
+    .vv-section-head {
+        margin-bottom: 36px;
+    }
+
+    .vv-feature {
+        padding: 26px;
+    }
+
+    .vv-steps {
+        grid-template-columns: 1fr;
+        gap: 34px;
+    }
+
+    .vv-privacy-mark {
+        width: 210px;
+    }
+
+    .vv-cta {
+        grid-template-columns: 1fr;
+        gap: 36px;
+        padding: 40px 24px;
+    }
+
+    .vv-cta::after {
+        opacity: 0.4;
+        width: 65%;
+    }
+
+    .vv-contact-row {
+        grid-template-columns: 1fr;
+    }
+
+    .vv-contact-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .vv-footer-main {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .vv-footer-bottom {
+        flex-direction: column;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --vv-canvas: #0a1322;
+        --vv-surface: #121c2e;
+        --vv-outline: #35435d;
+        --vv-muted: #b6c0d2;
+        --vv-soft-teal: #123c42;
+        --vv-soft-blue: #173652;
+        --vv-soft-violet: #312264;
+        --vv-shadow: 0 28px 80px rgb(0 0 0 / 0.42);
+    }
+
+    body.vv-page {
+        color: #f3f6fc;
+    }
+
+    .vv-header {
+        border-bottom-color: rgb(53 67 93 / 0.86);
+        background: rgb(10 19 34 / 0.82);
+        box-shadow: 0 8px 28px rgb(0 0 0 / 0.2);
+    }
+
+    .vv-header .vv-brand,
+    .vv-hero-benefit,
+    .vv-section h2,
+    .vv-signal-item strong {
+        color: #f3f6fc;
+    }
+
+    .vv-language {
+        background: rgb(18 28 46 / 0.8);
+    }
+
+    .vv-language select {
+        color: #f3f6fc;
+    }
+
+    .vv-language-code {
+        color: #f3f6fc;
+    }
+
+    .vv-hero::before {
+        opacity: 0.45;
+    }
+
+    .vv-hero::after {
+        background: linear-gradient(120deg, rgb(9 191 175 / 0.1), transparent 40%, rgb(22 143 229 / 0.08) 70%, rgb(101 55 232 / 0.09));
+    }
+
+    .vv-kicker {
+        background: rgb(18 60 66 / 0.72);
+        color: #d8fffb;
+    }
+
+    .vv-accent-text {
+        color: #53b7ff;
+    }
+
+    .vv-button-primary {
+        background: var(--vv-teal);
+        color: var(--vv-navy) !important;
+    }
+
+    .vv-button-primary:hover {
+        background: #35d2c4;
+    }
+
+    .vv-button-secondary {
+        background: rgb(18 28 46 / 0.85);
+        color: #f3f6fc !important;
+    }
+
+    .vv-shot-note {
+        background: rgb(18 28 46 / 0.94);
+    }
+
+    .vv-shot-note strong {
+        color: #f3f6fc;
+    }
+
+    .vv-eyebrow {
+        color: var(--vv-teal);
+    }
+
+    .vv-feature h3,
+    .vv-step h3,
+    .vv-faq summary {
+        color: #f3f6fc;
+    }
+
+    .vv-feature:nth-child(1) .vv-feature-icon {
+        color: var(--vv-teal);
+    }
+
+    .vv-section-soft {
+        background: rgb(18 60 66 / 0.22);
+    }
+
+    .vv-footer-links a:hover {
+        color: var(--vv-teal);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .vv-reveal,
+    .vv-product-shot::before,
+    .vv-phone,
+    .vv-shot-note {
+        animation: none;
+    }
+
+    .vv-eye-highlight-orbit {
+        animation: none;
+    }
+
+    .vv-button {
+        transition: none;
+    }
+}
