@@ -4,6 +4,7 @@ import 'package:universal_io/io.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
 import '../theme/viewvee_theme.dart';
 import '../widgets/viewvee_logo.dart';
 
@@ -253,50 +254,55 @@ class _AuthScreenState extends State<AuthScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _SocialIconButton(
-              key: const Key('signInApple'),
-              icon: const FaIcon(FontAwesomeIcons.apple, size: 23),
-              label: 'Pokračovat přes Apple',
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.white,
-              borderColor: ViewveeColors.outline,
-              onPressed: _loading || !Platform.isIOS
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.apple),
-            ),
-            const SizedBox(width: 22),
-            _SocialIconButton(
-              key: const Key('signInFacebook'),
-              icon: const FaIcon(
-                FontAwesomeIcons.facebookF,
-                size: 22,
-                color: Colors.white,
+            if (Platform.isIOS)
+              _SocialIconButton(
+                key: const Key('signInApple'),
+                icon: const FaIcon(FontAwesomeIcons.apple, size: 23),
+                label: 'Pokračovat přes Apple',
+                foregroundColor: Colors.black,
+                backgroundColor: Colors.white,
+                borderColor: ViewveeColors.outline,
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.apple),
               ),
-              label: 'Pokračovat přes Facebook',
-              foregroundColor: Colors.white,
-              backgroundColor: const Color(0xFF1877F2),
-              borderColor: const Color(0xFF1877F2),
-              onPressed: _loading
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.facebook),
-            ),
-            const SizedBox(width: 22),
-            _SocialIconButton(
-              key: const Key('signInGoogle'),
-              icon: Image.asset(
-                'assets/branding/google_g_logo.png',
-                width: 23,
-                height: 23,
-                filterQuality: FilterQuality.high,
+            if (Config.showFacebookLogin) ...[
+              const SizedBox(width: 22),
+              _SocialIconButton(
+                key: const Key('signInFacebook'),
+                icon: const FaIcon(
+                  FontAwesomeIcons.facebookF,
+                  size: 22,
+                  color: Colors.white,
+                ),
+                label: 'Pokračovat přes Facebook',
+                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF1877F2),
+                borderColor: const Color(0xFF1877F2),
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.facebook),
               ),
-              label: 'Pokračovat přes Google',
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.white,
-              borderColor: ViewveeColors.outline,
-              onPressed: _loading
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.google),
-            ),
+            ],
+            if (Config.showGoogleLogin) ...[
+              const SizedBox(width: 22),
+              _SocialIconButton(
+                key: const Key('signInGoogle'),
+                icon: Image.asset(
+                  'assets/branding/google_g_logo.png',
+                  width: 23,
+                  height: 23,
+                  filterQuality: FilterQuality.high,
+                ),
+                label: 'Pokračovat přes Google',
+                foregroundColor: Colors.black,
+                backgroundColor: Colors.white,
+                borderColor: ViewveeColors.outline,
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.google),
+              ),
+            ],
           ],
         ),
         if (_loading) ...[

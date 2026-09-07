@@ -254,38 +254,15 @@ void main() {
     expect(selector.selected, {ThemeMode.dark});
   });
 
-  testWidgets('drawer selection shows only subscription content', (
-    tester,
-  ) async {
+  testWidgets('drawer hides purchase options', (tester) async {
     await tester.pumpWidget(buildSubject());
 
     await tester.tap(find.byKey(const Key('accountMenuButton')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('drawerSubscription')));
-    await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('freePlanCard')), findsOneWidget);
-    expect(find.byKey(const Key('premiumPlanCard')), findsOneWidget);
-    expect(find.text('Wi-Fi monitoring • 1 hodina'), findsOneWidget);
-    expect(find.text('SD kvalita'), findsOneWidget);
-    expect(find.text('Internet pouze s Premium'), findsOneWidget);
-    expect(find.text('Bez nahrávání videa'), findsOneWidget);
-    expect(find.text('Reklama po každé hodině sledování'), findsOneWidget);
-    expect(find.byKey(const Key('premiumLocalizedPrice')), findsOneWidget);
-    expect(find.text('Víc klidu. Bez omezení.'), findsOneWidget);
-    expect(find.text('jednou navždy'), findsOneWidget);
-    expect(find.text('Neomezený internet'), findsOneWidget);
-    expect(find.text('HD video'), findsOneWidget);
-    expect(find.text('Nahrávání videa • pouze lokálně'), findsOneWidget);
-    expect(find.text('Obousměrný zvuk'), findsOneWidget);
-    expect(find.text('Žádné reklamy'), findsOneWidget);
-    expect(find.text('Neomezená délka spojení'), findsOneWidget);
-    expect(find.byKey(const Key('startSubscriptionButton')), findsOneWidget);
-    expect(find.text('Získat Premium'), findsOneWidget);
-    expect(find.text('149 Kč / měsíc'), findsNothing);
-    expect(find.byKey(const Key('profilePage')), findsNothing);
-    expect(find.byKey(const Key('languageMenuItem')), findsNothing);
-    expect(find.text('Jak vám můžeme pomoci?'), findsNothing);
+    expect(find.byKey(const Key('drawerSubscription')), findsNothing);
+    expect(find.byKey(const Key('subscriptionPage')), findsNothing);
+    expect(find.byKey(const Key('startSubscriptionButton')), findsNothing);
   });
 
   testWidgets('recordings are locked for the free plan', (tester) async {

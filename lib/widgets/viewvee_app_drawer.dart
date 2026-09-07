@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
 import '../theme/viewvee_theme.dart';
 import 'viewvee_logo.dart';
 
@@ -154,16 +155,17 @@ class ViewveeAppDrawer extends StatelessWidget {
                               ViewveeDrawerDestination.account,
                           onTap: () => closeAndRun(onOpenAccount),
                         ),
-                        _DrawerItem(
-                          key: const Key('drawerSubscription'),
-                          icon: Icons.workspace_premium_outlined,
-                          title: 'Předplatné',
-                          subtitle: 'ViewVee Free',
-                          selected:
-                              activeDestination ==
-                              ViewveeDrawerDestination.subscription,
-                          onTap: () => closeAndRun(onOpenSubscription),
-                        ),
+                        if (Config.showPurchaseOptions)
+                          _DrawerItem(
+                            key: const Key('drawerSubscription'),
+                            icon: Icons.workspace_premium_outlined,
+                            title: 'Předplatné',
+                            subtitle: 'ViewVee Free',
+                            selected:
+                                activeDestination ==
+                                ViewveeDrawerDestination.subscription,
+                            onTap: () => closeAndRun(onOpenSubscription),
+                          ),
                         _DrawerItem(
                           key: const Key('drawerPreferences'),
                           icon: Icons.palette_outlined,

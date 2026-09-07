@@ -21,7 +21,7 @@ class MonitorNotificationService {
     try {
       await _plugin.initialize(
         settings: const InitializationSettings(
-          android: AndroidInitializationSettings('ic_launcher'),
+          android: AndroidInitializationSettings('ic_launcher_foreground'),
           iOS: DarwinInitializationSettings(
             requestAlertPermission: false,
             requestBadgePermission: false,

@@ -5,6 +5,15 @@ import 'package:viewvee/localization/viewvee_localizations.dart';
 import 'package:viewvee/main.dart';
 
 void main() {
+  test('device roles use neutral labels for all monitoring types', () {
+    const english = ViewveeLocalizations(Locale('en'));
+    const czech = ViewveeLocalizations(Locale('cs'));
+    expect(english.translate('Kamera'), 'Camera');
+    expect(english.translate('Monitor'), 'Monitor');
+    expect(czech.translate('Kamera'), 'Kamera');
+    expect(czech.translate('Monitor'), 'Monitor');
+  });
+
   test('supports the same 28 locale variants as BabyWave', () {
     expect(ViewveeLocalizations.supportedLocales, hasLength(28));
     expect(ViewveeLocalizations.supportedLocales, contains(const Locale('ar')));

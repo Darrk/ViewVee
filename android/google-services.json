@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "742142459888",
+    "project_id": "viewvee-a3881",
+    "storage_bucket": "viewvee-a3881.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:742142459888:android:a068937b3b88140850a735",
+        "android_client_info": {
+          "package_name": "com.specterint.viewvee"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDx36tfuFOMNucQTWQqHe0QRQ9IxuFVeu4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

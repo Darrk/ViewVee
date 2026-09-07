@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth/auth_repository.dart';
+import 'config.dart';
 import 'screens/auth_screen.dart';
 import 'screens/account_menu_screen.dart';
 import 'screens/home_screen.dart';
@@ -83,7 +84,8 @@ class _ViewveeAppState extends State<ViewveeApp> {
         isGuest: false,
         watchMode: null,
         isPremium:
-            preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false,
+          !Config.enablePremiumFeatures ||
+          (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
       );
     }
     if (kDebugMode) {
@@ -116,7 +118,8 @@ class _ViewveeAppState extends State<ViewveeApp> {
             isGuest: false,
             watchMode: mode,
             isPremium:
-                preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false,
+              !Config.enablePremiumFeatures ||
+              (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
           ),
         );
       });

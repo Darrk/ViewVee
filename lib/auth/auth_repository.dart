@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config.dart';
 import 'working_timer_auth.dart';
 
 enum WatchMode { baby, pet, home }
@@ -52,7 +53,9 @@ class AuthRepository {
       isGuest: guest,
       accountId: identityUser?.id,
       watchMode: watchMode,
-      isPremium: preferences.getBool(premiumUnlockedKey) ?? false,
+      isPremium:
+          !Config.enablePremiumFeatures ||
+          (preferences.getBool(premiumUnlockedKey) ?? false),
     );
   }
 
@@ -60,7 +63,7 @@ class AuthRepository {
     _validateCredentials(email, password);
     final error = await _auth.signIn(email.trim(), password);
     if (error.isNotEmpty) throw AuthException(error);
-    await _clearGuestSession();
+    await _startAuthenticatedSession();
     await _syncProfileFromIdentity(fallbackEmail: email.trim());
   }
 
@@ -73,13 +76,14 @@ class AuthRepository {
     if (!signedIn) {
       throw const AuthException('Přihlášení bylo zrušeno nebo se nezdařilo.');
     }
-    await _clearGuestSession();
+    await _startAuthenticatedSession();
     await _syncProfileFromIdentity(clearWhenUnavailable: true);
   }
 
   Future<void> continueAsGuest() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_guestKey, true);
+    await preferences.remove(_modeKey);
     await _clearStoredProfile(preferences);
   }
 
@@ -138,9 +142,12 @@ class AuthRepository {
     await _clearStoredProfile(preferences);
   }
 
-  Future<void> _clearGuestSession() async {
+  Future<void> _startAuthenticatedSession() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_guestKey);
+    // Every explicit login starts with a new monitoring choice. Session
+    // restoration keeps the choice so reopening the app can resume it.
+    await preferences.remove(_modeKey);
   }
 
   Future<WorkingTimerUser?> _syncProfileFromIdentity({

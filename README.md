@@ -6,13 +6,13 @@ druhy zobrazuje prenos a muze zapnout obousmerny hovor.
 ## Prenos
 
 - **Stejna Wi-Fi:** Bonjour/mDNS najde kameru a signaling probiha pres TCP v
-	lokalni siti.
+  lokalni siti.
 - **Internet:** signaling probiha pres WSS relay; WebRTC pouziva STUN a volitelne
-	TURN.
+  TURN.
 - QR kod obsahuje 256bit pairing secret. Sestimistny kod je pouze verejny
-	identifikator a sam o sobe nestaci k pripojeni.
+  identifikator a sam o sobe nestaci k pripojeni.
 - Signaling zpravy jsou chranene HMAC, poradovym cislem a ochranou proti replay.
-	Media prenasi sifrovane WebRTC.
+  Media prenasi sifrovane WebRTC.
 
 ## Spusteni
 
@@ -114,3 +114,11 @@ Skript ve výchozím nastavení publikuje víceplatformový obraz
 `139685415139.dkr.ecr.eu-central-1.amazonaws.com/specterint/viewvee-web:latest`.
 Registry, region, repozitář, tag a platformy lze změnit proměnnými
 `AWS_ACCOUNT_ID`, `AWS_REGION`, `ECR_REPOSITORY`, `IMAGE_TAG` a `PLATFORMS`.
+
+## Deployment to AppStore (iOS)
+
+flutter build ipa --obfuscate --split-debug-info=build/app/outputs/symbols && ./ios/Pods/FirebaseCrashlytics/upload-symbols -ai 1:742142459888:ios:f4b3f0ecc0737d8350a735 --platform ios -- ./build/app/outputs/
+
+## Deployment to Google Play (Android)
+
+flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols && firebase crashlytics:symbols:upload --app=1:742142459888:android:a068937b3b88140850a735 build/app/outputs/symbols

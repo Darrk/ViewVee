@@ -93,6 +93,40 @@ UserModel _user() => UserModel(
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  for (final method in ['email', 'apple', 'facebook', 'google', 'guest']) {
+    test('$method login requires a fresh monitoring choice', () async {
+      SharedPreferences.setMockInitialValues({'profile.watchMode': 'baby'});
+      final repository = AuthRepository(
+        auth: FakeWorkingTimerAuth()..account = true,
+      );
+      if (method == 'email') {
+        await repository.signIn(
+          email: 'user@example.com',
+          password: 'password1',
+        );
+      } else if (method == 'guest') {
+        await repository.continueAsGuest();
+      } else {
+        await repository.signInWithProvider(AuthProvider.values.byName(method));
+      }
+      expect((await repository.restoreSession()).watchMode, isNull);
+      await repository.saveWatchMode(WatchMode.pet);
+      expect((await repository.restoreSession()).watchMode, WatchMode.pet);
+    });
+  }
+
+  test('failed login preserves the existing monitoring choice', () async {
+    SharedPreferences.setMockInitialValues({'profile.watchMode': 'home'});
+    final repository = AuthRepository(
+      auth: FakeWorkingTimerAuth()..signInError = 'Invalid credentials',
+    );
+    await expectLater(
+      repository.signIn(email: 'user@example.com', password: 'password1'),
+      throwsA(isA<AuthException>()),
+    );
+    expect((await repository.restoreSession()).watchMode, WatchMode.home);
+  });
+
   test('existing unexpired Working Timer account restores session', () async {
     final auth = FakeWorkingTimerAuth()..account = true;
 

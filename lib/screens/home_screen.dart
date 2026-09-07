@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/auth_repository.dart';
 import '../audio/audio_monitor_service.dart';
 import '../audio/audio_pairing.dart';
+import '../config.dart';
 import '../monitor/monitor_settings.dart';
 import '../notifications/monitor_notification_service.dart';
 import '../recordings/recording_repository.dart';
@@ -298,7 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final preferences = await SharedPreferences.getInstance();
     if (!mounted) return;
     final premium =
-        preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false;
+      !Config.enablePremiumFeatures ||
+      (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false);
     final premiumWasRemoved = _isPremium && !premium;
     final mustLeaveInternet =
         !premium && _connectionMode == AudioConnectionMode.internet;
