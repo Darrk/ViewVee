@@ -25,18 +25,17 @@ Internet build lze nakonfigurovat pomoci `--dart-define`:
 
 ```sh
 flutter run \
-	--dart-define=VIEWVEE_SIGNALING_URL=wss://signal.viewvee.com/viewvee/ws \
-	--dart-define=VIEWVEE_STUN_URLS=stun:stun.example.com:3478 \
-	--dart-define=VIEWVEE_TURN_URL=turns:turn.viewvee.com:5349 \
-	--dart-define=VIEWVEE_TURN_USERNAME=user \
-	--dart-define=VIEWVEE_TURN_CREDENTIAL=credential
+  --dart-define=VIEWVEE_SIGNALING_URL=wss://signal.viewvee.com/viewvee/ws \
+  --dart-define=VIEWVEE_TURN_CREDENTIALS_URL=https://viewvee.com/api/turn/credentials \
+  --dart-define=VIEWVEE_AUTH_SCOPES="openid email profile offline_access viewvee-api"
 ```
 
-Signal server `wss://signal.viewvee.com/viewvee/ws` a TURN server
-`turns:turn.viewvee.com:5349` jsou vychozi, takze jejich URL neni nutne
-predavat. Pro spojeni telefonu v ruznych sitich je produkcni TURN povinny. Pri
-release build procesu predejte `VIEWVEE_TURN_USERNAME` a
-`VIEWVEE_TURN_CREDENTIAL` z CI nebo backendu a neukladejte je do repozitare.
+Signal server a URL credential endpointu vyse jsou vychozi. TURN URL a expiraci
+urcuje API. Aplikace posila IdentityServer access token a pred kazdym novym
+internetovym spojenim i reconnectem ziska cerstve TURN credentials. Nepouzivejte
+build-time `VIEWVEE_TURN_USERNAME` / `VIEWVEE_TURN_CREDENTIAL`; sdileny TURN
+secret patri pouze na backend. Lokalni Wi-Fi pripojeni credential endpoint nevola.
+Nasazeni endpointu a nastaveni IdentityServeru popisuje [api/README.md](api/README.md).
 
 ## Platformy
 
@@ -112,8 +111,35 @@ ECR pomocí:
 
 Skript ve výchozím nastavení publikuje víceplatformový obraz
 `139685415139.dkr.ecr.eu-central-1.amazonaws.com/specterint/viewvee-web:latest`.
-Registry, region, repozitář, tag a platformy lze změnit proměnnými
-`AWS_ACCOUNT_ID`, `AWS_REGION`, `ECR_REPOSITORY`, `IMAGE_TAG` a `PLATFORMS`.
+Bez argumentů nyní publikuje také `specterint/viewvee-signal` a
+`specterint/viewvee-turn`. Pro jednotlivé služby použijte `./build.sh web`,
+`./build.sh signaling` nebo `./build.sh turn`. Registry, region, repozitáře,
+tag a platformy lze změnit proměnnými `AWS_ACCOUNT_ID`, `AWS_REGION`,
+`ECR_REPOSITORY` (web), `SIGNAL_ECR_REPOSITORY`, `TURN_ECR_REPOSITORY`,
+`IMAGE_TAG` a `PLATFORMS`.
+
+## Sdílená signaling a TURN infrastruktura
+
+ViewVee je hlavní správce infrastruktury používané ViewVee i BabyWave:
+
+- [`api/signaling-server`](api/signaling-server/README.md): samostatný Go WebSocket
+  relay pro `/viewvee/ws` i `/baby-monitor/ws`, se společnými rooms a `/healthz`.
+- [`api/turn-server`](api/turn-server/README.md): samostatný coturn server,
+  konfigurace a Docker Compose pro `turn.viewvee.com`.
+- `api/nginx.conf`: reverse proxy pro `signal.viewvee.com`; upstream `backend:8080`
+  musí směřovat na signaling kontejner, nikoli na webový server.
+
+Služby jsou nasazované odděleně od webu; signaling i web používají interní port
+8080 ve vlastních kontejnerech. Změna umístění nemění protokol ani produkční
+image názvy. ViewVee web/API poskytuje autentizovaný endpoint
+`GET /api/turn/credentials` pro scope a audience `viewvee-api`; jeho
+`TURN_SHARED_SECRET` musí odpovídat coturn konfiguraci. BabyWave může nadále
+používat vlastní endpoint se stejným coturn secretem.
+
+```sh
+(cd api && go test ./...)
+(cd api/signaling-server && go test -race ./...)
+```
 
 ## Deployment to AppStore (iOS)
 

@@ -20,6 +20,9 @@ class _FakeWorkingTimerAuth implements WorkingTimerAuth {
   bool signedIn = false;
 
   @override
+  Future<String> getAccessToken() async => 'test-access-token';
+
+  @override
   Future<WorkingTimerUser?> getLocalUser() async => null;
 
   @override

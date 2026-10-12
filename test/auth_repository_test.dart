@@ -19,6 +19,9 @@ class FakeWorkingTimerAuth implements WorkingTimerAuth {
   var signInCalls = 0;
 
   @override
+  Future<String> getAccessToken() async => 'test-access-token';
+
+  @override
   Future<bool> hasAccount() async => account;
 
   @override
@@ -92,6 +95,46 @@ UserModel _user() => UserModel(
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
+
+  test('API token refreshes expired identity credentials silently', () async {
+    final auth = FakeWorkingTimerAuth()
+      ..account = true
+      ..expired = true;
+    final repository = AuthRepository(auth: auth);
+    expect(await repository.getAccessToken(), 'test-access-token');
+    expect(auth.silentSignInCalls, 1);
+  });
+
+  test(
+    'API 401 can force refresh even if local token appears unexpired',
+    () async {
+      final auth = FakeWorkingTimerAuth()..account = true;
+      final repository = AuthRepository(auth: auth);
+      await repository.getAccessToken(forceRefresh: true);
+      expect(auth.silentSignInCalls, 1);
+    },
+  );
+
+  test('failed silent refresh prevents sending expired credentials', () async {
+    final auth = FakeWorkingTimerAuth()
+      ..account = true
+      ..expired = true
+      ..silentSignInResult = false;
+    await expectLater(
+      AuthRepository(auth: auth).getAccessToken(),
+      throwsA(isA<AuthException>()),
+    );
+  });
+
+  test(
+    'guest session never exposes a previously stored access token',
+    () async {
+      SharedPreferences.setMockInitialValues({'auth.guest': true});
+      final auth = FakeWorkingTimerAuth()..account = true;
+      expect(await AuthRepository(auth: auth).getAccessToken(), isNull);
+      expect(auth.silentSignInCalls, 0);
+    },
+  );
 
   for (final method in ['email', 'apple', 'facebook', 'google', 'guest']) {
     test('$method login requires a fresh monitoring choice', () async {

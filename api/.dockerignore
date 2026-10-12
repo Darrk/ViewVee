@@ -12,3 +12,5 @@ macos
 test
 windows
 *.log
+signaling-server
+turn-server

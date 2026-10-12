@@ -16,11 +16,16 @@ class ViewveeAuthConfig implements AuthConfig, ServicesConfig {
   String get authClientExtSecret => '377d51c7-cad8-4e46-a692-7b4d63e7a4ae';
 
   @override
-  String get authScopes =>
-      'openid email profile offline_access working-timer-api';
+  String get authScopes => const String.fromEnvironment(
+    'VIEWVEE_AUTH_SCOPES',
+    defaultValue: 'openid email profile offline_access viewvee-api',
+  );
 
   @override
-  String get identityUrl => 'https://identity.specterint.com/';
+  String get identityUrl => const String.fromEnvironment(
+    'VIEWVEE_IDENTITY_URL',
+    defaultValue: 'https://identity.specterint.com/',
+  );
 
   @override
   String get keyPKCEVerifier => 'keyPKCEVerifier';
@@ -53,6 +58,7 @@ class ViewveeAuthConfig implements AuthConfig, ServicesConfig {
 }
 
 abstract class WorkingTimerAuth {
+  Future<String> getAccessToken();
   Future<bool> hasAccount();
   Future<bool> isAccessTokenExpired();
   Future<bool> hasConnection();
@@ -117,6 +123,10 @@ class SpecterWorkingTimerAuth implements WorkingTimerAuth {
       identityService: identityService,
     );
   }
+
+  @override
+  Future<String> getAccessToken() async =>
+      (await _services).identity.getAccessToken();
 
   @override
   Future<bool> hasAccount() async => (await _services).identity.hasAccount();

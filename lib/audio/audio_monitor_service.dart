@@ -10,6 +10,7 @@ import 'audio_signaling.dart';
 import 'frame_motion_detector.dart';
 import 'internet_audio_signaling.dart';
 import 'local_audio_signaling.dart';
+import 'turn_credentials_service.dart';
 
 enum AudioMonitorRole { transmitter, receiver }
 
@@ -54,8 +55,11 @@ enum AudioConnectionState {
 class AudioMonitorService {
   AudioMonitorService({
     AudioSignaling? signaling,
+    TurnCredentialsService? turnCredentials,
     AudioConnectionMode mode = AudioConnectionMode.internet,
-  }) : _signaling =
+  }) : _mode = mode,
+       _turnCredentials = turnCredentials ?? TurnCredentialsService(),
+       _signaling =
            signaling ??
            switch (mode) {
              AudioConnectionMode.wifi => LocalAudioSignaling(),
@@ -70,8 +74,12 @@ class AudioMonitorService {
            };
 
   final AudioSignaling _signaling;
+  final AudioConnectionMode _mode;
+  final TurnCredentialsService _turnCredentials;
   static const _nativeChannel = MethodChannel('viewvee/audio_monitor');
   RTCPeerConnection? _peerConnection;
+  Future<RTCPeerConnection>? _creatingConnection;
+  int _connectionGeneration = 0;
   MediaStream? _localStream;
   MediaStream? _talkbackStream;
   RTCRtpSender? _talkbackSender;
@@ -207,10 +215,31 @@ class AudioMonitorService {
   }
 
   Future<RTCPeerConnection> _createConnection() async {
+    // Joining a room and receiving its offer can race while credentials load.
+    final pending = _creatingConnection;
+    if (pending != null) return pending;
+    final creation = _creatingConnection = _buildConnection();
+    try {
+      return await creation;
+    } finally {
+      if (identical(_creatingConnection, creation)) _creatingConnection = null;
+    }
+  }
+
+  Future<RTCPeerConnection> _buildConnection() async {
+    final generation = _connectionGeneration;
+    final servers = await _iceServers();
+    if (generation != _connectionGeneration) {
+      throw StateError('Connection creation was cancelled.');
+    }
     final connection = await createPeerConnection({
-      'iceServers': _iceServers(),
+      'iceServers': servers,
       'sdpSemantics': 'unified-plan',
     });
+    if (generation != _connectionGeneration) {
+      await connection.close();
+      throw StateError('Connection creation was cancelled.');
+    }
     connection.onIceCandidate = (candidate) {
       if (candidate.candidate == null) return;
       _signaling.addCandidate({
@@ -237,7 +266,8 @@ class AudioMonitorService {
     return connection;
   }
 
-  List<Map<String, dynamic>> _iceServers() {
+  Future<List<Map<String, dynamic>>> _iceServers() async {
+    if (_mode == AudioConnectionMode.wifi) return [];
     final servers = <Map<String, dynamic>>[
       {
         'urls': const String.fromEnvironment(
@@ -247,21 +277,10 @@ class AudioMonitorService {
         ).split(','),
       },
     ];
-    const turnUrl = String.fromEnvironment(
-      'VIEWVEE_TURN_URL',
-      defaultValue: 'turns:turn.viewvee.com:5349',
-    );
-    const turnUsername = String.fromEnvironment('VIEWVEE_TURN_USERNAME');
-    const turnCredential = String.fromEnvironment('VIEWVEE_TURN_CREDENTIAL');
-    if (turnUrl.isNotEmpty &&
-        turnUsername.isNotEmpty &&
-        turnCredential.isNotEmpty) {
-      servers.add({
-        'urls': [turnUrl],
-        'username': turnUsername,
-        'credential': turnCredential,
-      });
-    }
+    // New connections and reconnects obtain fresh credentials. Existing
+    // allocations are refreshed by WebRTC without interrupting active media.
+    final credentials = await _turnCredentials.fetch();
+    if (credentials != null) servers.add(credentials.toIceServer());
     return servers;
   }
 
@@ -531,6 +550,8 @@ class AudioMonitorService {
   Future<void> stop() async {
     if (_stopping) return;
     _stopping = true;
+    _connectionGeneration++;
+    _creatingConnection = null;
     try {
       try {
         await stopRecording();
@@ -642,6 +663,8 @@ class AudioMonitorService {
   }
 
   Future<void> _resetPeerConnection({required bool keepLocalStream}) async {
+    _connectionGeneration++;
+    _creatingConnection = null;
     try {
       await _peerConnection?.close().timeout(const Duration(seconds: 5));
     } catch (_) {}

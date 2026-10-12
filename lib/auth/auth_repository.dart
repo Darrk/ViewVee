@@ -35,6 +35,35 @@ class AuthRepository {
   static const profileEmailKey = 'profile.email';
 
   final WorkingTimerAuth _auth;
+  Future<bool>? _tokenRefresh;
+
+  /// Returns an access token for authenticated API requests, never an ID token.
+  /// Guests remain eligible for direct connections, but cannot obtain TURN.
+  Future<String?> getAccessToken({bool forceRefresh = false}) async {
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_guestKey) == true || !await _auth.hasAccount()) {
+      return null;
+    }
+    if (forceRefresh || await _auth.isAccessTokenExpired()) {
+      final refresh = _tokenRefresh ??= _auth.trySilentSignIn();
+      try {
+        if (!await refresh) {
+          throw const AuthException(
+            'Pro internetové připojení se znovu přihlaste.',
+          );
+        }
+      } finally {
+        if (identical(_tokenRefresh, refresh)) _tokenRefresh = null;
+      }
+    }
+    final token = await _auth.getAccessToken();
+    if (token.isEmpty) {
+      throw const AuthException(
+        'Pro internetové připojení se znovu přihlaste.',
+      );
+    }
+    return token;
+  }
 
   Future<AppSession> restoreSession() async {
     final preferences = await SharedPreferences.getInstance();

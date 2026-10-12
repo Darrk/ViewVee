@@ -8,13 +8,13 @@ class Config implements AuthConfig, ServicesConfig {
   String get authClientId => 'viewvee-app';
 
   @override
-  String get authClientSecret => '307c162c-0b7f-4afa-9d42-b4da4b92ab27'; // TODO: use env. var
+  String get authClientSecret => '071d22f0-414c-467e-a680-fca9034890ae'; // TODO: use env. var
 
   @override
   String get authClientExtId => 'viewvee-app-ext';
 
   @override
-  String get authClientExtSecret => '5f51905a-d6a4-493f-9ca5-28ad54c9bb60'; // TODO: use env. var
+  String get authClientExtSecret => '11e31fb5-5e13-4e28-9765-827165509c47'; // TODO: use env. var
 
   @override
   String get authScopes => 'openid email profile offline_access viewvee-api';
@@ -33,9 +33,9 @@ class Config implements AuthConfig, ServicesConfig {
       'https://viewvee.com/privacy-policy.html';
 
   @override
-  String get apiUrl => 'http://192.168.1.220:5001/'; //'https://wt-api.specterint.com/';
+  String get apiUrl => 'https://viewvee.com/api/';
 
-  static const String realtimeUrl = 'https://realtime.workingtimer.com/';
+  static const String realtimeUrl = 'https://viewvee.com/api/';
 
   static const String dropboxClientId = 'a4n6pa1v6ylhnsj'; // TODO: use env. var
 
@@ -53,7 +53,7 @@ class Config implements AuthConfig, ServicesConfig {
   }
 
   @override
-  String get appleClientId => 'com.specterinteractive.workingtimer';
+  String get appleClientId => 'com.specterint.viewvee';
 
   @override
   String get microsoftClientId => '';

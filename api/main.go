@@ -25,6 +25,7 @@ const maxRequestBody = 16 << 10
 const supportEmailAddress = "support@specterint.com"
 
 type config struct {
+	turn         turnConfig
 	addr         string
 	staticDir    string
 	smtpHost     string
@@ -69,10 +70,15 @@ func main() {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
+	turn, err := newTURNService(context.Background(), cfg.turn)
+	if err != nil {
+		slog.Error("invalid TURN authentication configuration", "error", err)
+		os.Exit(1)
+	}
 
 	server := &http.Server{
 		Addr:              cfg.addr,
-		Handler:           newHandler(cfg, smtpSender{config: cfg}),
+		Handler:           newHandler(cfg, smtpSender{config: cfg}, turn),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -86,11 +92,16 @@ func main() {
 }
 
 func loadConfig() (config, error) {
+	turn, err := loadTURNConfig()
+	if err != nil {
+		return config{}, err
+	}
 	port, err := strconv.Atoi(env("SMTP_PORT", "587"))
 	if err != nil || port < 1 || port > 65535 {
 		return config{}, errors.New("SMTP_PORT must be a valid TCP port")
 	}
 	cfg := config{
+		turn:         turn,
 		addr:         env("HTTP_ADDR", ":8080"),
 		staticDir:    env("STATIC_DIR", "web"),
 		smtpHost:     env("SMTP_HOST", "email-smtp.eu-central-1.amazonaws.com"),
@@ -110,8 +121,14 @@ func env(name, fallback string) string {
 	return fallback
 }
 
-func newHandler(cfg config, sender mailSender) http.Handler {
+func newHandler(cfg config, sender mailSender, turn ...*turnService) http.Handler {
 	mux := http.NewServeMux()
+	var credentials *turnService
+	if len(turn) > 0 {
+		credentials = turn[0]
+	}
+	mux.HandleFunc("GET /api/turn/credentials", credentials.handleCredentials)
+	mux.HandleFunc("OPTIONS /api/turn/credentials", credentials.handleOptions)
 	limiter := &rateLimiter{requests: make(map[string][]time.Time), now: time.Now}
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
