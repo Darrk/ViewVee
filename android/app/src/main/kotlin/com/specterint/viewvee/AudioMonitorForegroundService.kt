@@ -1,15 +1,18 @@
 package com.specterint.viewvee
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 class AudioMonitorForegroundService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -17,7 +20,6 @@ class AudioMonitorForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ensureChannel()
         val role = intent?.getStringExtra(EXTRA_ROLE) ?: ROLE_TRANSMITTER
-        val usesMicrophone = role != ROLE_RECEIVER
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
         val contentIntent = launchIntent?.let {
             PendingIntent.getActivity(
@@ -43,19 +45,42 @@ class AudioMonitorForegroundService : Service() {
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val type = if (usesMicrophone) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE or
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            } else {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-            }
-            startForeground(NOTIFICATION_ID, notification, type)
+            startForeground(NOTIFICATION_ID, notification, serviceType(role))
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
         return START_NOT_STICKY
     }
+
+    /**
+     * Declares only what each role really uses: the camera phone captures
+     * camera + microphone, the viewer plays the stream back and adds the
+     * microphone only for talkback. Types whose runtime permission is missing
+     * are dropped, since Android 14+ throws SecurityException for them.
+     */
+    private fun serviceType(role: String): Int {
+        var type = when (role) {
+            ROLE_RECEIVER -> ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            ROLE_RECEIVER_TALKBACK ->
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            else ->
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        }
+        if (!isGranted(Manifest.permission.CAMERA)) {
+            type = type and ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA.inv()
+        }
+        if (!isGranted(Manifest.permission.RECORD_AUDIO)) {
+            type = type and ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE.inv()
+        }
+        // Must stay non-zero for startForeground; playback needs no permission.
+        return if (type == 0) ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK else type
+    }
+
+    private fun isGranted(permission: String) =
+        ContextCompat.checkSelfPermission(this, permission) ==
+            PackageManager.PERMISSION_GRANTED
 
     private fun ensureChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return

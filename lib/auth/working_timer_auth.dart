@@ -95,7 +95,12 @@ class WorkingTimerUser {
 }
 
 class SpecterWorkingTimerAuth implements WorkingTimerAuth {
-  SpecterWorkingTimerAuth() : _services = _createServices();
+  SpecterWorkingTimerAuth() : _services = _sharedServices ??= _createServices();
+
+  // LocalStorage.init() assigns a `late final` static, so the services must be
+  // created once per process and shared by every instance.
+  static Future<({Identity identity, IdentityService identityService})>?
+  _sharedServices;
 
   final Future<({Identity identity, IdentityService identityService})>
   _services;

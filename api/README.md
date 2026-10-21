@@ -13,7 +13,7 @@ TURN_SHARED_SECRET=<same value as Coturn static-auth-secret>
 TURN_IDENTITY_ISSUER=https://identity.specterint.com/
 TURN_IDENTITY_AUDIENCE=viewvee-api
 TURN_REQUIRED_SCOPE=viewvee-api
-TURN_URLS=turns:turn.viewvee.com:443?transport=tcp
+TURN_URLS=turn:turn.viewvee.com:3478?transport=udp,turn:turn.viewvee.com:3478?transport=tcp,turns:turn.viewvee.com:443?transport=tcp
 TURN_CREDENTIAL_TTL_SECONDS=86400
 ```
 

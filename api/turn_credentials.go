@@ -33,7 +33,7 @@ func loadTURNConfig() (turnConfig, error) {
 		issuer:   env("TURN_IDENTITY_ISSUER", "https://identity.specterint.com/"),
 		audience: env("TURN_IDENTITY_AUDIENCE", "viewvee-api"),
 		scope:    env("TURN_REQUIRED_SCOPE", "viewvee-api"),
-		urls:     strings.Split(env("TURN_URLS", "turns:turn.viewvee.com:443?transport=tcp"), ","),
+		urls:     strings.Split(env("TURN_URLS", "turn:turn.viewvee.com:3478?transport=udp,turn:turn.viewvee.com:3478?transport=tcp,turns:turn.viewvee.com:443?transport=tcp"), ","),
 	}
 	if c.secret == "" {
 		return c, nil

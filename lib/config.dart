@@ -8,13 +8,13 @@ class Config implements AuthConfig, ServicesConfig {
   String get authClientId => 'viewvee-app';
 
   @override
-  String get authClientSecret => '071d22f0-414c-467e-a680-fca9034890ae'; // TODO: use env. var
+  String get authClientSecret => ''; // Public client (PKCE / no secret)
 
   @override
   String get authClientExtId => 'viewvee-app-ext';
 
   @override
-  String get authClientExtSecret => '11e31fb5-5e13-4e28-9765-827165509c47'; // TODO: use env. var
+  String get authClientExtSecret => ''; // Public client (no secret)
 
   @override
   String get authScopes => 'openid email profile offline_access viewvee-api';

@@ -13,14 +13,3 @@ services:
       - /tmp:size=16m,mode=1777
     security_opt:
       - no-new-privileges:true
-
-    networks:
-      proxy:
-        aliases:
-          - viewvee-turn
-
-networks:
-  proxy:
-    external: true
-    name: proxy
-
