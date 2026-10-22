@@ -44,8 +44,8 @@ dependencies:
   http: ^1.6.0
   connectivity_plus: ^6.0.5
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.2
-  bonsoir: ^5.1.4
+  mobile_scanner: ^7.4.2
+  bonsoir: ^6.1.0
   battery_plus: ^7.1.1
   path_provider: ^2.1.6
   video_player: ^2.13.0
@@ -77,6 +77,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  config:
+    enable-swift-package-manager: false
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

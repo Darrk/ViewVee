@@ -2582,26 +2582,22 @@ class _PairingScannerSheetState extends State<_PairingScannerSheet> {
                     children: [
                       MobileScanner(
                         controller: _controller,
-                        errorBuilder: (context, error, child) =>
-                            const DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF0B1A2C),
-                                    Color(0xFF142D45),
-                                  ],
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  Icons.qr_code_scanner_rounded,
-                                  color: ViewVeeColors.teal,
-                                  size: 72,
-                                ),
-                              ),
+                        errorBuilder: (context, error) => const DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF0B1A2C), Color(0xFF142D45)],
                             ),
+                          ),
+                          child: Center(
+                            child: Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: ViewVeeColors.teal,
+                              size: 72,
+                            ),
+                          ),
+                        ),
                         onDetect: _onDetect,
                       ),
                       Center(

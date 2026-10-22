@@ -111,7 +111,7 @@ class LocalAudioSignaling implements AudioSignaling {
         },
       ),
     );
-    await _broadcast!.ready;
+    await _broadcast!.initialize();
     await _broadcast!.start();
   }
 
@@ -145,17 +145,16 @@ class LocalAudioSignaling implements AudioSignaling {
       unawaited(_stopDiscovery());
     });
     _discovery = BonsoirDiscovery(type: _serviceType);
-    await _discovery!.ready;
+    await _discovery!.initialize();
     _discoverySubscription = _discovery!.eventStream!.listen((event) {
       if (result.isCompleted) return;
-      if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
+      if (event is BonsoirDiscoveryServiceFoundEvent) {
         final service = event.service;
-        if (service?.name.startsWith('ViewVee-') ?? false) {
-          service!.resolve(_discovery!.serviceResolver);
+        if (service.name.startsWith('ViewVee-')) {
+          unawaited(_discovery!.serviceResolver.resolveService(service));
         }
-      } else if (event.type ==
-          BonsoirDiscoveryEventType.discoveryServiceResolved) {
-        final service = event.service as ResolvedBonsoirService;
+      } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+        final service = event.service;
         final code =
             service.attributes['code'] ??
             service.name.substring(service.name.indexOf('-') + 1);
@@ -176,7 +175,7 @@ class LocalAudioSignaling implements AudioSignaling {
   }
 
   Future<void> _connectResolved(
-    ResolvedBonsoirService service,
+    BonsoirService service,
     Completer<bool> result,
   ) async {
     await _stopDiscovery();

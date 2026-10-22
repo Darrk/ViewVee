@@ -60,6 +60,7 @@ background audio or physical vibration behavior.
 
 Select **ViewVee (iOS 18.4 Simulator)** in Run and Debug. The launch task boots
 and waits for the installed iPhone 16 Pro Max simulator before starting Flutter.
-The current QR scanner dependency includes Intel-only simulator libraries, so
-use the iOS 18.4 runtime for simulator debugging. iOS 26 and later simulators
-require an ARM simulator build; physical iOS devices use the normal device build.
+The QR scanner uses Apple Vision on iOS and supports native ARM simulator
+builds. This project uses CocoaPods through `flutter.config` in `pubspec.yaml`
+to retain the existing native dependency setup. Bonsoir and the QR scanner
+now both provide Swift Package Manager support.
