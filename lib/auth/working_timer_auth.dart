@@ -119,9 +119,7 @@ class SpecterWorkingTimerAuth implements WorkingTimerAuth {
     );
     final localStorage = LocalStorage(
       useOnlySecured: true,
-      secureStorage: const FlutterSecureStorage(
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      ),
+      secureStorage: const FlutterSecureStorage(),
     );
     return (
       identity: Identity(identityService, config, localStorage),

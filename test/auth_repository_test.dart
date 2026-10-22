@@ -4,6 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:viewvee/auth/auth_repository.dart';
 import 'package:viewvee/audio/audio_pairing.dart';
 import 'package:viewvee/audio/audio_pairing_repository.dart';
+import 'package:viewvee/audio/camera_pairing_repository.dart';
+import 'package:viewvee/monitor/saved_camera_repository.dart';
 import 'package:viewvee/auth/working_timer_auth.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
@@ -113,7 +115,11 @@ void main() {
       final pairings = AudioPairingRepository();
       final old = await pairings.cameraCredentials(AudioPairingMode.wifi);
       await pairings.rememberMonitor(old.toUriString());
+      await CameraPairingRepository().remember(old.toUriString());
+      await SavedCameraRepository().remember(old.toUriString());
       await AuthRepository(auth: FakeWorkingTimerAuth()).signOut();
+      expect(await CameraPairingRepository().load(old.mode), isEmpty);
+      expect(await SavedCameraRepository().load(), isEmpty);
       final preferences = await SharedPreferences.getInstance();
       expect(preferences.getString('monitor.activeRole'), isNull);
       expect(preferences.getString('monitor.activeMode'), isNull);
@@ -162,6 +168,18 @@ void main() {
       final auth = FakeWorkingTimerAuth()..account = true;
       expect(await AuthRepository(auth: auth).getAccessToken(), isNull);
       expect(auth.silentSignInCalls, 0);
+    },
+  );
+  test(
+    'Free is the default and a stored Premium entitlement is respected',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final repository = AuthRepository(auth: FakeWorkingTimerAuth());
+      await repository.continueAsGuest();
+      expect((await repository.restoreSession()).isPremium, isFalse);
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setBool(AuthRepository.premiumUnlockedKey, true);
+      expect((await repository.restoreSession()).isPremium, isTrue);
     },
   );
 

@@ -51,15 +51,15 @@ class MainActivity : FlutterActivity() {
 					val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 					if (multicastLock?.isHeld != true) {
 						multicastLock = wifiManager.createMulticastLock("viewvee-discovery").apply {
-							setReferenceCounted(false)
-							acquire()
+							setReferenceCounted(true)
 						}
 					}
+					multicastLock?.acquire()
 					result.success(null)
 				}
 				"releaseMulticastLock" -> {
 					if (multicastLock?.isHeld == true) multicastLock?.release()
-					multicastLock = null
+					if (multicastLock?.isHeld != true) multicastLock = null
 					result.success(null)
 				}
 				else -> result.notImplemented()

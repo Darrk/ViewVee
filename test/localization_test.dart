@@ -5,6 +5,27 @@ import 'package:viewvee/localization/viewvee_localizations.dart';
 import 'package:viewvee/main.dart';
 
 void main() {
+  test('disconnected audio status is translated in every supported locale', () {
+    for (final locale in ViewVeeLocalizations.supportedLocales) {
+      expect(
+        ViewVeeLocalizations.hasNativeTranslation(
+          'Zvuk není připojený',
+          locale,
+        ),
+        isTrue,
+        reason: locale.toLanguageTag(),
+      );
+    }
+    expect(
+      const ViewVeeLocalizations(Locale('en')).translate('Zvuk není připojený'),
+      'Audio is not connected',
+    );
+    expect(
+      const ViewVeeLocalizations(Locale('cs')).translate('Zvuk není připojený'),
+      'Zvuk není připojený',
+    );
+  });
+
   test('device roles use neutral labels for all monitoring types', () {
     const english = ViewVeeLocalizations(Locale('en'));
     const czech = ViewVeeLocalizations(Locale('cs'));

@@ -15,10 +15,19 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.ResultReceiver
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
 class AudioMonitorForegroundService : Service() {
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    override fun onDestroy() {
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
+        super.onDestroy()
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -60,6 +69,14 @@ class AudioMonitorForegroundService : Service() {
         } catch (error: RuntimeException) {
             ready?.send(1, Bundle().apply { putString("error", error.message) })
             stopSelf()
+            return START_NOT_STICKY
+        }
+        if (wakeLock?.isHeld != true) {
+            val power = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "viewvee:audio").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
         }
         return START_NOT_STICKY
     }

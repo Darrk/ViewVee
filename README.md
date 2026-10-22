@@ -173,10 +173,12 @@ používat vlastní endpoint se stejným coturn secretem.
 (cd api/signaling-server && go test -race ./...)
 ```
 
-## Deployment to AppStore (iOS)
-
-flutter build ipa --obfuscate --split-debug-info=build/app/outputs/symbols && ./ios/Pods/FirebaseCrashlytics/upload-symbols -ai 1:742142459888:ios:f4b3f0ecc0737d8350a735 --platform ios -- ./build/app/outputs/
 
 ## Deployment to Google Play (Android)
 
-flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols && firebase crashlytics:symbols:upload --app=1:742142459888:android:a068937b3b88140850a735 build/app/outputs/symbols
+flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbols
+firebase crashlytics:symbols:upload --app=1:742142459888:android:a068937b3b88140850a735 build/app/outputs/symbols
+
+## Deployment to AppStore (iOS)
+
+flutter build ipa --obfuscate --split-debug-info=build/app/outputs/symbols && ./ios/Pods/FirebaseCrashlytics/upload-symbols -ai 1:742142459888:ios:f4b3f0ecc0737d8350a735 --platform ios -- ./build/app/outputs/

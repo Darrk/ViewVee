@@ -160,7 +160,9 @@ class ViewVeeAppDrawer extends StatelessWidget {
                             key: const Key('drawerSubscription'),
                             icon: Icons.workspace_premium_outlined,
                             title: 'Předplatné',
-                            subtitle: 'ViewVee Free',
+                            subtitle: isPremium
+                                ? 'ViewVee Premium'
+                                : 'ViewVee Free',
                             selected:
                                 activeDestination ==
                                 ViewVeeDrawerDestination.subscription,

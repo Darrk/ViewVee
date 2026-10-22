@@ -1,3 +1,5 @@
+import 'audio_pairing.dart';
+
 abstract class AudioSignaling {
   void Function()? onPeerReady;
   void Function(Map<String, dynamic> description)? onOffer;
@@ -9,7 +11,7 @@ abstract class AudioSignaling {
   String? get roomCode;
   String? get pairingUri;
 
-  Future<String> createRoom();
+  Future<String> createRoom({AudioPairingCredentials? credentials});
   Future<bool> joinRoom(String pairingValue);
   Future<void> sendOffer(Map<String, dynamic> offer);
   Future<void> sendAnswer(Map<String, dynamic> answer);

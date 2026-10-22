@@ -2,6 +2,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
 import '../audio/audio_pairing_repository.dart';
+import '../audio/camera_pairing_repository.dart';
+import '../monitor/saved_camera_repository.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'working_timer_auth.dart';
 
 enum WatchMode { baby, pet, home }
@@ -169,6 +172,10 @@ class AuthRepository {
     final guest = preferences.getBool(_guestKey) ?? false;
     if (!guest) await _auth.signOut();
     await AudioPairingRepository().clear();
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: CameraPairingRepository.storageKey);
+    await storage.delete(key: SavedCameraRepository.storageKey);
+    SavedCameraRepository.changes.value++;
     await preferences.remove('monitor.activeRole');
     await preferences.remove('monitor.activeMode');
     await preferences.remove(_guestKey);

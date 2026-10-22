@@ -2,6 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Start ViewVee iOS Simulator",
+      "type": "process",
+      "command": "xcrun",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent"
+      },
+      "args": [
+        "simctl",
+        "bootstatus",
+        "AFF6D6B7-4C3B-493D-83BB-DA30A7CFAE81",
+        "-b"
+      ]
+    },
+    {
       "label": "Start ViewVee Go Web Server",
       "type": "shell",
       "command": "set -e\ndocker rm -f viewvee-web-dev >/dev/null 2>&1 || true\ndocker build --file api/Dockerfile --tag viewvee-web:dev api\ndocker run --detach --rm --name viewvee-web-dev --publish 127.0.0.1:8080:8080 --env SMTP_USERNAME --env SMTP_PASSWORD --env SMTP_HOST --env SMTP_PORT --env SMTP_FROM --env SMTP_FROM_NAME viewvee-web:dev >/dev/null\nfor attempt in $(seq 1 30); do\n  if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null; then\n    echo 'ViewVee Go web server is ready at http://localhost:8080'\n    exit 0\n  fi\n  sleep 1\ndone\ndocker logs viewvee-web-dev\ndocker rm -f viewvee-web-dev >/dev/null 2>&1 || true\necho 'ViewVee Go web server did not become ready.' >&2\nexit 1",

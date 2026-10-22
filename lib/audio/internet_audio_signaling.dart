@@ -55,10 +55,13 @@ class InternetAudioSignaling implements AudioSignaling {
   String? get pairingUri => _credentials?.toUriString();
 
   @override
-  Future<String> createRoom() async {
-    _credentials = await _pairingRepository.cameraCredentials(
-      AudioPairingMode.internet,
-    );
+  Future<String> createRoom({AudioPairingCredentials? credentials}) async {
+    if (credentials != null && credentials.mode != AudioPairingMode.internet) {
+      throw ArgumentError('Pairing mode does not match transport.');
+    }
+    _credentials =
+        credentials ??
+        await _pairingRepository.cameraCredentials(AudioPairingMode.internet);
     _role = 'transmitter';
     await _connectAndRegister();
     return roomCode!;
@@ -224,6 +227,8 @@ class InternetAudioSignaling implements AudioSignaling {
   @override
   Future<void> rearmForNewPeer() async {
     if (_role != 'transmitter' || _credentials == null) return;
+    // A failed socket may still have a channel object. Re-register the same
+    // session to obtain a fresh peer-ready event and encryption epoch.
     await _connectAndRegister();
   }
 

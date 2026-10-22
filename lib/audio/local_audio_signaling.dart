@@ -67,10 +67,13 @@ class LocalAudioSignaling implements AudioSignaling {
   String? get pairingUri => _credentials?.toUriString();
 
   @override
-  Future<String> createRoom() async {
-    _credentials = await _pairingRepository.cameraCredentials(
-      AudioPairingMode.wifi,
-    );
+  Future<String> createRoom({AudioPairingCredentials? credentials}) async {
+    if (credentials != null && credentials.mode != AudioPairingMode.wifi) {
+      throw ArgumentError('Pairing mode does not match transport.');
+    }
+    _credentials =
+        credentials ??
+        await _pairingRepository.cameraCredentials(AudioPairingMode.wifi);
     _isClient = false;
     await _acquireMulticastLock();
     try {

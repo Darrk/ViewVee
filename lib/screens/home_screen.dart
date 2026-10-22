@@ -14,7 +14,12 @@ import '../audio/audio_monitor_service.dart';
 import '../audio/audio_pairing.dart';
 import '../audio/audio_pairing_repository.dart';
 import '../config.dart';
+import '../monitor/free_session_limit.dart';
+import '../ads/session_break_ad.dart';
 import '../monitor/monitor_settings.dart';
+import '../monitor/camera_directory.dart';
+import '../monitor/saved_camera_repository.dart';
+import '../widgets/saved_camera_list.dart';
 import '../notifications/monitor_notification_service.dart';
 import '../recordings/recording_repository.dart';
 import '../theme/viewvee_theme.dart';
@@ -50,12 +55,13 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   static const _activeRoleKey = 'monitor.activeRole';
   static const _activeModeKey = 'monitor.activeMode';
   final _pairingRepository = AudioPairingRepository();
   late AudioMonitorService _audioMonitor;
   final _settingsRepository = MonitorSettingsRepository();
+  final _cameraDirectory = CameraDirectory();
   final _notificationService = MonitorNotificationService();
   final _recordingRepository = RecordingRepository();
   late AudioConnectionMode _connectionMode;
@@ -65,7 +71,12 @@ class _HomeScreenState extends State<HomeScreen> {
   late bool _isPremium;
   bool _flash = false;
   bool _nightMode = false;
+  bool _videoSettingsBusy = false;
+  bool _addingMonitor = false;
   bool _microphone = false;
+  bool _monitorFullscreen = false;
+  bool _appBackgrounded = false;
+  Future<void> _lifecycleUpdate = Future<void>.value();
   bool _audioBusy = false;
   bool _backgroundBusy = false;
   AudioConnectionState _audioState = AudioConnectionState.idle;
@@ -75,8 +86,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _motionNotification = true;
   bool _soundNotification = true;
   bool _connectionNotification = true;
+  bool _autoReconnectEnabled = true;
   double _sensitivity = 1;
   MonitorTelemetry _telemetry = const MonitorTelemetry();
+  late final FreeSessionLimit _freeSessionLimit;
+  bool _freeBreakBusy = false;
   Timer? _recordingTimer;
   DateTime? _recordingStartedAt;
   RecordingSource? _recordingSource;
@@ -87,12 +101,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _appBackgrounded =
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.hidden ||
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.paused;
+    _freeSessionLimit = FreeSessionLimit(
+      onExpired: () => unawaited(_endFreeSession()),
+    );
     _isPremium = widget.isPremium;
+    _cameraDirectory.setPremiumEnabled(_isPremium);
     _isHd = _isPremium;
     _connectionMode = _isPremium
         ? AudioConnectionMode.internet
         : AudioConnectionMode.wifi;
     _createAudioMonitor();
+    _cameraDirectory.addListener(_onCameraDirectoryChanged);
     unawaited(_loadSettings());
     unawaited(_notificationService.initialize());
     unawaited(_restoreSession());
@@ -128,10 +151,38 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      return;
+    }
+    _appBackgrounded = state != AppLifecycleState.resumed;
+    _lifecycleUpdate = _lifecycleUpdate
+        .then((_) async {
+          if (!mounted) return;
+          await _cameraDirectory.setAppBackgrounded(_appBackgrounded);
+          if (_role == DeviceRole.camera) {
+            await _audioMonitor.setAppBackgrounded(_appBackgrounded);
+          }
+        })
+        .catchError((Object error) {
+          if (mounted) setState(() => _audioError = error.toString());
+        });
+  }
+
   void _createAudioMonitor() {
-    _audioMonitor = AudioMonitorService(mode: _connectionMode);
+    _attachAudioMonitor(
+      AudioMonitorService(mode: _connectionMode, isPremium: _isPremium),
+    );
+  }
+
+  void _attachAudioMonitor(AudioMonitorService monitor) {
+    _audioMonitor = monitor;
+    unawaited(_audioMonitor.setAppBackgrounded(_appBackgrounded));
+    _audioMonitor.setAutoReconnectEnabled(_autoReconnectEnabled);
     _audioMonitor.onStateChanged = (state) {
-      if (!mounted) return;
+      if (!mounted || !identical(_audioMonitor, monitor)) return;
       setState(() {
         _audioState = state;
         if (state == AudioConnectionState.connected ||
@@ -144,9 +195,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _roomCode = _audioMonitor.roomCode;
         }
       });
+      _updateFreeSessionLimit();
     };
     _audioMonitor.onRemoteHangup = () {
-      if (!mounted) return;
+      if (!mounted || !identical(_audioMonitor, monitor)) return;
       setState(() => _audioError = 'Druhé zařízení se odpojilo.');
       if (_connectionNotification) {
         unawaited(
@@ -155,13 +207,25 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     };
     _audioMonitor.onError = (error) {
-      if (!mounted) return;
+      if (!mounted || !identical(_audioMonitor, monitor)) return;
       setState(() => _audioError = error.toString());
     };
+    _audioMonitor.onVideoSettingsChanged = () {
+      if (!mounted || !identical(_audioMonitor, monitor)) return;
+      setState(() {
+        _isHd = _audioMonitor.isHd;
+        _nightMode = _audioMonitor.nightMode;
+        _flash = _audioMonitor.torchEnabled;
+        _frontCamera = _audioMonitor.isFrontCamera;
+      });
+    };
     _audioMonitor.onTelemetry = (telemetry) {
-      if (mounted) setState(() => _telemetry = telemetry);
+      if (mounted && identical(_audioMonitor, monitor)) {
+        setState(() => _telemetry = telemetry);
+      }
     };
     _audioMonitor.onDetection = (event) {
+      if (!mounted || !identical(_audioMonitor, monitor)) return;
       final type = switch (event) {
         MonitorDetectionEvent.motion when _motionNotification =>
           MonitorNotificationType.motion,
@@ -169,9 +233,80 @@ class _HomeScreenState extends State<HomeScreen> {
           MonitorNotificationType.sound,
         _ => null,
       };
-      if (type != null) unawaited(_notificationService.show(type));
+      if (type != null) {
+        unawaited(
+          _notificationService.show(
+            type,
+            watchMode: widget.watchMode,
+            inForeground: !_appBackgrounded,
+          ),
+        );
+      }
     };
     unawaited(_syncDetectionSettings());
+    _updateFreeSessionLimit();
+  }
+
+  final Set<String> _camerasAwaitingName = {};
+  bool _showingCameraName = false;
+
+  void _offerNewCameraName() {
+    if (!mounted ||
+        _role != DeviceRole.monitor ||
+        _audioBusy ||
+        _showingCameraName) {
+      return;
+    }
+    final camera = _cameraDirectory.cameras
+        .where(
+          (camera) =>
+              _camerasAwaitingName.contains(camera.id) &&
+              _cameraDirectory.stateOf(camera.id) ==
+                  AudioConnectionState.connected,
+        )
+        .firstOrNull;
+    if (camera == null) return;
+    _showingCameraName = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        if (!mounted ||
+            _role != DeviceRole.monitor ||
+            !_cameraDirectory.cameras.any((entry) => entry.id == camera.id) ||
+            _cameraDirectory.stateOf(camera.id) !=
+                AudioConnectionState.connected) {
+          return;
+        }
+        _camerasAwaitingName.remove(camera.id);
+        if (camera.name == null) {
+          await _renameSavedCamera(camera, firstPairing: true);
+        }
+      } finally {
+        _showingCameraName = false;
+      }
+    });
+  }
+
+  void _onCameraDirectoryChanged() {
+    if (!mounted || _role != DeviceRole.monitor) return;
+    final selected = _cameraDirectory.selectedService;
+    setState(() {
+      if (selected == null) {
+        _audioState = AudioConnectionState.idle;
+        return;
+      }
+      if (!identical(_audioMonitor, selected)) {
+        _attachAudioMonitor(selected);
+        _audioError = null;
+      }
+      _audioState = selected.state;
+      _isHd = selected.isHd;
+      _nightMode = selected.nightMode;
+      _flash = selected.torchEnabled;
+      _microphone = selected.isTalkbackEnabled;
+      _telemetry = selected.telemetry;
+    });
+    _offerNewCameraName();
+    _updateFreeSessionLimit();
   }
 
   Future<void> _loadSettings() async {
@@ -181,8 +316,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _motionNotification = settings.motionEnabled;
       _soundNotification = settings.soundEnabled;
       _connectionNotification = settings.connectionEnabled;
+      _autoReconnectEnabled = settings.autoReconnectEnabled;
       _sensitivity = settings.sensitivity.toDouble();
     });
+    _audioMonitor.setAutoReconnectEnabled(_autoReconnectEnabled);
+    _cameraDirectory.setAutoReconnectEnabled(_autoReconnectEnabled);
     await _syncDetectionSettings();
   }
 
@@ -192,6 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
         motionEnabled: _motionNotification,
         soundEnabled: _soundNotification,
         connectionEnabled: _connectionNotification,
+        autoReconnectEnabled: _autoReconnectEnabled,
         sensitivity: _sensitivity.round(),
       ),
     );
@@ -206,7 +345,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_monitorFullscreen) {
+      unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    }
+    _cameraDirectory.removeListener(_onCameraDirectoryChanged);
+    _cameraDirectory.dispose();
     _recordingTimer?.cancel();
+    _freeSessionLimit.dispose();
     final recordingPath = _recordingPath;
     final recordingStartedAt = _recordingStartedAt;
     final recordingSource = _recordingSource;
@@ -226,13 +372,35 @@ class _HomeScreenState extends State<HomeScreen> {
     _audioMonitor.onRemoteHangup = null;
     _audioMonitor.onError = null;
     _audioMonitor.onTelemetry = null;
+    _audioMonitor.onVideoSettingsChanged = null;
     _audioMonitor.onDetection = null;
     unawaited(_audioMonitor.stop());
     super.dispose();
   }
 
+  void _setMonitorFullscreen(bool fullscreen) {
+    setState(() => _monitorFullscreen = fullscreen);
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        fullscreen ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_monitorFullscreen && _role == DeviceRole.monitor) {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) _setMonitorFullscreen(false);
+        },
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(child: SizedBox.expand(child: _monitorVideoSurface())),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         surfaceTintColor: Colors.transparent,
@@ -353,6 +521,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final mustLeaveInternet =
         !premium && _connectionMode == AudioConnectionMode.internet;
     if (premiumWasRemoved) {
+      await _audioMonitor.setTalkbackEnabled(false);
       await _stopRecording(showMessage: false);
       await _audioMonitor.setVideoQuality(isHd: false);
     }
@@ -360,9 +529,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _audioMonitor.onStateChanged = null;
       _audioMonitor.onRemoteHangup = null;
       _audioMonitor.onError = null;
+      await _cameraDirectory.stop();
       await _audioMonitor.stop();
     }
     if (!mounted) return;
+    _audioMonitor.setPremiumEnabled(premium);
+    _cameraDirectory.setPremiumEnabled(premium);
     setState(() {
       _isPremium = premium;
       if (!_isPremium) {
@@ -378,6 +550,72 @@ class _HomeScreenState extends State<HomeScreen> {
         _createAudioMonitor();
       }
     });
+    _updateFreeSessionLimit();
+  }
+
+  void _updateFreeSessionLimit() {
+    if (_isPremium) {
+      _freeSessionLimit.reset();
+      return;
+    }
+    _freeSessionLimit.update(
+      running:
+          !_isPremium &&
+          _role != null &&
+          _audioState == AudioConnectionState.connected,
+    );
+  }
+
+  Future<void> _endFreeSession() async {
+    if (!mounted || _isPremium) return;
+    final previousRole = _role;
+    await _leaveDeviceRole();
+    if (!mounted || _appBackgrounded) return;
+    if (await _continueAfterFreeLimit() && mounted && previousRole != null) {
+      await _selectRole(previousRole);
+    }
+  }
+
+  Future<bool> _continueAfterFreeLimit() async {
+    if (_isPremium || !_freeSessionLimit.expired) return true;
+    if (_freeBreakBusy) return false;
+    _freeBreakBusy = true;
+    try {
+      final continueFree = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const VvText('Hodina sledování skončila'),
+          content: const VvText(
+            'Ve Free můžete po reklamní přestávce pokračovat další hodinu. Premium nabízí sledování bez přerušení a reklam.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const VvText('Ukončit'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const VvText('Zobrazit Premium'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const VvText('Pokračovat'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || continueFree == null) return false;
+      if (!continueFree) {
+        await _openAccountMenu(ViewVeeDrawerDestination.subscription);
+        return _isPremium;
+      }
+      await SessionBreakAd().show();
+      if (!mounted) return false;
+      _freeSessionLimit.reset();
+      return true;
+    } finally {
+      _freeBreakBusy = false;
+    }
   }
 
   Future<void> _showPremiumRequired({
@@ -470,6 +708,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _addDevice(DevicePairingAction action) async {
     Navigator.of(context).pop();
     await _stopRecording(showMessage: false);
+    await _cameraDirectory.stop();
     await _audioMonitor.stop();
     if (!mounted) return;
     setState(() {
@@ -492,11 +731,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _cameraView() {
-    final colors = Theme.of(context).colorScheme;
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        _AudioStatusBar(state: _audioState, onReconnect: _startTransmitter),
+        _AudioStatusBar(state: _audioState, onReconnect: _reconnectSession),
         if (_audioError != null) _AudioError(message: _audioError!),
         if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
           const SizedBox(height: 12),
@@ -525,108 +763,64 @@ class _HomeScreenState extends State<HomeScreen> {
         _VideoSurface(
           title: _frontCamera ? 'Přední kamera' : 'Zadní kamera',
           connected: _audioState == AudioConnectionState.connected,
+          reconnecting: _audioMonitor.isAutoReconnecting,
           overlay: _isHd ? 'HD 720p' : 'SD 480p',
           renderer: _audioMonitor.localVideoRenderer,
           mirror: _frontCamera,
           nightMode: _nightMode,
-          recording: _recordingStartedAt != null,
         ),
         const SizedBox(height: 12),
-        _RecordingControl(
-          recording: _recordingStartedAt != null,
-          busy: _recordingBusy,
-          elapsed: _recordingElapsed,
-          locked: !_isPremium,
-          enabled: !_audioBusy && _audioMonitor.canRecord,
-          onLockedPressed: _showRecordingPremiumRequired,
-          onPressed: _recordingStartedAt == null
-              ? () => _startRecording(RecordingSource.camera)
-              : _stopRecording,
+        Text(
+          context
+              .vv('Připojené monitory: {count}')
+              .replaceAll('{count}', '${_audioMonitor.connectedMonitorCount}'),
+          textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: SegmentedButton<bool>(
-                segments: [
-                  const ButtonSegment(value: false, label: VvText('SD')),
-                  ButtonSegment(
-                    value: true,
-                    icon: Icon(
-                      _isPremium
-                          ? Icons.hd_rounded
-                          : Icons.lock_outline_rounded,
-                      size: 17,
-                    ),
-                    label: const VvText('HD', key: Key('hdQualityOption')),
-                  ),
-                ],
-                selected: {_isHd},
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? ViewVeeColors.teal.withValues(alpha: 0.18)
-                        : colors.surface,
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? ViewVeeColors.teal
-                        : colors.onSurfaceVariant,
-                  ),
-                  side: WidgetStateProperty.resolveWith(
-                    (states) => BorderSide(
-                      color: states.contains(WidgetState.selected)
-                          ? ViewVeeColors.teal
-                          : colors.outline,
-                    ),
-                  ),
-                ),
-                onSelectionChanged: (value) async {
-                  final isHd = value.first;
-                  if (isHd && !_isPremium) {
-                    await _showHdPremiumRequired();
-                    return;
-                  }
-                  await _audioMonitor.setVideoQuality(isHd: isHd);
-                  if (mounted) setState(() => _isHd = isHd);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            IconButton.filledTonal(
-              tooltip: context.vv('Přepnout kameru'),
-              onPressed: () async {
-                if (_flash) await _audioMonitor.setTorchEnabled(false);
-                await _audioMonitor.switchCamera();
-                if (mounted) {
-                  setState(() {
-                    _frontCamera = !_frontCamera;
-                    _flash = false;
-                  });
-                }
-              },
-              icon: const Icon(Icons.cameraswitch_rounded),
-              style: IconButton.styleFrom(
-                backgroundColor: ViewVeeColors.blue.withValues(alpha: 0.16),
-                foregroundColor: ViewVeeColors.blue,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
           onPressed:
-              _audioState == AudioConnectionState.connected ||
-                  _audioState == AudioConnectionState.waitingForPeer
-              ? () {
-                  setState(() => _microphone = !_microphone);
-                  _audioMonitor.setTransmitterMuted(_microphone);
-                }
-              : null,
-          icon: Icon(_microphone ? Icons.mic_off_rounded : Icons.mic_rounded),
-          label: VvText(_microphone ? 'Zapnout zvuk' : 'Ztlumit'),
+              _addingMonitor ||
+                  _videoSettingsBusy ||
+                  _audioBusy ||
+                  !_audioMonitor.canAddMonitor
+              ? null
+              : _showAdditionalMonitorPairing,
+          icon: Icon(
+            _isPremium
+                ? Icons.add_to_queue_rounded
+                : Icons.lock_outline_rounded,
+          ),
+          label: const VvText('Připojit další monitor'),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 20),
+        _changeRoleButton(),
+      ],
+    );
+  }
+
+  Future<void> _changeRemoteCamera(
+    Future<void> Function(AudioMonitorService) action,
+  ) async {
+    final camera = _audioMonitor;
+    setState(() => _videoSettingsBusy = true);
+    try {
+      await action(camera);
+    } catch (error) {
+      if (mounted && identical(camera, _audioMonitor)) {
+        setState(() => _audioError = error.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _videoSettingsBusy = false);
+    }
+  }
+
+  Widget _remoteCameraControls() {
+    final enabled =
+        _audioState == AudioConnectionState.connected &&
+        !_audioBusy &&
+        !_videoSettingsBusy;
+    return Column(
+      children: [
         Row(
           children: [
             Expanded(
@@ -635,31 +829,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: 'Svítilna',
                 accentColor: ViewVeeColors.teal,
                 value: _flash,
-                onChanged: (value) async {
-                  if (_frontCamera && value) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: VvText(
-                          'Svítilna je dostupná pouze u zadní kamery.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  final supported = await _audioMonitor.setTorchEnabled(value);
-                  if (!mounted) return;
-                  if (!supported) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: VvText(
-                          'Svítilna není na této kameře dostupná.',
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  setState(() => _flash = value);
-                },
+                onChanged: enabled
+                    ? (value) => _changeRemoteCamera((camera) async {
+                        final supported = await camera.setTorchEnabled(value);
+                        if (!supported &&
+                            mounted &&
+                            identical(camera, _audioMonitor)) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: VvText(
+                                'Svítilna není na této kameře dostupná.',
+                              ),
+                            ),
+                          );
+                        }
+                      })
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -669,58 +854,215 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: 'Noční režim',
                 accentColor: ViewVeeColors.blue,
                 value: _nightMode,
-                onChanged: (value) async {
-                  final available = await _audioMonitor.setNightModeEnabled(
-                    value,
-                  );
-                  if (!mounted) return;
-                  if (!available) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: VvText('Nejprve spusťte kameru.'),
-                      ),
-                    );
-                    return;
-                  }
-                  setState(() => _nightMode = value);
-                },
+                onChanged: enabled
+                    ? (value) => _changeRemoteCamera((camera) async {
+                        if (!await camera.setNightModeEnabled(value)) {
+                          throw StateError(
+                            'Změna nočního režimu se nezdařila.',
+                          );
+                        }
+                      })
+                    : null,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        _changeRoleButton(),
       ],
     );
   }
+
+  Widget _videoQualityControl() {
+    final canChangeQuality =
+        _audioState == AudioConnectionState.connected &&
+        !_audioBusy &&
+        !_videoSettingsBusy &&
+        !_audioMonitor.isRemoteVideoPaused;
+    return PopupMenuButton<bool>(
+      key: const Key('monitorVideoQuality'),
+      tooltip: 'SD / HD',
+      initialValue: _isHd,
+      position: PopupMenuPosition.under,
+      constraints: const BoxConstraints(minWidth: 112, maxWidth: 144),
+      onSelected: (isHd) async {
+        if (isHd == _isHd) return;
+        if (isHd && !_isPremium) {
+          await _showHdPremiumRequired();
+          return;
+        }
+        if (!canChangeQuality) return;
+        await _changeRemoteCamera(
+          (camera) => camera.setVideoQuality(isHd: isHd),
+        );
+      },
+      itemBuilder: (context) => [
+        CheckedPopupMenuItem<bool>(
+          value: false,
+          enabled: canChangeQuality || !_isHd,
+          checked: !_isHd,
+          child: const VvText('SD'),
+        ),
+        CheckedPopupMenuItem<bool>(
+          value: true,
+          enabled: !_isPremium || canChangeQuality || _isHd,
+          checked: _isHd,
+          child: Row(
+            children: [
+              const VvText('HD'),
+              if (!_isPremium) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.lock_outline_rounded, size: 16),
+              ],
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            VvText(
+              _isHd ? 'HD' : 'SD',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 4),
+            if (_videoSettingsBusy)
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            else
+              const Icon(
+                Icons.expand_more_rounded,
+                size: 18,
+                color: Colors.white,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _monitorVideoSurface() => _VideoSurface(
+    title: _cameraDirectory.selectedCamera?.name ?? _modeLabel,
+    connected: _audioState == AudioConnectionState.connected,
+    reconnecting: _audioMonitor.isAutoReconnecting,
+    overlay: _audioMonitor.isRemoteVideoPaused
+        ? 'Pouze zvuk'
+        : '${_isHd ? 'HD 720p' : 'SD 480p'} • Šifrováno',
+    nightMode: _nightMode,
+    renderer: _audioMonitor.isRemoteVideoPaused
+        ? null
+        : _audioMonitor.remoteVideoRenderer,
+    recording: _recordingStartedAt != null,
+    fullscreen: _monitorFullscreen,
+    onToggleFullscreen: () => _setMonitorFullscreen(!_monitorFullscreen),
+    qualityControl: _videoQualityControl(),
+    recordingControl: _RecordingControl(
+      recording: _recordingStartedAt != null,
+      busy: _recordingBusy,
+      elapsed: _recordingElapsed,
+      locked: !_isPremium,
+      enabled:
+          _audioState == AudioConnectionState.connected &&
+          _audioMonitor.canRecord,
+      onLockedPressed: _showRecordingPremiumRequired,
+      onPressed: _recordingStartedAt == null ? _startRecording : _stopRecording,
+    ),
+  );
 
   Widget _monitorView() {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        _AudioStatusBar(state: _audioState, onReconnect: _showPairingOptions),
-        if (_audioError != null) _AudioError(message: _audioError!),
-        const SizedBox(height: 12),
-        _VideoSurface(
-          title: _modeLabel,
-          connected: _audioState == AudioConnectionState.connected,
-          overlay: '${_isPremium ? 'HD' : 'SD'} • Šifrováno',
-          renderer: _audioMonitor.remoteVideoRenderer,
-          recording: _recordingStartedAt != null,
+        SavedCameraList(
+          cameras: _cameraDirectory.cameras,
+          selectedId: _cameraDirectory.selectedId,
+          stateOf: _cameraDirectory.stateOf,
+          isLocked: _cameraDirectory.isCameraLocked,
+          addLocked: !_isPremium && !_cameraDirectory.canAddCamera,
+          lockedLabel: _isPremium ? 'Neaktivní' : 'Premium',
+          busy: _audioBusy || _recordingBusy,
+          onSelect: (id) => unawaited(_selectSavedCamera(id)),
+          onAdd: _showPairingOptions,
+          onRefresh: () => unawaited(_cameraDirectory.refresh()),
+          onRename: (camera) => unawaited(_renameSavedCamera(camera)),
+          onRemove: (id) => unawaited(_removeSavedCamera(id)),
         ),
         const SizedBox(height: 12),
-        _RecordingControl(
-          recording: _recordingStartedAt != null,
-          busy: _recordingBusy,
-          elapsed: _recordingElapsed,
-          locked: !_isPremium,
-          enabled:
-              _audioState == AudioConnectionState.connected &&
-              _audioMonitor.canRecord,
-          onLockedPressed: _showRecordingPremiumRequired,
-          onPressed: _recordingStartedAt == null
-              ? () => _startRecording(RecordingSource.monitor)
-              : _stopRecording,
+        _AudioStatusBar(state: _audioState, onReconnect: _reconnectSession),
+        if (_audioError != null) _AudioError(message: _audioError!),
+        const SizedBox(height: 12),
+        _monitorVideoSurface(),
+        const SizedBox(height: 12),
+        _remoteCameraControls(),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                key: const Key('monitorMute'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed:
+                    _audioState == AudioConnectionState.connected && !_audioBusy
+                    ? () {
+                        setState(() {
+                          _audioMonitor.setReceiverMuted(
+                            !_audioMonitor.isReceiverMuted,
+                          );
+                        });
+                      }
+                    : null,
+                icon: Icon(
+                  _audioMonitor.isReceiverMuted
+                      ? Icons.volume_off_rounded
+                      : Icons.volume_up_rounded,
+                ),
+                label: VvText(
+                  _audioMonitor.isReceiverMuted ? 'Zapnout zvuk' : 'Ztlumit',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                key: const Key('monitorSwitchCamera'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 44),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed:
+                    _audioState == AudioConnectionState.connected &&
+                        !_audioBusy &&
+                        !_videoSettingsBusy &&
+                        !_audioMonitor.isRemoteVideoPaused
+                    ? () =>
+                          _changeRemoteCamera((camera) => camera.switchCamera())
+                    : null,
+                icon: const Icon(Icons.cameraswitch_rounded, size: 20),
+                label: const VvText(
+                  'Přepnout kameru',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Row(
@@ -760,12 +1102,26 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 12),
         ],
         FilledButton.icon(
-          onPressed:
-              _audioState == AudioConnectionState.connected && !_audioBusy
+          key: const Key('monitorTalkback'),
+          onPressed: !_isPremium
+              ? _showTalkbackPremiumRequired
+              : _audioState == AudioConnectionState.connected && !_audioBusy
               ? _toggleTalkback
               : null,
-          icon: Icon(_microphone ? Icons.mic_rounded : Icons.mic_off_rounded),
-          label: VvText(_microphone ? 'Ztlumit' : 'Zapnout zvuk'),
+          icon: Icon(
+            !_isPremium
+                ? Icons.lock_outline_rounded
+                : _microphone
+                ? Icons.mic_rounded
+                : Icons.mic_off_rounded,
+          ),
+          label: VvText(
+            !_isPremium
+                ? 'Obousměrný zvuk'
+                : _microphone
+                ? 'Ztlumit'
+                : 'Zapnout zvuk',
+          ),
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
         ),
         const SizedBox(height: 12),
@@ -786,8 +1142,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_activeRoleKey);
     await preferences.remove(_activeModeKey);
+    if (_monitorFullscreen) _setMonitorFullscreen(false);
     await _stopRecording(showMessage: false);
-    if (_flash) await _audioMonitor.setTorchEnabled(false);
+    if (_flash && _role == DeviceRole.camera) {
+      await _audioMonitor.setTorchEnabled(false);
+    }
+    await _cameraDirectory.stop();
     await _audioMonitor.stop();
     if (!mounted) return;
     setState(() {
@@ -798,10 +1158,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _microphone = false;
       _flash = false;
       _nightMode = false;
+      _createAudioMonitor();
     });
   }
 
-  Future<void> _startRecording(RecordingSource source) async {
+  Future<void> _startRecording() async {
+    if (_role != DeviceRole.monitor || _appBackgrounded) return;
+    const source = RecordingSource.monitor;
     if (!_isPremium) {
       await _showRecordingPremiumRequired();
       return;
@@ -920,6 +1283,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _audioMonitor.onStateChanged = null;
     _audioMonitor.onRemoteHangup = null;
     _audioMonitor.onError = null;
+    await _cameraDirectory.stop();
     await _audioMonitor.stop();
     setState(() {
       _connectionMode = mode;
@@ -934,6 +1298,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _selectRole(DeviceRole role) async {
+    if (!await _continueAfterFreeLimit() || !mounted) return;
     if (_connectionMode == AudioConnectionMode.internet && !_isPremium) {
       await _showPremiumRequired(
         title: 'Připojení přes internet je v Premium',
@@ -953,6 +1318,14 @@ class _HomeScreenState extends State<HomeScreen> {
     await preferences.setString(_activeRoleKey, role.name);
     await preferences.setString(_activeModeKey, _connectionMode.name);
     if (role == DeviceRole.camera) await _startTransmitter();
+    if (role == DeviceRole.monitor) {
+      await _audioMonitor.stop();
+      try {
+        await _cameraDirectory.start(_connectionMode);
+      } catch (error) {
+        if (mounted) setState(() => _audioError = error.toString());
+      }
+    }
     if (role == DeviceRole.monitor &&
         (_motionNotification ||
             _soundNotification ||
@@ -977,6 +1350,65 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() => _audioError = error.toString());
     } finally {
       if (mounted) setState(() => _backgroundBusy = false);
+    }
+  }
+
+  Future<void> _showMultiDevicePremiumRequired() => _showPremiumRequired(
+    title: 'Více zařízení',
+    description: 'Více zařízení je součástí Premium.',
+    icon: Icons.devices_rounded,
+    buttonKey: 'openPremiumFromDevices',
+  );
+
+  Future<void> _showAdditionalMonitorPairing() async {
+    if (!_isPremium) {
+      await _showMultiDevicePremiumRequired();
+      return;
+    }
+    if (_addingMonitor) return;
+    setState(() => _addingMonitor = true);
+    try {
+      final pairing = await _audioMonitor.createMonitorPairing();
+      if (!mounted || _role != DeviceRole.camera) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const VvText(
+                  'Připojit další monitor',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 16),
+                _PairingPanel(
+                  pairingUri: pairing.pairingUri,
+                  roomCode: pairing.roomCode,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    } finally {
+      if (mounted) setState(() => _addingMonitor = false);
+    }
+  }
+
+  Future<void> _reconnectSession() async {
+    if (_audioBusy) return;
+    setState(() => _audioError = null);
+    if (await _audioMonitor.reconnect() || !mounted) return;
+    if (_role == DeviceRole.camera) {
+      await _startTransmitter();
+    } else {
+      await _showPairingOptions();
     }
   }
 
@@ -1014,7 +1446,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _showCameraLimit() async {
+    if (!_isPremium) {
+      await _showMultiDevicePremiumRequired();
+    } else {
+      setState(() => _audioError = _cameraDirectory.cameraLimitMessage);
+    }
+  }
+
   Future<void> _showPairingOptions() async {
+    if (!_cameraDirectory.canAddCamera) {
+      await _showCameraLimit();
+      return;
+    }
     final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -1098,10 +1542,44 @@ class _HomeScreenState extends State<HomeScreen> {
       _audioError = null;
     });
     try {
+      await _stopRecording(showMessage: false);
+      final saved = SavedCamera.fromJson({'pairingUri': pairingValue})!;
+      if (!_cameraDirectory.canAddCamera &&
+          !_cameraDirectory.cameras.any((camera) => camera.id == saved.id)) {
+        await _showCameraLimit();
+        return;
+      }
+      final isNew = !_cameraDirectory.cameras.any(
+        (camera) => camera.id == saved.id,
+      );
+      if (isNew) _camerasAwaitingName.add(saved.id);
+      await _cameraDirectory.add(pairingValue);
       await _pairingRepository.rememberMonitor(pairingValue);
-      final joined = await _audioMonitor.joinAsReceiver(pairingValue);
-      if (!joined && mounted) {
-        setState(() => _audioError = 'Kamera nebyla nalezena.');
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _audioBusy = false);
+        _offerNewCameraName();
+      }
+    }
+  }
+
+  Future<void> _selectSavedCamera(String id) async {
+    if (_cameraDirectory.isCameraLocked(id)) {
+      await _showCameraLimit();
+      return;
+    }
+    if (_audioBusy || _recordingBusy) return;
+    setState(() => _audioBusy = true);
+    try {
+      if (_cameraDirectory.selectedId != id) {
+        await _stopRecording(showMessage: false);
+      }
+      await _cameraDirectory.select(id);
+      final camera = _cameraDirectory.selectedCamera;
+      if (camera != null) {
+        await _pairingRepository.rememberMonitor(camera.pairingUri);
       }
     } catch (error) {
       if (mounted) setState(() => _audioError = error.toString());
@@ -1110,7 +1588,77 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _removeSavedCamera(String id) async {
+    if (_audioBusy || _recordingBusy) return;
+    setState(() => _audioBusy = true);
+    try {
+      if (_cameraDirectory.selectedId == id) {
+        await _stopRecording(showMessage: false);
+      }
+      final camera = _cameraDirectory.cameras
+          .where((camera) => camera.id == id)
+          .firstOrNull;
+      await _cameraDirectory.remove(id);
+      if (camera != null) {
+        await _pairingRepository.forgetMonitor(camera.pairingUri);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    } finally {
+      if (mounted) setState(() => _audioBusy = false);
+    }
+  }
+
+  Future<void> _renameSavedCamera(
+    SavedCamera camera, {
+    bool firstPairing = false,
+  }) async {
+    var draft = camera.name ?? '';
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: VvText(firstPairing ? 'Název kamery' : 'Přejmenovat kameru'),
+        content: TextFormField(
+          initialValue: draft,
+          onChanged: (value) => draft = value,
+          autofocus: true,
+          maxLength: 60,
+          decoration: InputDecoration(labelText: context.vv('Název kamery')),
+          onFieldSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const VvText('Zrušit'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, draft),
+            child: const VvText('Uložit'),
+          ),
+        ],
+      ),
+    );
+    if (name == null) return;
+    try {
+      await _cameraDirectory.rename(camera.id, name);
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    }
+  }
+
+  Future<void> _showTalkbackPremiumRequired() => _showPremiumRequired(
+    title: 'Obousměrný zvuk',
+    description:
+        'Mluvení do kamery je součástí Premium. Zvuk z kamery můžete poslouchat zdarma.',
+    icon: Icons.record_voice_over_rounded,
+    buttonKey: 'openPremiumFromTalkback',
+  );
+
   Future<void> _toggleTalkback() async {
+    if (!_isPremium) {
+      await _showTalkbackPremiumRequired();
+      return;
+    }
     setState(() => _audioBusy = true);
     try {
       final enable = !_microphone;
@@ -1150,6 +1698,20 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.sync_rounded),
+                    title: const VvText('Automaticky obnovit spojení'),
+                    value: _autoReconnectEnabled,
+                    onChanged: (value) {
+                      update(() => _autoReconnectEnabled = value);
+                      _audioMonitor.setAutoReconnectEnabled(value);
+                      _cameraDirectory.setAutoReconnectEnabled(value);
+                      unawaited(_saveSettings());
+                    },
+                  ),
+                  const Divider(),
+                  const SizedBox(height: 12),
                   const VvText(
                     'Chytré notifikace',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
@@ -1569,12 +2131,16 @@ class _ConnectionChoice extends StatelessWidget {
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 7),
-          VvText(
-            label,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          Flexible(
+            child: VvText(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -2079,202 +2645,262 @@ class _VideoSurface extends StatelessWidget {
     required this.title,
     required this.connected,
     required this.overlay,
+    this.reconnecting = false,
     this.renderer,
     this.mirror = false,
     this.nightMode = false,
     this.recording = false,
+    this.fullscreen = false,
+    this.onToggleFullscreen,
+    this.recordingControl,
+    this.qualityControl,
   });
   final String title;
   final bool connected;
+  final bool reconnecting;
   final String overlay;
   final RTCVideoRenderer? renderer;
   final bool mirror;
   final bool nightMode;
   final bool recording;
+  final bool fullscreen;
+  final VoidCallback? onToggleFullscreen;
+  final Widget? recordingControl;
+  final Widget? qualityControl;
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 16 / 10,
+    final surface = Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            ViewVeeColors.teal,
+            ViewVeeColors.blue,
+            ViewVeeColors.violet,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(2),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              ViewVeeColors.teal,
-              ViewVeeColors.blue,
-              ViewVeeColors.violet,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(10),
+          color: const Color(0xFF0B1424),
+          borderRadius: BorderRadius.circular(8),
         ),
-        padding: const EdgeInsets.all(2),
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF0B1424),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: renderer != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: ColorFiltered(
-                          colorFilter: nightMode
-                              ? const ColorFilter.matrix([
-                                  1.18,
-                                  0,
-                                  0,
-                                  0,
-                                  18,
-                                  0,
-                                  1.22,
-                                  0,
-                                  0,
-                                  22,
-                                  0,
-                                  0,
-                                  1.3,
-                                  0,
-                                  28,
-                                  0,
-                                  0,
-                                  0,
-                                  1,
-                                  0,
-                                ])
-                              : const ColorFilter.mode(
-                                  Colors.transparent,
-                                  BlendMode.dst,
-                                ),
-                          child: RTCVideoView(
-                            renderer!,
-                            mirror: mirror,
-                            objectFit: RTCVideoViewObjectFit
-                                .RTCVideoViewObjectFitCover,
-                          ),
-                        ),
-                      )
-                    : Center(
-                        child: Icon(
-                          connected
-                              ? Icons.videocam_rounded
-                              : Icons.videocam_off_rounded,
-                          size: 64,
-                          color: Colors.white24,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: renderer != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: ColorFiltered(
+                        colorFilter: nightMode
+                            ? const ColorFilter.matrix([
+                                1.18,
+                                0,
+                                0,
+                                0,
+                                18,
+                                0,
+                                1.22,
+                                0,
+                                0,
+                                22,
+                                0,
+                                0,
+                                1.3,
+                                0,
+                                28,
+                                0,
+                                0,
+                                0,
+                                1,
+                                0,
+                              ])
+                            : const ColorFilter.mode(
+                                Colors.transparent,
+                                BlendMode.dst,
+                              ),
+                        child: RTCVideoView(
+                          renderer!,
+                          mirror: mirror,
+                          objectFit: fullscreen
+                              ? RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitContain
+                              : RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
                         ),
                       ),
+                    )
+                  : Center(
+                      child: Icon(
+                        connected
+                            ? Icons.videocam_rounded
+                            : Icons.videocam_off_rounded,
+                        size: 64,
+                        color: Colors.white24,
+                      ),
+                    ),
+            ),
+            Positioned(
+              left: 14,
+              right: 8,
+              top: 8,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: VvText(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (qualityControl != null) ...[
+                    if (overlay == 'Pouze zvuk')
+                      const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: VvText(
+                          'Pouze zvuk',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ),
+                    qualityControl!,
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: VvText(
+                        overlay,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
               ),
+            ),
+            if (onToggleFullscreen != null)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: IconButton.filled(
+                  key: Key(
+                    fullscreen
+                        ? 'exitMonitorFullscreen'
+                        : 'enterMonitorFullscreen',
+                  ),
+                  tooltip: context.vv(
+                    fullscreen ? 'Ukončit celou obrazovku' : 'Celá obrazovka',
+                  ),
+                  onPressed: onToggleFullscreen,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black54,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: Icon(
+                    fullscreen
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
+                  ),
+                ),
+              ),
+            if (recordingControl != null)
+              Positioned(left: 8, bottom: 8, child: recordingControl!),
+            if (recording && recordingControl == null)
               Positioned(
                 left: 14,
-                top: 14,
-                child: VvText(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Positioned(
-                right: 14,
-                top: 14,
+                bottom: 14,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 9,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black54,
-                    borderRadius: BorderRadius.circular(4),
+                    color: const Color(0xFFD93445).withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: VvText(
-                    overlay,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.circle, color: Colors.white, size: 9),
+                      SizedBox(width: 6),
+                      VvText(
+                        'NAHRÁVÁNÍ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (recording)
-                Positioned(
-                  left: 14,
-                  bottom: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFD93445).withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.circle, color: Colors.white, size: 9),
-                        SizedBox(width: 6),
-                        VvText(
-                          'NAHRÁVÁNÍ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
+            if (!connected && reconnecting)
+              const Center(
+                child: VvText(
+                  'Automaticky obnovuji spojení…',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            if (nightMode && !recording)
+              Positioned(
+                left: 14,
+                bottom: recordingControl == null ? 14 : 66,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ViewVeeColors.blue.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: ViewVeeColors.teal.withValues(alpha: 0.45),
                     ),
                   ),
-                ),
-              if (!connected)
-                const Center(
-                  child: VvText(
-                    'Automaticky obnovuji spojení…',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              if (nightMode && !recording)
-                Positioned(
-                  left: 14,
-                  bottom: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: ViewVeeColors.blue.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: ViewVeeColors.teal.withValues(alpha: 0.45),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.nightlight_round,
+                        color: ViewVeeColors.teal,
+                        size: 14,
                       ),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.nightlight_round,
-                          color: ViewVeeColors.teal,
-                          size: 14,
+                      SizedBox(width: 5),
+                      VvText(
+                        'NOČNÍ REŽIM',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                         ),
-                        SizedBox(width: 5),
-                        VvText(
-                          'NOČNÍ REŽIM',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
+    return fullscreen
+        ? surface
+        : AspectRatio(aspectRatio: 16 / 10, child: surface);
   }
 }
 
@@ -2299,101 +2925,82 @@ class _RecordingControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     final actionEnabled = !busy && (locked || recording || enabled);
-    final accent = locked ? ViewVeeColors.violet : ViewVeeColors.blue;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: recording
-            ? const Color(0xFFD93445).withValues(alpha: 0.1)
-            : colors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: recording
-              ? const Color(0xFFD93445).withValues(alpha: 0.5)
-              : colors.outline,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          key: Key(recording ? 'stopRecordingButton' : 'startRecordingButton'),
+          tooltip: context.vv(
+            recording
+                ? 'Ukončit'
+                : locked
+                ? 'Nahrávání je součástí Premium'
+                : 'Nahrávat',
+          ),
+          onPressed: actionEnabled
+              ? recording
+                    ? onPressed
+                    : locked
+                    ? onLockedPressed
+                    : onPressed
+              : null,
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.black54,
+            minimumSize: const Size(36, 36),
+            fixedSize: const Size(36, 36),
+            tapTargetSize: MaterialTapTargetSize.padded,
+            padding: const EdgeInsets.all(4),
+            shape: const CircleBorder(
+              side: BorderSide(color: Colors.white70, width: 1.5),
+            ),
+          ),
+          icon: busy
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      recording ? Icons.stop_rounded : Icons.circle,
+                      size: 22,
+                      color: actionEnabled
+                          ? const Color(0xFFE53935)
+                          : const Color(0xFFE53935).withValues(alpha: 0.4),
+                    ),
+                    if (locked && !recording)
+                      const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      ),
+                  ],
+                ),
         ),
-      ),
-      child: Row(
-        children: [
+        if (recording) ...[
+          const SizedBox(width: 8),
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
-              color: recording
-                  ? const Color(0xFFD93445).withValues(alpha: 0.16)
-                  : accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(9),
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(5),
             ),
-            child: Icon(
-              recording
-                  ? Icons.stop_rounded
-                  : locked
-                  ? Icons.lock_outline_rounded
-                  : Icons.fiber_manual_record,
-              color: recording ? const Color(0xFFD93445) : accent,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                VvText(
-                  recording
-                      ? 'NAHRÁVÁNÍ'
-                      : locked
-                      ? 'Nahrávání je součástí Premium'
-                      : 'Nahrávka',
-                  style: TextStyle(
-                    color: colors.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                VvText(
-                  recording
-                      ? _formatDuration(elapsed)
-                      : locked
-                      ? 'Zobrazit Premium'
-                      : enabled
-                      ? 'Nahrávky'
-                      : 'Odpojeno',
-                  style: TextStyle(
-                    color: recording
-                        ? const Color(0xFFD93445)
-                        : colors.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: recording ? FontWeight.w700 : FontWeight.w400,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          FilledButton(
-            key: Key(
-              recording ? 'stopRecordingButton' : 'startRecordingButton',
-            ),
-            onPressed: actionEnabled
-                ? locked
-                      ? onLockedPressed
-                      : onPressed
-                : null,
-            style: FilledButton.styleFrom(
-              backgroundColor: recording ? const Color(0xFFD93445) : accent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-            ),
-            child: VvText(
-              recording
-                  ? 'Ukončit'
-                  : locked
-                  ? 'Zobrazit Premium'
-                  : 'Uložit',
+            child: Text(
+              _formatDuration(elapsed),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
-      ),
+      ],
     );
   }
 
@@ -2422,12 +3029,12 @@ class _ToggleControl extends StatelessWidget {
   final String label;
   final Color accentColor;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(10, 8, 4, 8),
+      padding: const EdgeInsets.only(left: 10, right: 2),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
@@ -2437,18 +3044,22 @@ class _ToggleControl extends StatelessWidget {
               : Theme.of(context).colorScheme.outline,
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
           Icon(
             icon,
+            size: 18,
             color: value
                 ? accentColor
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          VvText(
-            label,
-            maxLines: 1,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          const SizedBox(width: 6),
+          Expanded(
+            child: VvText(
+              label,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
           ),
           Switch(
             value: value,

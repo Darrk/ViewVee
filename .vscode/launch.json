@@ -9,6 +9,15 @@
       "flutterMode": "debug"
     },
     {
+      "name": "ViewVee (iOS 18.4 Simulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "AFF6D6B7-4C3B-493D-83BB-DA30A7CFAE81",
+      "preLaunchTask": "Start ViewVee iOS Simulator"
+    },
+    {
       "name": "ViewVee (Android Emulator)",
       "request": "launch",
       "type": "dart",

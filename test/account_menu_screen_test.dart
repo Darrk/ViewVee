@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:viewvee/audio/audio_pairing.dart';
+import 'package:viewvee/audio/camera_pairing_repository.dart';
+import 'package:viewvee/monitor/saved_camera_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viewvee/auth/auth_repository.dart';
 import 'package:viewvee/screens/account_menu_screen.dart';
@@ -7,7 +11,10 @@ import 'package:viewvee/theme/viewvee_theme.dart';
 import 'package:viewvee/widgets/viewvee_app_drawer.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
 
   Widget buildSubject({
     VoidCallback? onSignOut,
@@ -41,6 +48,71 @@ void main() {
       ),
     );
   }
+
+  testWidgets(
+    'devices page restores both roles and modes and updates saved pairings live',
+    (tester) async {
+      final cameras = SavedCameraRepository();
+      final monitors = CameraPairingRepository();
+      final wifi = AudioPairingCredentials.generate(
+        mode: AudioPairingMode.wifi,
+      );
+      final internet = AudioPairingCredentials.generate();
+      final monitor = AudioPairingCredentials.generate(
+        mode: AudioPairingMode.wifi,
+      );
+      final pending = AudioPairingCredentials.generate();
+      final saved = (await cameras.remember(wifi.toUriString())).single;
+      await cameras.rename(saved.id, 'Dětský pokoj');
+      await cameras.remember(internet.toUriString());
+      await monitors.remember(monitor.toUriString());
+      await monitors.markPaired(monitor.toUriString());
+      await monitors.remember(pending.toUriString());
+
+      await tester.pumpWidget(
+        buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Dětský pokoj'), findsOneWidget);
+      expect(find.text('Kamera ${internet.roomCode}'), findsOneWidget);
+      expect(find.text('Monitor ${monitor.roomCode}'), findsOneWidget);
+      expect(find.text('Monitor ${pending.roomCode}'), findsNothing);
+      expect(find.text('Kamera • Stejná Wi‑Fi'), findsOneWidget);
+      expect(find.text('Kamera • Internet'), findsOneWidget);
+      // A monitor can finish pairing while the drawer page remains open.
+      await monitors.markPaired(pending.toUriString());
+      await tester.pumpAndSettle();
+      expect(find.text('Monitor ${pending.roomCode}'), findsOneWidget);
+      await cameras.rename(saved.id, 'Ložnice');
+      await tester.pumpAndSettle();
+      expect(find.text('Ložnice'), findsOneWidget);
+      expect(find.text('Dětský pokoj'), findsNothing);
+      await cameras.remove(saved.id);
+      await tester.pumpAndSettle();
+      expect(find.text('Ložnice'), findsNothing);
+      // Reopening the page uses persisted entries, not a transient UI list.
+      await tester.pumpWidget(
+        buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Monitor ${pending.roomCode}'), findsOneWidget);
+      expect(find.text('Kamera ${internet.roomCode}'), findsOneWidget);
+      for (final credentials in [wifi, internet, monitor, pending]) {
+        expect(find.textContaining(credentials.secret), findsNothing);
+      }
+    },
+  );
+
+  testWidgets('empty devices page keeps the add-device action available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Zatím nemáte spárované zařízení.'), findsOneWidget);
+    expect(find.byKey(const Key('addDeviceMenuItem')), findsOneWidget);
+  });
 
   testWidgets('profile destination shows only profile content', (tester) async {
     await tester.pumpWidget(buildSubject());
@@ -254,15 +326,20 @@ void main() {
     expect(selector.selected, {ThemeMode.dark});
   });
 
-  testWidgets('drawer hides purchase options', (tester) async {
+  testWidgets('drawer opens the existing subscription page', (tester) async {
     await tester.pumpWidget(buildSubject());
 
     await tester.tap(find.byKey(const Key('accountMenuButton')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('drawerSubscription')), findsNothing);
-    expect(find.byKey(const Key('subscriptionPage')), findsNothing);
-    expect(find.byKey(const Key('startSubscriptionButton')), findsNothing);
+    final subscription = find.byKey(const Key('drawerSubscription'));
+    expect(subscription, findsOneWidget);
+    await tester.ensureVisible(subscription);
+    await tester.tap(subscription);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('subscriptionPage')), findsOneWidget);
+    expect(find.byKey(const Key('freePlanCard')), findsOneWidget);
+    expect(find.byKey(const Key('premiumPlanCard')), findsOneWidget);
   });
 
   testWidgets('recordings are locked for the free plan', (tester) async {

@@ -64,6 +64,23 @@ void main() {
     },
   );
 
+  test(
+    'removing a saved camera forgets only its matching restoration link',
+    () async {
+      final repository = AudioPairingRepository();
+      final first = AudioPairingCredentials.generate().toUriString();
+      final second = AudioPairingCredentials.generate().toUriString();
+      await repository.rememberMonitor(first);
+      await repository.forgetMonitor(second);
+      expect(await repository.monitorPairing(AudioPairingMode.internet), first);
+      await repository.forgetMonitor(first);
+      expect(
+        await repository.monitorPairing(AudioPairingMode.internet),
+        isNull,
+      );
+    },
+  );
+
   test('corrupt or mismatched stored credentials are replaced', () async {
     FlutterSecureStorage.setMockInitialValues({
       'viewvee.camera.wifi': AudioPairingCredentials.generate().toUriString(),

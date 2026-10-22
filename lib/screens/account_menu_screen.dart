@@ -4,10 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_repository.dart';
+import '../monitor/device_limits.dart';
 import 'recordings_screen.dart';
 import '../theme/viewvee_theme.dart';
 import '../widgets/viewvee_app_drawer.dart';
 import '../widgets/viewvee_logo.dart';
+import '../widgets/paired_device_list.dart';
 
 enum DevicePairingAction { camera, monitor }
 
@@ -131,9 +133,13 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     ViewVeeDrawerDestination.monitor => _buildProfilePage(),
     ViewVeeDrawerDestination.devices => _buildDevicesPage(),
     ViewVeeDrawerDestination.recordings =>
-      widget.isPremium ? const RecordingsScreen() : const _SubscriptionSheet(),
+      widget.isPremium
+          ? const RecordingsScreen()
+          : _SubscriptionSheet(isPremium: widget.isPremium),
     ViewVeeDrawerDestination.account => _buildProfilePage(),
-    ViewVeeDrawerDestination.subscription => const _SubscriptionSheet(),
+    ViewVeeDrawerDestination.subscription => _SubscriptionSheet(
+      isPremium: widget.isPremium,
+    ),
     ViewVeeDrawerDestination.preferences => _buildPreferencesPage(),
     ViewVeeDrawerDestination.support => _SupportPage(
       name: _personalDetails.fullName,
@@ -211,6 +217,8 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
         subtitle: 'Spravujte telefony používané jako kamera nebo monitor.',
       ),
       const SizedBox(height: 20),
+      const PairedDeviceList(),
+      const SizedBox(height: 12),
       _SettingsGroup(
         children: [
           _MenuTile(
@@ -1376,7 +1384,8 @@ class _WatchModeChoice extends StatelessWidget {
 }
 
 class _SubscriptionSheet extends StatelessWidget {
-  const _SubscriptionSheet();
+  const _SubscriptionSheet({required this.isPremium});
+  final bool isPremium;
 
   @override
   Widget build(BuildContext context) => SafeArea(
@@ -1393,14 +1402,17 @@ class _SubscriptionSheet extends StatelessWidget {
             subtitle: 'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
           ),
           const SizedBox(height: 16),
-          const _FreePlanCard(
-            key: Key('freePlanCard'),
+          _FreePlanCard(
+            key: const Key('freePlanCard'),
             title: 'Zdarma',
-            subtitle: 'Aktuální tarif',
+            subtitle: isPremium
+                ? 'Wi-Fi monitoring • 1 hodina'
+                : 'Aktuální tarif',
             color: ViewVeeColors.blue,
             features: [
               _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
               _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
+              _PlanFeature(Icons.devices_rounded, '1 kamera a 1 monitor'),
               _PlanFeature(
                 Icons.lock_outline_rounded,
                 'Internet pouze s Premium',
@@ -1415,9 +1427,14 @@ class _SubscriptionSheet extends StatelessWidget {
           const SizedBox(height: 12),
           _PremiumPlanCard(
             key: const Key('premiumPlanCard'),
-            features: const [
+            isCurrent: isPremium,
+            features: [
               _PlanFeature(Icons.public_rounded, 'Neomezený internet'),
               _PlanFeature(Icons.hd_rounded, 'HD video'),
+              _PlanFeature(
+                Icons.devices_rounded,
+                '${context.vv('Kamera')} × ${DeviceLimits.cameras} • ${context.vv('Monitor')} × ${DeviceLimits.monitors}',
+              ),
               _PlanFeature(
                 Icons.video_library_rounded,
                 'Nahrávání videa • pouze lokálně',
@@ -1437,7 +1454,12 @@ class _SubscriptionSheet extends StatelessWidget {
 }
 
 class _PremiumPlanCard extends StatelessWidget {
-  const _PremiumPlanCard({super.key, required this.features});
+  const _PremiumPlanCard({
+    super.key,
+    required this.features,
+    this.isCurrent = false,
+  });
+  final bool isCurrent;
 
   final List<_PlanFeature> features;
 
@@ -1606,7 +1628,7 @@ class _PremiumPlanCard extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   key: const Key('startSubscriptionButton'),
-                  onPressed: () {},
+                  onPressed: isCurrent ? null : () {},
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: ViewVeeColors.violet,
@@ -1620,7 +1642,9 @@ class _PremiumPlanCard extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.workspace_premium_rounded),
-                  label: const VvText('Získat Premium'),
+                  label: VvText(
+                    isCurrent ? 'Aktuální tarif' : 'Získat Premium',
+                  ),
                 ),
                 const SizedBox(height: 11),
                 VvText(

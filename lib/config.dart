@@ -62,8 +62,8 @@ class Config implements AuthConfig, ServicesConfig {
   bool get enableExternalAuth => true;
 
   /// Temporary rollout switches for functionality not currently offered.
-  static const bool enablePremiumFeatures = false;
-  static const bool showPurchaseOptions = false;
+  static const bool enablePremiumFeatures = true;
+  static const bool showPurchaseOptions = true;
   static const bool showFacebookLogin = false;
   static const bool showGoogleLogin = false;
 

@@ -99,7 +99,7 @@ class ViewVeeRewardedAdService {
           },
         ),
       );
-      return completer.future;
+      return await completer.future;
     } catch (error) {
       debugPrint('ViewVee rewarded ads are unavailable: $error');
       return false;

@@ -47,6 +47,15 @@ class AudioPairingRepository {
         : null;
   }
 
+  Future<void> forgetMonitor(String pairingValue) async {
+    final credentials = AudioPairingCredentials.tryParse(pairingValue);
+    if (credentials == null) return;
+    final key = _monitorKey(credentials.mode);
+    if (await _storage.read(key: key) == credentials.toUriString()) {
+      await _storage.delete(key: key);
+    }
+  }
+
   Future<void> clear() async {
     for (final mode in AudioPairingMode.values) {
       await _storage.delete(key: _cameraKey(mode));
