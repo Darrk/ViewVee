@@ -39,7 +39,7 @@ class AudioMonitorForegroundService : Service() {
             else -> "Přenos obrazu a zvuku z tohoto zařízení."
         }
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Viewvee je aktivní")
+            .setContentTitle("ViewVee je aktivní")
             .setContentText(text)
             .setSmallIcon(applicationInfo.icon)
             .setOngoing(true)
@@ -101,7 +101,7 @@ class AudioMonitorForegroundService : Service() {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Živý přenos Viewvee",
+                "Živý přenos ViewVee",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
                 description = "Udržuje přenos obrazu a zvuku na pozadí."

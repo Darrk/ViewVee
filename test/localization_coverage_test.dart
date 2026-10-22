@@ -40,7 +40,7 @@ void main() {
         }
       }
     }
-    sources.addAll(ViewveeLocalizations.fallbackSources);
+    sources.addAll(ViewVeeLocalizations.fallbackSources);
     sources.addAll(const <String>{
       'Wi-Fi monitoring • 1 hodina',
       'SD kvalita',
@@ -60,12 +60,12 @@ void main() {
 
     final missing = <String>[];
     for (final source in sources.toList()..sort()) {
-      final missingLocales = ViewveeLocalizations.supportedLocales
+      final missingLocales = ViewVeeLocalizations.supportedLocales
           .where(
             (locale) =>
-                !ViewveeLocalizations.hasNativeTranslation(source, locale),
+                !ViewVeeLocalizations.hasNativeTranslation(source, locale),
           )
-          .map(ViewveeLocaleController.codeOf)
+          .map(ViewVeeLocaleController.codeOf)
           .toList();
       if (missingLocales.isNotEmpty) {
         missing.add('$source: ${missingLocales.join(', ')}');

@@ -10,7 +10,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildViewveeTheme(),
+        theme: buildViewVeeTheme(),
         home: SetupScreen(onSelected: (mode) => selectedMode = mode),
       ),
     );

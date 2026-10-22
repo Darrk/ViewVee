@@ -32,7 +32,7 @@ class MonitorNotificationService {
       _initialized = true;
     } catch (error) {
       _available = false;
-      debugPrint('Viewvee notifications unavailable: $error');
+      debugPrint('ViewVee notifications unavailable: $error');
     }
   }
 
@@ -55,9 +55,9 @@ class MonitorNotificationService {
     await initialize();
     if (!_available || !_initialized) return;
     final locale =
-        ViewveeLocaleController.instance.locale ??
+        ViewVeeLocaleController.instance.locale ??
         PlatformDispatcher.instance.locale;
-    final localizations = ViewveeLocalizations(locale);
+    final localizations = ViewVeeLocalizations(locale);
     String vv(String source) => localizations.translate(source);
     final (id, title, body) = switch (type) {
       MonitorNotificationType.motion => (

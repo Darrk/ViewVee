@@ -11,7 +11,7 @@ import '../widgets/viewvee_logo.dart';
 
 enum DevicePairingAction { camera, monitor }
 
-Future<WatchMode?> showViewveeWatchModePicker(
+Future<WatchMode?> showViewVeeWatchModePicker(
   BuildContext context,
   WatchMode? selected,
 ) => showModalBottomSheet<WatchMode>(
@@ -34,7 +34,7 @@ class AccountMenuScreen extends StatefulWidget {
     required this.onAddDevice,
     required this.onSignOut,
     this.openExternalUrl,
-    this.initialDestination = ViewveeDrawerDestination.account,
+    this.initialDestination = ViewVeeDrawerDestination.account,
   });
 
   final bool isGuest;
@@ -48,7 +48,7 @@ class AccountMenuScreen extends StatefulWidget {
   final Future<void> Function(DevicePairingAction action) onAddDevice;
   final VoidCallback onSignOut;
   final Future<void> Function(Uri uri)? openExternalUrl;
-  final ViewveeDrawerDestination initialDestination;
+  final ViewVeeDrawerDestination initialDestination;
 
   @override
   State<AccountMenuScreen> createState() => _AccountMenuScreenState();
@@ -63,7 +63,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
   late ThemeMode _themeMode;
   WatchMode? _watchMode;
   _PersonalDetails _personalDetails = const _PersonalDetails();
-  late ViewveeDrawerDestination _activeDestination;
+  late ViewVeeDrawerDestination _activeDestination;
 
   @override
   void initState() {
@@ -72,13 +72,13 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     _themeMode = widget.themeMode;
     _activeDestination =
         !widget.isPremium &&
-            widget.initialDestination == ViewveeDrawerDestination.recordings
-        ? ViewveeDrawerDestination.subscription
+            widget.initialDestination == ViewVeeDrawerDestination.recordings
+        ? ViewVeeDrawerDestination.subscription
         : widget.initialDestination;
-    final locale = ViewveeLocaleController.instance.locale;
+    final locale = ViewVeeLocaleController.instance.locale;
     _languageCode = locale == null
         ? 'system'
-        : ViewveeLocaleController.codeOf(locale);
+        : ViewVeeLocaleController.codeOf(locale);
     _loadPersonalDetails();
   }
 
@@ -117,29 +117,29 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
   }
 
   String get _pageTitle => switch (_activeDestination) {
-    ViewveeDrawerDestination.monitor => 'Režim sledování',
-    ViewveeDrawerDestination.devices => 'Připojená zařízení',
-    ViewveeDrawerDestination.recordings => 'Nahrávky',
-    ViewveeDrawerDestination.account => 'Profil',
-    ViewveeDrawerDestination.subscription => 'Předplatné',
-    ViewveeDrawerDestination.preferences => 'Jazyk a vzhled',
-    ViewveeDrawerDestination.support => 'Podpora',
-    ViewveeDrawerDestination.about => 'O aplikaci',
+    ViewVeeDrawerDestination.monitor => 'Režim sledování',
+    ViewVeeDrawerDestination.devices => 'Připojená zařízení',
+    ViewVeeDrawerDestination.recordings => 'Nahrávky',
+    ViewVeeDrawerDestination.account => 'Profil',
+    ViewVeeDrawerDestination.subscription => 'Předplatné',
+    ViewVeeDrawerDestination.preferences => 'Jazyk a vzhled',
+    ViewVeeDrawerDestination.support => 'Podpora',
+    ViewVeeDrawerDestination.about => 'O aplikaci',
   };
 
   Widget _buildDestinationBody() => switch (_activeDestination) {
-    ViewveeDrawerDestination.monitor => _buildProfilePage(),
-    ViewveeDrawerDestination.devices => _buildDevicesPage(),
-    ViewveeDrawerDestination.recordings =>
+    ViewVeeDrawerDestination.monitor => _buildProfilePage(),
+    ViewVeeDrawerDestination.devices => _buildDevicesPage(),
+    ViewVeeDrawerDestination.recordings =>
       widget.isPremium ? const RecordingsScreen() : const _SubscriptionSheet(),
-    ViewveeDrawerDestination.account => _buildProfilePage(),
-    ViewveeDrawerDestination.subscription => const _SubscriptionSheet(),
-    ViewveeDrawerDestination.preferences => _buildPreferencesPage(),
-    ViewveeDrawerDestination.support => _SupportPage(
+    ViewVeeDrawerDestination.account => _buildProfilePage(),
+    ViewVeeDrawerDestination.subscription => const _SubscriptionSheet(),
+    ViewVeeDrawerDestination.preferences => _buildPreferencesPage(),
+    ViewVeeDrawerDestination.support => _SupportPage(
       name: _personalDetails.fullName,
       email: _personalDetails.email,
     ),
-    ViewveeDrawerDestination.about => const _AboutPage(),
+    ViewVeeDrawerDestination.about => const _AboutPage(),
   };
 
   Widget _buildProfilePage() => ListView(
@@ -158,7 +158,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('profileMenuItem'),
             icon: Icons.badge_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: _personalDetails.isEmpty
                 ? 'Doplnit osobní údaje'
                 : 'Upravit osobní údaje',
@@ -169,7 +169,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('securityMenuItem'),
             icon: Icons.lock_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Zabezpečení',
             subtitle: 'Obnovení přístupového hesla',
             onTap: _showSecurityForm,
@@ -206,7 +206,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     children: [
       const _PageIntro(
         icon: Icons.devices_rounded,
-        color: ViewveeColors.teal,
+        color: ViewVeeColors.teal,
         title: 'Vaše zařízení',
         subtitle: 'Spravujte telefony používané jako kamera nebo monitor.',
       ),
@@ -216,7 +216,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('addDeviceMenuItem'),
             icon: Icons.add_circle_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Přidat zařízení',
             subtitle: 'Spárovat další kameru nebo monitor',
             onTap: _showAddDeviceOptions,
@@ -232,7 +232,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     children: [
       const _PageIntro(
         icon: Icons.palette_outlined,
-        color: ViewveeColors.logoBlue,
+        color: ViewVeeColors.logoBlue,
         title: 'Přizpůsobení aplikace',
         subtitle: 'Vyberte jazyk a způsob zobrazení ViewVee.',
       ),
@@ -243,11 +243,11 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('languageMenuItem'),
             icon: Icons.language_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Jazyk',
             subtitle: _languageCode == 'system'
                 ? context.vv('Podle systému')
-                : ViewveeLocaleController.languageNames[_languageCode] ??
+                : ViewVeeLocaleController.languageNames[_languageCode] ??
                       _languageCode,
             onTap: _showLanguagePicker,
           ),
@@ -266,7 +266,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
                   children: [
                     const _MenuIcon(
                       icon: Icons.contrast_rounded,
-                      color: ViewveeColors.violet,
+                      color: ViewVeeColors.violet,
                     ),
                     const SizedBox(width: 14),
                     VvText(
@@ -297,30 +297,30 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     ],
   );
 
-  Widget _buildAppDrawer() => ViewveeAppDrawer(
+  Widget _buildAppDrawer() => ViewVeeAppDrawer(
     watchMode: _watchMode,
     activeDestination: _activeDestination,
     isPremium: widget.isPremium,
     profileName: _personalDetails.fullName,
     profileEmail: _personalDetails.email,
     onOpenMonitor: _openWatchModeFromDrawer,
-    onOpenDevices: () => _selectDestination(ViewveeDrawerDestination.devices),
+    onOpenDevices: () => _selectDestination(ViewVeeDrawerDestination.devices),
     onOpenRecordings: () => _selectDestination(
       widget.isPremium
-          ? ViewveeDrawerDestination.recordings
-          : ViewveeDrawerDestination.subscription,
+          ? ViewVeeDrawerDestination.recordings
+          : ViewVeeDrawerDestination.subscription,
     ),
-    onOpenAccount: () => _selectDestination(ViewveeDrawerDestination.account),
+    onOpenAccount: () => _selectDestination(ViewVeeDrawerDestination.account),
     onOpenSubscription: () =>
-        _selectDestination(ViewveeDrawerDestination.subscription),
+        _selectDestination(ViewVeeDrawerDestination.subscription),
     onOpenPreferences: () =>
-        _selectDestination(ViewveeDrawerDestination.preferences),
-    onOpenSupport: () => _selectDestination(ViewveeDrawerDestination.support),
-    onOpenAbout: () => _selectDestination(ViewveeDrawerDestination.about),
+        _selectDestination(ViewVeeDrawerDestination.preferences),
+    onOpenSupport: () => _selectDestination(ViewVeeDrawerDestination.support),
+    onOpenAbout: () => _selectDestination(ViewVeeDrawerDestination.about),
     onSignOut: widget.onSignOut,
   );
 
-  void _selectDestination(ViewveeDrawerDestination destination) {
+  void _selectDestination(ViewVeeDrawerDestination destination) {
     if (mounted) setState(() => _activeDestination = destination);
   }
 
@@ -331,12 +331,12 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
       builder: (context) => _LanguageSheet(selected: _languageCode),
     );
     if (selected == null) return;
-    await ViewveeLocaleController.instance.setLanguage(selected);
+    await ViewVeeLocaleController.instance.setLanguage(selected);
     if (mounted) setState(() => _languageCode = selected);
   }
 
   Future<void> _showWatchModePicker() async {
-    final selected = await showViewveeWatchModePicker(context, _watchMode);
+    final selected = await showViewVeeWatchModePicker(context, _watchMode);
     if (selected == null || selected == _watchMode) return;
     await widget.onWatchModeChanged(selected);
     if (mounted) setState(() => _watchMode = selected);
@@ -484,7 +484,7 @@ class _AddDeviceSheet extends StatelessWidget {
           _DeviceRoleChoice(
             key: const Key('addCameraDevice'),
             icon: Icons.videocam_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Jako kamera',
             subtitle: 'Zobrazit QR kód pro druhý telefon',
             onTap: () => Navigator.pop(context, DevicePairingAction.camera),
@@ -493,7 +493,7 @@ class _AddDeviceSheet extends StatelessWidget {
           _DeviceRoleChoice(
             key: const Key('addMonitorDevice'),
             icon: Icons.qr_code_scanner_rounded,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Jako monitor',
             subtitle: 'Naskenovat QR kód z telefonu s kamerou',
             onTap: () => Navigator.pop(context, DevicePairingAction.monitor),
@@ -931,7 +931,7 @@ class _AboutPage extends StatelessWidget {
     key: const Key('aboutPage'),
     padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
     children: [
-      const Center(child: ViewveeLogo(width: 190)),
+      const Center(child: ViewVeeLogo(width: 190)),
       const SizedBox(height: 20),
       VvText(
         'Bezpečné spojení s tím, na čem vám záleží.',
@@ -947,7 +947,7 @@ class _AboutPage extends StatelessWidget {
         children: [
           _MenuTile(
             icon: Icons.info_outline_rounded,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Verze aplikace',
             subtitle: '1.0.0 (1)',
             onTap: () {},
@@ -955,7 +955,7 @@ class _AboutPage extends StatelessWidget {
           const _GroupDivider(),
           _MenuTile(
             icon: Icons.shield_outlined,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Soukromí a podmínky',
             subtitle: 'Právní informace ViewVee',
             onTap: () =>
@@ -984,14 +984,14 @@ class _ProfileHeader extends StatelessWidget {
           end: Alignment.centerRight,
           colors: [
             colors.surface,
-            ViewveeColors.logoBlue.withValues(alpha: 0.2),
+            ViewVeeColors.logoBlue.withValues(alpha: 0.2),
             colors.surface,
           ],
           stops: const [0, 0.5, 1],
         ),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: ViewveeColors.logoBlue.withValues(alpha: 0.36),
+          color: ViewVeeColors.logoBlue.withValues(alpha: 0.36),
         ),
       ),
       child: Row(
@@ -1006,13 +1006,13 @@ class _ProfileHeader extends StatelessWidget {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: ViewveeColors.navy.withValues(alpha: 0.08),
+                  color: ViewVeeColors.navy.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const ViewveeMark(size: 42),
+            child: const ViewVeeMark(size: 42),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1226,7 +1226,7 @@ class _LanguageSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          for (final entry in ViewveeLocaleController.languageNames.entries)
+          for (final entry in ViewVeeLocaleController.languageNames.entries)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.translate_rounded),
@@ -1238,7 +1238,7 @@ class _LanguageSheet extends StatelessWidget {
               trailing: entry.key == selected
                   ? const Icon(
                       Icons.check_circle_rounded,
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                     )
                   : null,
               onTap: () => Navigator.pop(context, entry.key),
@@ -1287,7 +1287,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModeBaby'),
             icon: Icons.child_friendly_rounded,
             label: 'Dítě',
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             selected: selected == WatchMode.baby,
             onTap: () => Navigator.pop(context, WatchMode.baby),
           ),
@@ -1296,7 +1296,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModePet'),
             icon: Icons.pets_rounded,
             label: 'Mazlíček',
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             selected: selected == WatchMode.pet,
             onTap: () => Navigator.pop(context, WatchMode.pet),
           ),
@@ -1305,7 +1305,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModeHome'),
             icon: Icons.home_rounded,
             label: 'Domov',
-            color: ViewveeColors.violet,
+            color: ViewVeeColors.violet,
             selected: selected == WatchMode.home,
             onTap: () => Navigator.pop(context, WatchMode.home),
           ),
@@ -1388,7 +1388,7 @@ class _SubscriptionSheet extends StatelessWidget {
         children: [
           const _PageIntro(
             icon: Icons.workspace_premium_rounded,
-            color: ViewveeColors.logoBlue,
+            color: ViewVeeColors.logoBlue,
             title: 'Vyberte si tarif',
             subtitle: 'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
           ),
@@ -1397,7 +1397,7 @@ class _SubscriptionSheet extends StatelessWidget {
             key: Key('freePlanCard'),
             title: 'Zdarma',
             subtitle: 'Aktuální tarif',
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             features: [
               _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
               _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
@@ -1447,14 +1447,14 @@ class _PremiumPlanCard extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
         stops: [0, 0.5, 1],
       ),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       boxShadow: [
         BoxShadow(
-          color: ViewveeColors.violet.withValues(alpha: 0.28),
+          color: ViewVeeColors.violet.withValues(alpha: 0.28),
           blurRadius: 28,
           offset: const Offset(0, 12),
         ),
@@ -1471,8 +1471,8 @@ class _PremiumPlanCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    ViewveeColors.navy.withValues(alpha: 0.16),
-                    ViewveeColors.navy.withValues(alpha: 0.32),
+                    ViewVeeColors.navy.withValues(alpha: 0.16),
+                    ViewVeeColors.navy.withValues(alpha: 0.32),
                   ],
                 ),
               ),
@@ -1609,7 +1609,7 @@ class _PremiumPlanCard extends StatelessWidget {
                   onPressed: () {},
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: ViewveeColors.violet,
+                    foregroundColor: ViewVeeColors.violet,
                     minimumSize: const Size.fromHeight(54),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1720,7 +1720,7 @@ class _FreePlanCard extends StatelessWidget {
       border: Border.all(color: color.withValues(alpha: 0.2)),
       boxShadow: [
         BoxShadow(
-          color: ViewveeColors.navy.withValues(alpha: 0.05),
+          color: ViewVeeColors.navy.withValues(alpha: 0.05),
           blurRadius: 18,
           offset: const Offset(0, 7),
         ),
@@ -1901,7 +1901,7 @@ class _SupportPage extends StatelessWidget {
     children: [
       const _PageIntro(
         icon: Icons.support_agent_rounded,
-        color: ViewveeColors.violet,
+        color: ViewVeeColors.violet,
         title: 'Jak vám můžeme pomoci?',
         subtitle: 'Vyberte nejrychlejší cestu k odpovědi nebo nám napište.',
       ),
@@ -1913,7 +1913,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('contactSupportItem'),
             icon: Icons.chat_bubble_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Kontaktovat podporu',
             subtitle: 'Odpovíme obvykle do 24 hodin',
             onTap: () => _showContactForm(context),
@@ -1928,7 +1928,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('faqItem'),
             icon: Icons.quiz_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Časté dotazy',
             subtitle: 'Rychlé odpovědi a praktické tipy',
             onTap: () => Navigator.of(
@@ -1945,7 +1945,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('rateAppItem'),
             icon: Icons.star_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Ohodnotit aplikaci',
             subtitle: 'Řekněte nám, jak se vám ViewVee líbí',
             onTap: () => _showRating(context),
@@ -2057,17 +2057,17 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: ViewveeColors.teal.withValues(alpha: 0.07),
+                  color: ViewVeeColors.teal.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: ViewveeColors.teal.withValues(alpha: 0.2),
+                    color: ViewVeeColors.teal.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.alternate_email_rounded,
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                       size: 21,
                     ),
                     const SizedBox(width: 11),
@@ -2234,10 +2234,10 @@ class _RatingSheetState extends State<_RatingSheet> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            ViewveeColors.navy,
+            ViewVeeColors.navy,
             Color(0xFF075F75),
-            ViewveeColors.blue,
-            ViewveeColors.violet,
+            ViewVeeColors.blue,
+            ViewVeeColors.violet,
           ],
           stops: [0, 0.34, 0.68, 1],
         ),
@@ -2272,7 +2272,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                     height: 56,
                     child: Padding(
                       padding: EdgeInsets.all(7),
-                      child: ViewveeMark(size: 42),
+                      child: ViewVeeMark(size: 42),
                     ),
                   ),
                 ),
@@ -2348,7 +2348,7 @@ class _RatingSheetState extends State<_RatingSheet> {
               key: const Key('submitRatingButton'),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: ViewveeColors.violet,
+                foregroundColor: ViewVeeColors.violet,
                 disabledBackgroundColor: Colors.white.withValues(alpha: 0.2),
                 disabledForegroundColor: Colors.white.withValues(alpha: 0.55),
                 minimumSize: const Size.fromHeight(52),
@@ -2441,7 +2441,7 @@ class _FaqPage extends StatelessWidget {
         children: [
           const _PageIntro(
             icon: Icons.quiz_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Rychlé odpovědi',
             subtitle: 'Nejčastější otázky k používání ViewVee.',
           ),
@@ -2478,14 +2478,14 @@ class _FaqItem extends StatelessWidget {
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: ViewveeColors.blue.withValues(alpha: 0.2)),
+      border: Border.all(color: ViewVeeColors.blue.withValues(alpha: 0.2)),
     ),
     child: ExpansionTile(
       shape: const Border(),
       collapsedShape: const Border(),
       tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-      leading: _MenuIcon(icon: icon, color: ViewveeColors.blue),
+      leading: _MenuIcon(icon: icon, color: ViewVeeColors.blue),
       title: VvText(
         question,
         style: TextStyle(
@@ -2494,7 +2494,7 @@ class _FaqItem extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-      iconColor: ViewveeColors.blue,
+      iconColor: ViewVeeColors.blue,
       collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant,
       children: [
         Align(

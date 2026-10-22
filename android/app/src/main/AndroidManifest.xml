@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.CAMERA" />
     <application
-        android:label="Viewvee"
+        android:label="ViewVee"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <!-- Google sample app ID. Replace with ViewVee's AdMob app ID for release. -->

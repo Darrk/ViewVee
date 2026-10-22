@@ -15,11 +15,11 @@ import 'widgets/viewvee_logo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ViewveeApp());
+  runApp(const ViewVeeApp());
 }
 
-class ViewveeApp extends StatefulWidget {
-  const ViewveeApp({
+class ViewVeeApp extends StatefulWidget {
+  const ViewVeeApp({
     super.key,
     this.authRepository,
     this.previewAuthenticated = false,
@@ -29,17 +29,17 @@ class ViewveeApp extends StatefulWidget {
   final bool previewAuthenticated;
 
   @override
-  State<ViewveeApp> createState() => _ViewveeAppState();
+  State<ViewVeeApp> createState() => _ViewVeeAppState();
 }
 
-class _ViewveeAppState extends State<ViewveeApp> {
+class _ViewVeeAppState extends State<ViewVeeApp> {
   static const _minimumIntroDuration = Duration(milliseconds: 3000);
   static const _themeModeKey = 'preferences.themeMode';
 
   late final AuthRepository? _authRepository;
   late Future<AppSession> _session;
   ThemeMode _themeMode = ThemeMode.system;
-  final _localeController = ViewveeLocaleController.instance;
+  final _localeController = ViewVeeLocaleController.instance;
 
   @override
   void initState() {
@@ -84,8 +84,8 @@ class _ViewveeAppState extends State<ViewveeApp> {
         isGuest: false,
         watchMode: null,
         isPremium:
-          !Config.enablePremiumFeatures ||
-          (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
+            !Config.enablePremiumFeatures ||
+            (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
       );
     }
     if (kDebugMode) {
@@ -118,8 +118,9 @@ class _ViewveeAppState extends State<ViewveeApp> {
             isGuest: false,
             watchMode: mode,
             isPremium:
-              !Config.enablePremiumFeatures ||
-              (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
+                !Config.enablePremiumFeatures ||
+                (preferences.getBool(AuthRepository.premiumUnlockedKey) ??
+                    false),
           ),
         );
       });
@@ -137,7 +138,7 @@ class _ViewveeAppState extends State<ViewveeApp> {
   void _openAccountMenu(
     BuildContext context,
     AppSession session,
-    ViewveeDrawerDestination destination,
+    ViewVeeDrawerDestination destination,
   ) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -174,13 +175,13 @@ class _ViewveeAppState extends State<ViewveeApp> {
     return MaterialApp(
       title: 'ViewVee',
       debugShowCheckedModeBanner: false,
-      theme: buildViewveeTheme(),
-      darkTheme: buildViewveeDarkTheme(),
+      theme: buildViewVeeTheme(),
+      darkTheme: buildViewVeeDarkTheme(),
       themeMode: _themeMode,
       locale: _localeController.locale,
-      supportedLocales: ViewveeLocalizations.supportedLocales,
+      supportedLocales: ViewVeeLocalizations.supportedLocales,
       localizationsDelegates: const [
-        ViewveeLocalizations.delegate,
+        ViewVeeLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -199,47 +200,47 @@ class _ViewveeAppState extends State<ViewveeApp> {
           }
           if (session.watchMode == null) {
             return SetupScreen(
-              drawer: ViewveeAppDrawer(
+              drawer: ViewVeeAppDrawer(
                 watchMode: null,
-                activeDestination: ViewveeDrawerDestination.monitor,
+                activeDestination: ViewVeeDrawerDestination.monitor,
                 isPremium: session.isPremium,
                 onOpenMonitor: () {},
                 onOpenDevices: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.devices,
+                  ViewVeeDrawerDestination.devices,
                 ),
                 onOpenRecordings: () => _openAccountMenu(
                   context,
                   session,
                   session.isPremium
-                      ? ViewveeDrawerDestination.recordings
-                      : ViewveeDrawerDestination.subscription,
+                      ? ViewVeeDrawerDestination.recordings
+                      : ViewVeeDrawerDestination.subscription,
                 ),
                 onOpenAccount: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.account,
+                  ViewVeeDrawerDestination.account,
                 ),
                 onOpenSubscription: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.subscription,
+                  ViewVeeDrawerDestination.subscription,
                 ),
                 onOpenPreferences: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.preferences,
+                  ViewVeeDrawerDestination.preferences,
                 ),
                 onOpenSupport: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.support,
+                  ViewVeeDrawerDestination.support,
                 ),
                 onOpenAbout: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.about,
+                  ViewVeeDrawerDestination.about,
                 ),
                 onSignOut: () async {
                   if (_authRepository == null) return;
@@ -280,7 +281,7 @@ class _SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            AnimatedViewveeLogo(),
+            AnimatedViewVeeLogo(),
             SizedBox(height: 28),
             _LoadingDots(),
           ],
@@ -319,9 +320,9 @@ class _LoadingDotsState extends State<_LoadingDots>
   @override
   Widget build(BuildContext context) {
     const colors = [
-      ViewveeColors.teal,
-      ViewveeColors.blue,
-      ViewveeColors.violet,
+      ViewVeeColors.teal,
+      ViewVeeColors.blue,
+      ViewVeeColors.violet,
     ];
     return AnimatedBuilder(
       animation: _controller,

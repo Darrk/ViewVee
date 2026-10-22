@@ -809,7 +809,7 @@ class AudioMonitorService {
       }
       if (_motionDetectionEnabled) await _detectMotion();
     } catch (error) {
-      debugPrint('Viewvee monitoring tick: $error');
+      debugPrint('ViewVee monitoring tick: $error');
     } finally {
       _monitorTickRunning = false;
     }
@@ -864,7 +864,7 @@ class AudioMonitorService {
     try {
       await _signaling.sendControl(message);
     } catch (error) {
-      debugPrint('Viewvee control message: $error');
+      debugPrint('ViewVee control message: $error');
     }
   }
 

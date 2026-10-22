@@ -15,15 +15,15 @@ void main() {
     Future<void> Function(ThemeMode mode)? onThemeModeChanged,
     Future<void> Function(String email)? onPasswordReset,
     Future<void> Function(DevicePairingAction action)? onAddDevice,
-    ViewveeDrawerDestination initialDestination =
-        ViewveeDrawerDestination.account,
+    ViewVeeDrawerDestination initialDestination =
+        ViewVeeDrawerDestination.account,
     ThemeMode themeMode = ThemeMode.light,
     bool isPremium = true,
     int? accountId,
   }) {
     return MaterialApp(
-      theme: buildViewveeTheme(),
-      darkTheme: buildViewveeDarkTheme(),
+      theme: buildViewVeeTheme(),
+      darkTheme: buildViewVeeDarkTheme(),
       themeMode: themeMode,
       home: AccountMenuScreen(
         key: UniqueKey(),
@@ -128,7 +128,7 @@ void main() {
     Uri? openedUri;
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildViewveeTheme(),
+        theme: buildViewVeeTheme(),
         home: AccountMenuScreen(
           isGuest: false,
           isPremium: true,
@@ -187,7 +187,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.devices),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
     );
 
     expect(find.byKey(const Key('devicesPage')), findsOneWidget);
@@ -200,7 +200,7 @@ void main() {
     DevicePairingAction? selectedAction;
     await tester.pumpWidget(
       buildSubject(
-        initialDestination: ViewveeDrawerDestination.devices,
+        initialDestination: ViewVeeDrawerDestination.devices,
         onAddDevice: (action) async => selectedAction = action,
       ),
     );
@@ -220,7 +220,7 @@ void main() {
 
   testWidgets('changes language only in the local UI', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.preferences),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.preferences),
     );
 
     expect(find.byKey(const Key('languageSettingsTile')), findsOneWidget);
@@ -239,7 +239,7 @@ void main() {
     ThemeMode? selectedMode;
     await tester.pumpWidget(
       buildSubject(
-        initialDestination: ViewveeDrawerDestination.preferences,
+        initialDestination: ViewVeeDrawerDestination.preferences,
         onThemeModeChanged: (mode) async => selectedMode = mode,
       ),
     );
@@ -287,7 +287,7 @@ void main() {
 
   testWidgets('about has separate content', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.about),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.about),
     );
     await tester.pumpAndSettle();
 
@@ -297,7 +297,7 @@ void main() {
 
   testWidgets('support follows the grouped settings layout', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
 
     expect(find.byKey(const Key('supportPage')), findsOneWidget);
@@ -319,7 +319,7 @@ void main() {
       'profile.email': 'jana@example.cz',
     });
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
     await tester.pumpAndSettle();
 
@@ -338,7 +338,7 @@ void main() {
 
   testWidgets('app rating stores the selected number of stars', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
 
     await tester.ensureVisible(find.byKey(const Key('rateAppItem')));
@@ -360,7 +360,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
 
     await tester.ensureVisible(find.byKey(const Key('faqItem')));

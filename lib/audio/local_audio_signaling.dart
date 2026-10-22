@@ -99,7 +99,7 @@ class LocalAudioSignaling implements AudioSignaling {
     await _broadcast?.stop();
     _broadcast = BonsoirBroadcast(
       service: BonsoirService(
-        name: 'Viewvee-${credentials.roomCode}',
+        name: 'ViewVee-${credentials.roomCode}',
         type: _serviceType,
         port: server.port,
         attributes: {
@@ -147,7 +147,7 @@ class LocalAudioSignaling implements AudioSignaling {
       if (result.isCompleted) return;
       if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
         final service = event.service;
-        if (service?.name.startsWith('Viewvee-') ?? false) {
+        if (service?.name.startsWith('ViewVee-') ?? false) {
           service!.resolve(_discovery!.serviceResolver);
         }
       } else if (event.type ==
@@ -534,7 +534,7 @@ class LocalAudioSignaling implements AudioSignaling {
   }
 
   static void _logError(Object error) {
-    debugPrint('Viewvee LAN signaling: $error');
+    debugPrint('ViewVee LAN signaling: $error');
   }
 }
 

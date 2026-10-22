@@ -47,10 +47,10 @@ class AdFreeRewardStore {
 enum RewardedAdResult { earned, unavailable, failed }
 
 /// Loads and presents the opt-in fullscreen rewarded ad.
-class ViewveeRewardedAdService {
-  ViewveeRewardedAdService._();
+class ViewVeeRewardedAdService {
+  ViewVeeRewardedAdService._();
 
-  static final instance = ViewveeRewardedAdService._();
+  static final instance = ViewVeeRewardedAdService._();
 
   // Keep Google's sample units until ViewVee receives its own AdMob units.
   static const _androidRewardedId = 'ca-app-pub-3940256099942544/5224354917';

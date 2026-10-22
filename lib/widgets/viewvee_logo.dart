@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../localization/viewvee_localizations.dart';
 
-class ViewveeLogo extends StatelessWidget {
-  const ViewveeLogo({
+class ViewVeeLogo extends StatelessWidget {
+  const ViewVeeLogo({
     super.key,
     this.width = 280,
     this.useDarkBackground = false,
@@ -86,8 +86,8 @@ class ViewveeLogo extends StatelessWidget {
   }
 }
 
-class ViewveeMark extends StatelessWidget {
-  const ViewveeMark({super.key, this.size = 40});
+class ViewVeeMark extends StatelessWidget {
+  const ViewVeeMark({super.key, this.size = 40});
 
   final double size;
 
@@ -101,16 +101,16 @@ class ViewveeMark extends StatelessWidget {
   );
 }
 
-class AnimatedViewveeLogo extends StatefulWidget {
-  const AnimatedViewveeLogo({super.key, this.width = 320});
+class AnimatedViewVeeLogo extends StatefulWidget {
+  const AnimatedViewVeeLogo({super.key, this.width = 320});
 
   final double width;
 
   @override
-  State<AnimatedViewveeLogo> createState() => _AnimatedViewveeLogoState();
+  State<AnimatedViewVeeLogo> createState() => _AnimatedViewVeeLogoState();
 }
 
-class _AnimatedViewveeLogoState extends State<AnimatedViewveeLogo>
+class _AnimatedViewVeeLogoState extends State<AnimatedViewVeeLogo>
     with TickerProviderStateMixin {
   late final AnimationController _entranceController;
   late final AnimationController _effectController;
@@ -160,7 +160,7 @@ class _AnimatedViewveeLogoState extends State<AnimatedViewveeLogo>
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              ViewveeLogo(width: width),
+              ViewVeeLogo(width: width),
               Positioned(
                 left: width * 0.432,
                 top: width * 0.17,

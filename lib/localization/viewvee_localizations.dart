@@ -8,10 +8,10 @@ import 'viewvee_source_translations_4.dart';
 import 'viewvee_source_translations_5.dart';
 import 'viewvee_premium_translations.dart';
 
-class ViewveeLocaleController extends ChangeNotifier {
-  ViewveeLocaleController._();
+class ViewVeeLocaleController extends ChangeNotifier {
+  ViewVeeLocaleController._();
 
-  static final ViewveeLocaleController instance = ViewveeLocaleController._();
+  static final ViewVeeLocaleController instance = ViewVeeLocaleController._();
   static const preferenceKey = 'preferences.languageCode';
 
   Locale? _locale;
@@ -75,16 +75,16 @@ class ViewveeLocaleController extends ChangeNotifier {
   };
 }
 
-class ViewveeLocalizations {
-  const ViewveeLocalizations(this.locale);
+class ViewVeeLocalizations {
+  const ViewVeeLocalizations(this.locale);
 
   final Locale locale;
 
-  static ViewveeLocalizations? maybeOf(BuildContext context) =>
-      Localizations.of<ViewveeLocalizations>(context, ViewveeLocalizations);
+  static ViewVeeLocalizations? maybeOf(BuildContext context) =>
+      Localizations.of<ViewVeeLocalizations>(context, ViewVeeLocalizations);
 
-  static const LocalizationsDelegate<ViewveeLocalizations> delegate =
-      _ViewveeLocalizationsDelegate();
+  static const LocalizationsDelegate<ViewVeeLocalizations> delegate =
+      _ViewVeeLocalizationsDelegate();
 
   static const supportedLocales = <Locale>[
     Locale('ar'),
@@ -3066,7 +3066,7 @@ class ViewveeLocalizations {
   String translate(String source) {
     final czech = _translations['cs'] ?? const <String, String>{};
     final key = _keyForSource(source, czech);
-    final code = ViewveeLocaleController.codeOf(locale);
+    final code = ViewVeeLocaleController.codeOf(locale);
     if (key == null) {
       if (code == 'cs') return source;
       if (code == 'en' && _englishFallback.containsKey(source)) {
@@ -3109,7 +3109,7 @@ class ViewveeLocalizations {
   /// Used by localization coverage tests to prevent silent English fallbacks.
   static bool hasNativeTranslation(String source, Locale locale) {
     final key = _keyForSource(source);
-    final code = ViewveeLocaleController.codeOf(locale);
+    final code = ViewVeeLocaleController.codeOf(locale);
     if (key == null) {
       if (code == 'cs') return true;
       final premiumIndex = viewveePremiumSources.indexOf(source);
@@ -3137,14 +3137,14 @@ class ViewveeLocalizations {
       _englishFallback.containsKey(source);
 }
 
-extension ViewveeLocalizationContext on BuildContext {
+extension ViewVeeLocalizationContext on BuildContext {
   String vv(String source) =>
-      ViewveeLocalizations.maybeOf(this)?.translate(source) ?? source;
+      ViewVeeLocalizations.maybeOf(this)?.translate(source) ?? source;
 
   String vvError(String source) {
-    final localizations = ViewveeLocalizations.maybeOf(this);
+    final localizations = ViewVeeLocalizations.maybeOf(this);
     if (localizations == null) return source;
-    if (ViewveeLocalizations.isKnownSource(source)) {
+    if (ViewVeeLocalizations.isKnownSource(source)) {
       return localizations.translate(source);
     }
     if (localizations.locale.languageCode == 'en') return source;
@@ -3152,12 +3152,12 @@ extension ViewveeLocalizationContext on BuildContext {
   }
 }
 
-class _ViewveeLocalizationsDelegate
-    extends LocalizationsDelegate<ViewveeLocalizations> {
-  const _ViewveeLocalizationsDelegate();
+class _ViewVeeLocalizationsDelegate
+    extends LocalizationsDelegate<ViewVeeLocalizations> {
+  const _ViewVeeLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ViewveeLocalizations.supportedLocales.any(
+  bool isSupported(Locale locale) => ViewVeeLocalizations.supportedLocales.any(
     (supported) =>
         supported.languageCode == locale.languageCode &&
         (supported.scriptCode == null ||
@@ -3165,11 +3165,11 @@ class _ViewveeLocalizationsDelegate
   );
 
   @override
-  Future<ViewveeLocalizations> load(Locale locale) async =>
-      ViewveeLocalizations(locale);
+  Future<ViewVeeLocalizations> load(Locale locale) async =>
+      ViewVeeLocalizations(locale);
 
   @override
-  bool shouldReload(_ViewveeLocalizationsDelegate old) => false;
+  bool shouldReload(_ViewVeeLocalizationsDelegate old) => false;
 }
 
 class VvText extends StatelessWidget {

@@ -6,8 +6,8 @@ import 'package:viewvee/main.dart';
 
 void main() {
   test('device roles use neutral labels for all monitoring types', () {
-    const english = ViewveeLocalizations(Locale('en'));
-    const czech = ViewveeLocalizations(Locale('cs'));
+    const english = ViewVeeLocalizations(Locale('en'));
+    const czech = ViewVeeLocalizations(Locale('cs'));
     expect(english.translate('Kamera'), 'Camera');
     expect(english.translate('Monitor'), 'Monitor');
     expect(czech.translate('Kamera'), 'Kamera');
@@ -15,10 +15,10 @@ void main() {
   });
 
   test('supports the same 28 locale variants as BabyWave', () {
-    expect(ViewveeLocalizations.supportedLocales, hasLength(28));
-    expect(ViewveeLocalizations.supportedLocales, contains(const Locale('ar')));
+    expect(ViewVeeLocalizations.supportedLocales, hasLength(28));
+    expect(ViewVeeLocalizations.supportedLocales, contains(const Locale('ar')));
     expect(
-      ViewveeLocalizations.supportedLocales,
+      ViewVeeLocalizations.supportedLocales,
       contains(
         const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant'),
       ),
@@ -27,10 +27,10 @@ void main() {
 
   testWidgets('uses the saved language throughout the app', (tester) async {
     SharedPreferences.setMockInitialValues({
-      ViewveeLocaleController.preferenceKey: 'en',
+      ViewVeeLocaleController.preferenceKey: 'en',
     });
 
-    await tester.pumpWidget(const ViewveeApp(previewAuthenticated: true));
+    await tester.pumpWidget(const ViewVeeApp(previewAuthenticated: true));
     await tester.pumpAndSettle();
 
     expect(find.text('Continue'), findsOneWidget);
@@ -52,8 +52,8 @@ void main() {
       'Hesla se neshodují.',
       'Heslo musí mít alespoň 8 znaků.',
     ];
-    for (final locale in ViewveeLocalizations.supportedLocales) {
-      final localizations = ViewveeLocalizations(locale);
+    for (final locale in ViewVeeLocalizations.supportedLocales) {
+      final localizations = ViewVeeLocalizations(locale);
       for (final source in registrationSources) {
         expect(
           localizations.translate(source),
@@ -62,7 +62,7 @@ void main() {
         );
       }
     }
-    const english = ViewveeLocalizations(Locale('en'));
+    const english = ViewVeeLocalizations(Locale('en'));
     expect(english.translate('Registrace'), 'Sign Up');
     expect(english.translate('Heslo znovu'), 'Confirm Password');
     expect(english.translate('Křestní jméno'), 'First Name');
@@ -74,8 +74,8 @@ void main() {
   });
 
   test('system language option is localized', () {
-    const english = ViewveeLocalizations(Locale('en'));
-    const german = ViewveeLocalizations(Locale('de'));
+    const english = ViewVeeLocalizations(Locale('en'));
+    const german = ViewVeeLocalizations(Locale('de'));
     expect(english.translate('Podle systému'), 'System default');
     expect(german.translate('Podle systému'), 'Systemeinstellung');
   });

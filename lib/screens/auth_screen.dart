@@ -187,7 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
       key: const ValueKey('authChoices'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Center(child: ViewveeLogo(width: 300, useDarkBackground: true)),
+        const Center(child: ViewVeeLogo(width: 300, useDarkBackground: true)),
         const SizedBox(height: 28),
         VvText(
           'Spolehlivý dohled, ať jste kdekoliv.',
@@ -243,7 +243,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 label: 'Pokračovat přes Apple',
                 foregroundColor: Colors.black,
                 backgroundColor: Colors.white,
-                borderColor: ViewveeColors.outline,
+                borderColor: ViewVeeColors.outline,
                 onPressed: _loading
                     ? null
                     : () => _signInWithProvider(AuthProvider.apple),
@@ -279,7 +279,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 label: 'Pokračovat přes Google',
                 foregroundColor: Colors.black,
                 backgroundColor: Colors.white,
-                borderColor: ViewveeColors.outline,
+                borderColor: ViewVeeColors.outline,
                 onPressed: _loading
                     ? null
                     : () => _signInWithProvider(AuthProvider.google),
@@ -292,7 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const Center(
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: ViewveeColors.teal,
+              color: ViewVeeColors.teal,
             ),
           ),
         ],
@@ -324,12 +324,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     : () => setState(() => _view = _AuthView.choices),
                 icon: const Icon(
                   Icons.arrow_back_rounded,
-                  color: ViewveeColors.navy,
+                  color: ViewVeeColors.navy,
                 ),
               ),
             ),
           ),
-          const Center(child: ViewveeLogo(width: 220, useDarkBackground: true)),
+          const Center(child: ViewVeeLogo(width: 220, useDarkBackground: true)),
           const SizedBox(height: 32),
           VvText(
             registering ? 'Registrace' : 'Přihlášení',
@@ -515,12 +515,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       }),
                 icon: const Icon(
                   Icons.arrow_back_rounded,
-                  color: ViewveeColors.navy,
+                  color: ViewVeeColors.navy,
                 ),
               ),
             ),
           ),
-          const Center(child: ViewveeLogo(width: 220, useDarkBackground: true)),
+          const Center(child: ViewVeeLogo(width: 220, useDarkBackground: true)),
           const SizedBox(height: 28),
           const VvText(
             'Zapomenuté heslo?',
@@ -588,7 +588,7 @@ class _BrandAccent extends StatelessWidget {
     height: 4,
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
       ),
       borderRadius: BorderRadius.circular(2),
     ),
@@ -620,9 +620,9 @@ class _BrandGradientButton extends StatelessWidget {
             )
           : const LinearGradient(
               colors: [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
             ),
       borderRadius: BorderRadius.circular(8),
@@ -630,7 +630,7 @@ class _BrandGradientButton extends StatelessWidget {
           ? null
           : [
               BoxShadow(
-                color: ViewveeColors.blue.withValues(alpha: 0.2),
+                color: ViewVeeColors.blue.withValues(alpha: 0.2),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -719,11 +719,11 @@ class _BrandOutlineButton extends StatelessWidget {
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: onPressed == null
-            ? const [ViewveeColors.outline, ViewveeColors.outline]
+            ? const [ViewVeeColors.outline, ViewVeeColors.outline]
             : const [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
       ),
       borderRadius: BorderRadius.circular(8),
@@ -798,7 +798,7 @@ class _SocialIconButton extends StatelessWidget {
           side: BorderSide(color: borderColor ?? backgroundColor),
           shape: const CircleBorder(),
           elevation: 1,
-          shadowColor: ViewveeColors.blue.withValues(alpha: 0.16),
+          shadowColor: ViewVeeColors.blue.withValues(alpha: 0.16),
         ),
       ),
     ),

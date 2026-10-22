@@ -61,8 +61,8 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final lightTheme = _withScreenshotFontFallback(buildViewveeTheme());
-    final darkTheme = _withScreenshotFontFallback(buildViewveeDarkTheme());
+    final lightTheme = _withScreenshotFontFallback(buildViewVeeTheme());
+    final darkTheme = _withScreenshotFontFallback(buildViewVeeDarkTheme());
 
     const screenshots = <({Locale locale, String fileName})>[
       (locale: Locale('ar'), fileName: 'ar'),
@@ -108,9 +108,9 @@ void main() {
           darkTheme: darkTheme,
           themeMode: ThemeMode.light,
           locale: screenshot.locale,
-          supportedLocales: ViewveeLocalizations.supportedLocales,
+          supportedLocales: ViewVeeLocalizations.supportedLocales,
           localizationsDelegates: const [
-            ViewveeLocalizations.delegate,
+            ViewVeeLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
@@ -149,9 +149,9 @@ void main() {
           darkTheme: darkTheme,
           themeMode: ThemeMode.dark,
           locale: screenshot.locale,
-          supportedLocales: ViewveeLocalizations.supportedLocales,
+          supportedLocales: ViewVeeLocalizations.supportedLocales,
           localizationsDelegates: const [
-            ViewveeLocalizations.delegate,
+            ViewVeeLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,

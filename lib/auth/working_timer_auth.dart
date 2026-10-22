@@ -2,7 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:universal_io/io.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
-class ViewveeAuthConfig implements AuthConfig, ServicesConfig {
+class ViewVeeAuthConfig implements AuthConfig, ServicesConfig {
   @override
   String get authClientId => 'working-timer-app';
 
@@ -112,7 +112,7 @@ class SpecterWorkingTimerAuth implements WorkingTimerAuth {
     // shared authentication client usable without initializing Firebase-only
     // analytics from Working Timer Core.
     Analytics.isTest = true;
-    final config = ViewveeAuthConfig();
+    final config = ViewVeeAuthConfig();
     final identityService = IdentityService(
       config: config,
       analytics: Analytics(),

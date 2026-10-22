@@ -252,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
             : const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  ViewveeMark(size: 34),
+                  ViewVeeMark(size: 34),
                   SizedBox(width: 8),
                   VvText(
                     'ViewVee',
@@ -292,31 +292,31 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAppDrawer() => ViewveeAppDrawer(
+  Widget _buildAppDrawer() => ViewVeeAppDrawer(
     watchMode: widget.watchMode,
-    activeDestination: ViewveeDrawerDestination.monitor,
+    activeDestination: ViewVeeDrawerDestination.monitor,
     isPremium: _isPremium,
     onOpenMonitor: _openWatchModeFromDrawer,
-    onOpenDevices: () => _openAccountMenu(ViewveeDrawerDestination.devices),
+    onOpenDevices: () => _openAccountMenu(ViewVeeDrawerDestination.devices),
     onOpenRecordings: () => _openAccountMenu(
       _isPremium
-          ? ViewveeDrawerDestination.recordings
-          : ViewveeDrawerDestination.subscription,
+          ? ViewVeeDrawerDestination.recordings
+          : ViewVeeDrawerDestination.subscription,
     ),
-    onOpenAccount: () => _openAccountMenu(ViewveeDrawerDestination.account),
+    onOpenAccount: () => _openAccountMenu(ViewVeeDrawerDestination.account),
     onOpenSubscription: () =>
-        _openAccountMenu(ViewveeDrawerDestination.subscription),
+        _openAccountMenu(ViewVeeDrawerDestination.subscription),
     onOpenPreferences: () =>
-        _openAccountMenu(ViewveeDrawerDestination.preferences),
-    onOpenSupport: () => _openAccountMenu(ViewveeDrawerDestination.support),
-    onOpenAbout: () => _openAccountMenu(ViewveeDrawerDestination.about),
+        _openAccountMenu(ViewVeeDrawerDestination.preferences),
+    onOpenSupport: () => _openAccountMenu(ViewVeeDrawerDestination.support),
+    onOpenAbout: () => _openAccountMenu(ViewVeeDrawerDestination.about),
     onSignOut: widget.onSignOut,
   );
 
   void _openWatchModeFromDrawer() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final selected = await showViewveeWatchModePicker(
+      final selected = await showViewVeeWatchModePicker(
         context,
         widget.watchMode,
       );
@@ -326,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _openAccountMenu(ViewveeDrawerDestination destination) async {
+  Future<void> _openAccountMenu(ViewVeeDrawerDestination destination) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AccountMenuScreen(
@@ -402,9 +402,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      ViewveeColors.teal,
-                      ViewveeColors.blue,
-                      ViewveeColors.violet,
+                      ViewVeeColors.teal,
+                      ViewVeeColors.blue,
+                      ViewVeeColors.violet,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(14),
@@ -445,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (openPremium == true && mounted) {
-      await _openAccountMenu(ViewveeDrawerDestination.subscription);
+      await _openAccountMenu(ViewVeeDrawerDestination.subscription);
     }
   }
 
@@ -565,18 +565,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: ButtonStyle(
                   backgroundColor: WidgetStateProperty.resolveWith(
                     (states) => states.contains(WidgetState.selected)
-                        ? ViewveeColors.teal.withValues(alpha: 0.18)
+                        ? ViewVeeColors.teal.withValues(alpha: 0.18)
                         : colors.surface,
                   ),
                   foregroundColor: WidgetStateProperty.resolveWith(
                     (states) => states.contains(WidgetState.selected)
-                        ? ViewveeColors.teal
+                        ? ViewVeeColors.teal
                         : colors.onSurfaceVariant,
                   ),
                   side: WidgetStateProperty.resolveWith(
                     (states) => BorderSide(
                       color: states.contains(WidgetState.selected)
-                          ? ViewveeColors.teal
+                          ? ViewVeeColors.teal
                           : colors.outline,
                     ),
                   ),
@@ -607,8 +607,8 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               icon: const Icon(Icons.cameraswitch_rounded),
               style: IconButton.styleFrom(
-                backgroundColor: ViewveeColors.blue.withValues(alpha: 0.16),
-                foregroundColor: ViewveeColors.blue,
+                backgroundColor: ViewVeeColors.blue.withValues(alpha: 0.16),
+                foregroundColor: ViewVeeColors.blue,
               ),
             ),
           ],
@@ -633,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _ToggleControl(
                 icon: Icons.flashlight_on_rounded,
                 label: 'Svítilna',
-                accentColor: ViewveeColors.teal,
+                accentColor: ViewVeeColors.teal,
                 value: _flash,
                 onChanged: (value) async {
                   if (_frontCamera && value) {
@@ -667,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _ToggleControl(
                 icon: Icons.dark_mode_rounded,
                 label: 'Noční režim',
-                accentColor: ViewveeColors.blue,
+                accentColor: ViewVeeColors.blue,
                 value: _nightMode,
                 onChanged: (value) async {
                   final available = await _audioMonitor.setNightModeEnabled(
@@ -1278,7 +1278,7 @@ class _RoleSelectionState extends State<_RoleSelection> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Center(
-                      child: ViewveeLogo(width: 188, useDarkBackground: true),
+                      child: ViewVeeLogo(width: 188, useDarkBackground: true),
                     ),
                     const SizedBox(height: 26),
                     VvText(
@@ -1324,7 +1324,7 @@ class _RoleSelectionState extends State<_RoleSelection> {
                       icon: Icons.videocam_rounded,
                       title: 'Kamera',
                       subtitle: 'Tento telefon snímá obraz a zvuk',
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                       selected: _selectedRole == DeviceRole.camera,
                       onTap: () => _selectRole(DeviceRole.camera),
                     ),
@@ -1334,7 +1334,7 @@ class _RoleSelectionState extends State<_RoleSelection> {
                       icon: Icons.monitor_rounded,
                       title: 'Monitor',
                       subtitle: 'Tento telefon zobrazuje živý přenos',
-                      color: ViewveeColors.violet,
+                      color: ViewVeeColors.violet,
                       selected: _selectedRole == DeviceRole.monitor,
                       onTap: () => _selectRole(DeviceRole.monitor),
                     ),
@@ -1480,7 +1480,7 @@ class _RoleButton extends StatelessWidget {
                       selected
                           ? Icons.check_circle_rounded
                           : Icons.radio_button_unchecked_rounded,
-                      color: selected ? color : ViewveeColors.outline,
+                      color: selected ? color : ViewVeeColors.outline,
                       size: 25,
                     ),
                   ],
@@ -1592,7 +1592,7 @@ class _RoleBrandAccent extends StatelessWidget {
     height: 4,
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
       ),
       borderRadius: BorderRadius.circular(2),
     ),
@@ -1616,9 +1616,9 @@ class _RoleContinueButton extends StatelessWidget {
             )
           : const LinearGradient(
               colors: [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
             ),
       borderRadius: BorderRadius.circular(8),
@@ -1626,7 +1626,7 @@ class _RoleContinueButton extends StatelessWidget {
           ? null
           : [
               BoxShadow(
-                color: ViewveeColors.blue.withValues(alpha: 0.2),
+                color: ViewVeeColors.blue.withValues(alpha: 0.2),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -1672,37 +1672,37 @@ class _AudioStatusBar extends StatelessWidget {
       AudioConnectionState.idle => (
         'Zvuk není připojený',
         Icons.link_off_rounded,
-        ViewveeColors.violet,
+        ViewVeeColors.violet,
       ),
       AudioConnectionState.creatingRoom => (
         'Vytvářím bezpečnou relaci',
         Icons.sync_rounded,
-        ViewveeColors.blue,
+        ViewVeeColors.blue,
       ),
       AudioConnectionState.waitingForPeer => (
         'Čekám na druhý telefon',
         Icons.qr_code_rounded,
-        ViewveeColors.blue,
+        ViewVeeColors.blue,
       ),
       AudioConnectionState.connecting => (
         'Navazuji šifrované spojení',
         Icons.sync_rounded,
-        ViewveeColors.blue,
+        ViewVeeColors.blue,
       ),
       AudioConnectionState.connected => (
         'Zvuk je připojený',
         Icons.check_circle_rounded,
-        ViewveeColors.teal,
+        ViewVeeColors.teal,
       ),
       AudioConnectionState.disconnected => (
         'Spojení bylo přerušeno',
         Icons.error_rounded,
-        ViewveeColors.violet,
+        ViewVeeColors.violet,
       ),
       AudioConnectionState.error => (
         'Zvuk se nepodařilo připojit',
         Icons.error_rounded,
-        ViewveeColors.violet,
+        ViewVeeColors.violet,
       ),
     };
     final canRetry =
@@ -1719,15 +1719,15 @@ class _AudioStatusBar extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  ViewveeColors.blue.withValues(alpha: 0.14),
-                  ViewveeColors.violet.withValues(alpha: 0.12),
+                  ViewVeeColors.blue.withValues(alpha: 0.14),
+                  ViewVeeColors.violet.withValues(alpha: 0.12),
                 ],
               )
             : null,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: matchesCameraError
-              ? ViewveeColors.violet.withValues(alpha: 0.34)
+              ? ViewVeeColors.violet.withValues(alpha: 0.34)
               : color.withValues(alpha: 0.24),
         ),
       ),
@@ -1769,12 +1769,12 @@ class _AudioError extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            ViewveeColors.blue.withValues(alpha: 0.14),
-            ViewveeColors.violet.withValues(alpha: 0.12),
+            ViewVeeColors.blue.withValues(alpha: 0.14),
+            ViewVeeColors.violet.withValues(alpha: 0.12),
           ],
         ),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: ViewveeColors.violet.withValues(alpha: 0.34)),
+        border: Border.all(color: ViewVeeColors.violet.withValues(alpha: 0.34)),
       ),
       child: Row(
         children: [
@@ -1782,12 +1782,12 @@ class _AudioError extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: ViewveeColors.violet.withValues(alpha: 0.16),
+              color: ViewVeeColors.violet.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(
               Icons.info_outline_rounded,
-              color: ViewveeColors.violet,
+              color: ViewVeeColors.violet,
               size: 21,
             ),
           ),
@@ -1826,19 +1826,19 @@ class _PairingPanel extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            ViewveeColors.blue.withValues(alpha: 0.15),
-            ViewveeColors.violet.withValues(alpha: 0.11),
+            ViewVeeColors.blue.withValues(alpha: 0.15),
+            ViewVeeColors.violet.withValues(alpha: 0.11),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ViewveeColors.blue.withValues(alpha: 0.32)),
+        border: Border.all(color: ViewVeeColors.blue.withValues(alpha: 0.32)),
       ),
       child: Column(
         children: [
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.devices_rounded, color: ViewveeColors.teal),
+              Icon(Icons.devices_rounded, color: ViewVeeColors.teal),
               SizedBox(width: 9),
               VvText(
                 'Připojte druhý telefon',
@@ -2031,7 +2031,7 @@ class _PairingScannerSheetState extends State<_PairingScannerSheet> {
                               child: Center(
                                 child: Icon(
                                   Icons.qr_code_scanner_rounded,
-                                  color: ViewveeColors.teal,
+                                  color: ViewVeeColors.teal,
                                   size: 72,
                                 ),
                               ),
@@ -2102,9 +2102,9 @@ class _VideoSurface extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              ViewveeColors.teal,
-              ViewveeColors.blue,
-              ViewveeColors.violet,
+              ViewVeeColors.teal,
+              ViewVeeColors.blue,
+              ViewVeeColors.violet,
             ],
           ),
           borderRadius: BorderRadius.circular(10),
@@ -2243,10 +2243,10 @@ class _VideoSurface extends StatelessWidget {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: ViewveeColors.blue.withValues(alpha: 0.2),
+                      color: ViewVeeColors.blue.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: ViewveeColors.teal.withValues(alpha: 0.45),
+                        color: ViewVeeColors.teal.withValues(alpha: 0.45),
                       ),
                     ),
                     child: const Row(
@@ -2254,7 +2254,7 @@ class _VideoSurface extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.nightlight_round,
-                          color: ViewveeColors.teal,
+                          color: ViewVeeColors.teal,
                           size: 14,
                         ),
                         SizedBox(width: 5),
@@ -2301,7 +2301,7 @@ class _RecordingControl extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final actionEnabled = !busy && (locked || recording || enabled);
-    final accent = locked ? ViewveeColors.violet : ViewveeColors.blue;
+    final accent = locked ? ViewVeeColors.violet : ViewVeeColors.blue;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

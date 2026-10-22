@@ -1,4 +1,4 @@
-# Viewvee
+# ViewVee
 
 Mobilni kamera a monitor pro Android a iOS. Jeden telefon vysila video a zvuk,
 druhy zobrazuje prenos a muze zapnout obousmerny hovor.
@@ -80,7 +80,7 @@ service a multicast discovery. Application/bundle ID je
 
 ## Autentizace
 
-Viewvee pouziva stejny identity tok jako Working Timer: secure storage, silent
+ViewVee pouziva stejny identity tok jako Working Timer: secure storage, silent
 refresh, prihlaseni, registraci, odhlaseni a externi Apple, Facebook a Google
 providery pres OAuth 2.1 Authorization Code + PKCE. Aplikace nepodporuje anonymni
 ani hostovsky pristup.
@@ -89,7 +89,7 @@ Pro beh nastavte `VIEWVEE_IDENTITY_URL`, `VIEWVEE_AUTH_CLIENT_ID`,
 `VIEWVEE_AUTH_CLIENT_SECRET` a volitelne `VIEWVEE_AUTH_SCOPES` pomoci
 `--dart-define`. OAuth klient na identity serveru musi povolit redirect URI
 `viewvee://oauth/callback` a providery `Apple`, `Facebook` a `Google`. Client
-secret z Working Timeru se nesmi kopirovat ani commitovat; Viewvee potrebuje
+secret z Working Timeru se nesmi kopirovat ani commitovat; ViewVee potrebuje
 vlastni registraci klienta.
 
 ## Pravni dokumenty

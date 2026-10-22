@@ -77,7 +77,7 @@
     @apply rounded-2xl border border-white/10 bg-slate-900/70 p-6;
   }
 
-  .step-card>span {
+  .step-card > span {
     @apply text-sm font-black text-cyan-300;
   }
 
@@ -91,7 +91,17 @@
 
   .form-page {
     @apply min-h-screen bg-slate-50 text-slate-900 antialiased;
-    background-image: radial-gradient(circle at 80% 0%, rgba(34, 211, 238, .13), transparent 28%), radial-gradient(circle at 10% 65%, rgba(59, 130, 246, .08), transparent 30%);
+    background-image:
+      radial-gradient(
+        circle at 80% 0%,
+        rgba(34, 211, 238, 0.13),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 10% 65%,
+        rgba(59, 130, 246, 0.08),
+        transparent 30%
+      );
   }
 
   .form-shell {
@@ -213,18 +223,18 @@
 }
 
 .landing-badge {
-  border-color: rgb(8 145 178 / .2);
+  border-color: rgb(8 145 178 / 0.2);
   color: #155e75;
 }
 
-.landing-trust>span>span {
+.landing-trust > span > span {
   color: #0e7490;
 }
 
 .landing-device-shell {
   border-color: #e2e8f0;
-  background-color: rgb(255 255 255 / .7);
-  --tw-shadow-color: rgb(8 145 178 / .12);
+  background-color: rgb(255 255 255 / 0.7);
+  --tw-shadow-color: rgb(8 145 178 / 0.12);
 }
 
 .landing-device {
@@ -246,7 +256,7 @@
 
 .landing-stream {
   border-color: #e2e8f0;
-  background-color: rgb(255 255 255 / .7);
+  background-color: rgb(255 255 255 / 0.7);
 }
 
 .landing-stream-title {
@@ -256,12 +266,14 @@
 .gradient-text {
   --tw-gradient-from: #0e7490 var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(14 116 144 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), #0284c7 var(--tw-gradient-via-position), var(--tw-gradient-to);
+  --tw-gradient-stops:
+    var(--tw-gradient-from), #0284c7 var(--tw-gradient-via-position),
+    var(--tw-gradient-to);
 }
 
 .button-secondary {
   border-color: #cbd5e1;
-  background-color: rgb(255 255 255 / .7);
+  background-color: rgb(255 255 255 / 0.7);
   color: #0f172a;
 }
 
@@ -271,7 +283,7 @@
 }
 
 .eyebrow,
-.step-card>span {
+.step-card > span {
   color: #0e7490;
 }
 
@@ -288,22 +300,22 @@
 .feature-card,
 .step-card {
   border-color: #e2e8f0;
-  background-color: rgb(255 255 255 / .7);
+  background-color: rgb(255 255 255 / 0.7);
 }
 
 .feature-card:hover {
-  border-color: rgb(8 145 178 / .25);
+  border-color: rgb(8 145 178 / 0.25);
   background-color: #fff;
 }
 
 .feature-icon {
   color: #0e7490;
-  --tw-ring-color: rgb(8 145 178 / .2);
+  --tw-ring-color: rgb(8 145 178 / 0.2);
 }
 
 .metric {
   border-color: #e2e8f0;
-  background-color: rgb(255 255 255 / .7);
+  background-color: rgb(255 255 255 / 0.7);
 }
 
 .metric strong {
@@ -312,11 +324,11 @@
 
 .landing-how {
   border-color: #e2e8f0;
-  background-color: rgb(15 23 42 / .025);
+  background-color: rgb(15 23 42 / 0.025);
 }
 
 .landing-cta {
-  border-color: rgb(8 145 178 / .2);
+  border-color: rgb(8 145 178 / 0.2);
 }
 
 .landing-footer {
@@ -349,18 +361,18 @@
   }
 
   .landing-badge {
-    border-color: rgb(34 211 238 / .2);
+    border-color: rgb(34 211 238 / 0.2);
     color: #a5f3fc;
   }
 
-  .landing-trust>span>span {
+  .landing-trust > span > span {
     color: #67e8f9;
   }
 
   .landing-device-shell {
-    border-color: rgb(255 255 255 / .1);
-    background-color: rgb(255 255 255 / .07);
-    --tw-shadow-color: rgb(8 51 68 / .5);
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: rgb(255 255 255 / 0.07);
+    --tw-shadow-color: rgb(8 51 68 / 0.5);
   }
 
   .landing-device {
@@ -381,8 +393,8 @@
   }
 
   .landing-stream {
-    border-color: rgb(255 255 255 / .05);
-    background-color: rgb(2 6 23 / .6);
+    border-color: rgb(255 255 255 / 0.05);
+    background-color: rgb(2 6 23 / 0.6);
   }
 
   .landing-stream-title {
@@ -392,22 +404,24 @@
   .gradient-text {
     --tw-gradient-from: #67e8f9 var(--tw-gradient-from-position);
     --tw-gradient-to: rgb(103 232 249 / 0) var(--tw-gradient-to-position);
-    --tw-gradient-stops: var(--tw-gradient-from), #7dd3fc var(--tw-gradient-via-position), var(--tw-gradient-to);
+    --tw-gradient-stops:
+      var(--tw-gradient-from), #7dd3fc var(--tw-gradient-via-position),
+      var(--tw-gradient-to);
   }
 
   .button-secondary {
-    border-color: rgb(255 255 255 / .15);
-    background-color: rgb(255 255 255 / .05);
+    border-color: rgb(255 255 255 / 0.15);
+    background-color: rgb(255 255 255 / 0.05);
     color: #fff;
   }
 
   .button-secondary:hover {
-    border-color: rgb(255 255 255 / .25);
-    background-color: rgb(255 255 255 / .1);
+    border-color: rgb(255 255 255 / 0.25);
+    background-color: rgb(255 255 255 / 0.1);
   }
 
   .eyebrow,
-  .step-card>span {
+  .step-card > span {
     color: #67e8f9;
   }
 
@@ -422,23 +436,23 @@
   }
 
   .feature-card {
-    border-color: rgb(255 255 255 / .1);
-    background-color: rgb(255 255 255 / .045);
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: rgb(255 255 255 / 0.045);
   }
 
   .feature-card:hover {
-    border-color: rgb(103 232 249 / .2);
-    background-color: rgb(255 255 255 / .065);
+    border-color: rgb(103 232 249 / 0.2);
+    background-color: rgb(255 255 255 / 0.065);
   }
 
   .feature-icon {
     color: #67e8f9;
-    --tw-ring-color: rgb(103 232 249 / .15);
+    --tw-ring-color: rgb(103 232 249 / 0.15);
   }
 
   .metric {
-    border-color: rgb(255 255 255 / .05);
-    background-color: rgb(255 255 255 / .05);
+    border-color: rgb(255 255 255 / 0.05);
+    background-color: rgb(255 255 255 / 0.05);
   }
 
   .metric strong {
@@ -446,25 +460,25 @@
   }
 
   .step-card {
-    border-color: rgb(255 255 255 / .1);
-    background-color: rgb(15 23 42 / .7);
+    border-color: rgb(255 255 255 / 0.1);
+    background-color: rgb(15 23 42 / 0.7);
   }
 
   .landing-how {
-    border-color: rgb(255 255 255 / .05);
-    background-color: rgb(255 255 255 / .025);
+    border-color: rgb(255 255 255 / 0.05);
+    background-color: rgb(255 255 255 / 0.025);
   }
 
   .landing-cta {
-    border-color: rgb(103 232 249 / .15);
+    border-color: rgb(103 232 249 / 0.15);
   }
 
   .landing-footer {
-    border-color: rgb(255 255 255 / .05);
+    border-color: rgb(255 255 255 / 0.05);
   }
 }
 
-/* Keep the landing palette in sync with ViewveeColors in lib/theme/viewvee_theme.dart. */
+/* Keep the landing palette in sync with ViewVeeColors in lib/theme/viewvee_theme.dart. */
 .landing-page {
   background-color: #f5f7fc;
   color: #08162f;
@@ -487,32 +501,34 @@
 }
 
 .landing-badge {
-  border-color: rgb(9 191 175 / .28);
-  background-color: rgb(9 191 175 / .1);
+  border-color: rgb(9 191 175 / 0.28);
+  background-color: rgb(9 191 175 / 0.1);
   color: #087f76;
 }
 
-.landing-badge>span {
+.landing-badge > span {
   background-color: #09bfaf;
-  --tw-shadow-color: rgb(9 191 175 / .7);
+  --tw-shadow-color: rgb(9 191 175 / 0.7);
 }
 
-.landing-trust>span>span,
+.landing-trust > span > span,
 .eyebrow,
-.step-card>span {
+.step-card > span {
   color: #087f76;
 }
 
 .gradient-text {
   --tw-gradient-from: #09bfaf var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(9 191 175 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), #168fe5 var(--tw-gradient-via-position), #6537e8 var(--tw-gradient-to-position);
+  --tw-gradient-stops:
+    var(--tw-gradient-from), #168fe5 var(--tw-gradient-via-position),
+    #6537e8 var(--tw-gradient-to-position);
 }
 
 .button-primary {
   background-color: #08162f;
   color: #fff;
-  --tw-shadow-color: rgb(8 22 47 / .2);
+  --tw-shadow-color: rgb(8 22 47 / 0.2);
 }
 
 .button-primary:hover {
@@ -540,13 +556,13 @@
 }
 
 .feature-card:hover {
-  border-color: rgb(9 191 175 / .45);
+  border-color: rgb(9 191 175 / 0.45);
 }
 
 .feature-icon {
-  background-color: rgb(9 191 175 / .1);
+  background-color: rgb(9 191 175 / 0.1);
   color: #09a99b;
-  --tw-ring-color: rgb(9 191 175 / .2);
+  --tw-ring-color: rgb(9 191 175 / 0.2);
 }
 
 .landing-how,
@@ -555,19 +571,26 @@
 }
 
 .landing-how {
-  background-color: rgb(228 248 246 / .45);
+  background-color: rgb(228 248 246 / 0.45);
 }
 
 .landing-cta {
-  border-color: rgb(101 55 232 / .2);
-  --tw-gradient-from: rgb(9 191 175 / .13) var(--tw-gradient-from-position);
+  border-color: rgb(101 55 232 / 0.2);
+  --tw-gradient-from: rgb(9 191 175 / 0.13) var(--tw-gradient-from-position);
   --tw-gradient-to: rgb(101 55 232 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), rgb(22 143 229 / .1) var(--tw-gradient-via-position), var(--tw-gradient-to);
+  --tw-gradient-stops:
+    var(--tw-gradient-from),
+    rgb(22 143 229 / 0.1) var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
 .landing-screenshot-glow {
   border-radius: 9999px;
-  background: linear-gradient(145deg, rgb(9 191 175 / .24), rgb(22 143 229 / .18) 55%, rgb(101 55 232 / .18));
+  background: linear-gradient(
+    145deg,
+    rgb(9 191 175 / 0.24),
+    rgb(22 143 229 / 0.18) 55%,
+    rgb(101 55 232 / 0.18)
+  );
 }
 
 .landing-phone-frame {
@@ -575,7 +598,7 @@
   border: 1px solid #dce2ef;
   border-radius: 28px;
   background: #f5f7fc;
-  box-shadow: 0 32px 70px rgb(8 22 47 / .2);
+  box-shadow: 0 32px 70px rgb(8 22 47 / 0.2);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -604,21 +627,21 @@
   }
 
   .landing-badge {
-    border-color: rgb(9 191 175 / .3);
-    background-color: rgb(9 191 175 / .12);
+    border-color: rgb(9 191 175 / 0.3);
+    background-color: rgb(9 191 175 / 0.12);
     color: #d8fffb;
   }
 
-  .landing-trust>span>span,
+  .landing-trust > span > span,
   .eyebrow,
-  .step-card>span {
+  .step-card > span {
     color: #09bfaf;
   }
 
   .button-primary {
     background-color: #09bfaf;
     color: #08162f;
-    --tw-shadow-color: rgb(9 191 175 / .2);
+    --tw-shadow-color: rgb(9 191 175 / 0.2);
   }
 
   .button-primary:hover {
@@ -648,14 +671,14 @@
   }
 
   .feature-card:hover {
-    border-color: rgb(9 191 175 / .4);
+    border-color: rgb(9 191 175 / 0.4);
     background-color: #172338;
   }
 
   .feature-icon {
-    background-color: rgb(9 191 175 / .12);
+    background-color: rgb(9 191 175 / 0.12);
     color: #09bfaf;
-    --tw-ring-color: rgb(9 191 175 / .2);
+    --tw-ring-color: rgb(9 191 175 / 0.2);
   }
 
   .landing-how,
@@ -664,15 +687,15 @@
   }
 
   .landing-how {
-    background-color: rgb(18 60 66 / .28);
+    background-color: rgb(18 60 66 / 0.28);
   }
 
   .landing-cta {
-    border-color: rgb(155 123 255 / .22);
+    border-color: rgb(155 123 255 / 0.22);
   }
 
   .landing-phone-frame {
     border-color: #35435d;
-    box-shadow: 0 32px 70px rgb(0 0 0 / .35);
+    box-shadow: 0 32px 70px rgb(0 0 0 / 0.35);
   }
 }

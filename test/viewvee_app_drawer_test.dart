@@ -16,7 +16,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildViewveeTheme(),
+        theme: buildViewVeeTheme(),
         home: Scaffold(
           appBar: AppBar(
             leading: Builder(
@@ -26,9 +26,9 @@ void main() {
               ),
             ),
           ),
-          drawer: ViewveeAppDrawer(
+          drawer: ViewVeeAppDrawer(
             watchMode: WatchMode.baby,
-            activeDestination: ViewveeDrawerDestination.monitor,
+            activeDestination: ViewVeeDrawerDestination.monitor,
             isPremium: true,
             onOpenMonitor: () {},
             onOpenDevices: () {},

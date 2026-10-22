@@ -16,13 +16,13 @@ void main() {
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: buildViewveeTheme(),
-      darkTheme: buildViewveeDarkTheme(),
+      theme: buildViewVeeTheme(),
+      darkTheme: buildViewVeeDarkTheme(),
       themeMode: darkMode ? ThemeMode.dark : ThemeMode.light,
       locale: locale,
-      supportedLocales: ViewveeLocalizations.supportedLocales,
+      supportedLocales: ViewVeeLocalizations.supportedLocales,
       localizationsDelegates: const [
-        ViewveeLocalizations.delegate,
+        ViewVeeLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -67,9 +67,9 @@ class _DrawerPreviewState extends State<_DrawerPreview> {
   Widget build(BuildContext context) => Scaffold(
     key: _scaffoldKey,
     appBar: AppBar(title: const Text('ViewVee')),
-    drawer: ViewveeAppDrawer(
+    drawer: ViewVeeAppDrawer(
       watchMode: WatchMode.baby,
-      activeDestination: ViewveeDrawerDestination.monitor,
+      activeDestination: ViewVeeDrawerDestination.monitor,
       isPremium: false,
       profileName: 'Jana Nováková',
       profileEmail: 'jana@example.cz',
