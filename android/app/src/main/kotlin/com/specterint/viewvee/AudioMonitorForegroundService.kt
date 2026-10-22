@@ -11,6 +11,10 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.ResultReceiver
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -32,7 +36,7 @@ class AudioMonitorForegroundService : Service() {
         val text = when (role) {
             ROLE_RECEIVER -> "Poslouchání zvuku z kamery."
             ROLE_RECEIVER_TALKBACK -> "Poslouchání a obousměrný zvuk."
-            else -> "Přenos zvuku z tohoto zařízení."
+            else -> "Přenos obrazu a zvuku z tohoto zařízení."
         }
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Viewvee je aktivní")
@@ -44,10 +48,18 @@ class AudioMonitorForegroundService : Service() {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(NOTIFICATION_ID, notification, serviceType(role))
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        @Suppress("DEPRECATION")
+        val ready = intent?.getParcelableExtra<ResultReceiver>(EXTRA_READY)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, notification, serviceType(role))
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            ready?.send(0, null)
+        } catch (error: RuntimeException) {
+            ready?.send(1, Bundle().apply { putString("error", error.message) })
+            stopSelf()
         }
         return START_NOT_STICKY
     }
@@ -92,7 +104,7 @@ class AudioMonitorForegroundService : Service() {
                 "Živý přenos Viewvee",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "Udržuje zvukový přenos při vypnuté obrazovce."
+                description = "Udržuje přenos obrazu a zvuku na pozadí."
                 setShowBadge(false)
             },
         )
@@ -102,13 +114,22 @@ class AudioMonitorForegroundService : Service() {
         private const val CHANNEL_ID = "viewvee_audio_monitor"
         private const val NOTIFICATION_ID = 4242
         private const val EXTRA_ROLE = "audio_monitor_role"
+        private const val EXTRA_READY = "foreground_ready"
         const val ROLE_TRANSMITTER = "transmitter"
         const val ROLE_RECEIVER = "receiver"
         const val ROLE_RECEIVER_TALKBACK = "receiverTalkback"
 
-        fun start(context: Context, role: String) {
+        fun start(context: Context, role: String, onReady: ((String?) -> Unit)? = null) {
             val intent = Intent(context, AudioMonitorForegroundService::class.java).apply {
                 putExtra(EXTRA_ROLE, role)
+                if (onReady != null) {
+                    putExtra(EXTRA_READY, object : ResultReceiver(Handler(Looper.getMainLooper())) {
+                        override fun onReceiveResult(resultCode: Int, resultData: Bundle?) {
+                            onReady(if (resultCode == 0) null else resultData?.getString("error")
+                                ?: "Foreground service could not start.")
+                        }
+                    })
+                }
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(intent)

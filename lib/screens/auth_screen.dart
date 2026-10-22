@@ -234,24 +234,6 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         const SizedBox(height: 34),
         Row(
-          children: [
-            const Expanded(child: Divider()),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: VvText(
-                'NEBO',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider()),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (Platform.isIOS)

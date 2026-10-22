@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:viewvee/auth/auth_repository.dart';
+import 'package:viewvee/audio/audio_pairing.dart';
+import 'package:viewvee/audio/audio_pairing_repository.dart';
 import 'package:viewvee/auth/working_timer_auth.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
@@ -94,7 +97,33 @@ UserModel _user() => UserModel(
 );
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  test(
+    'sign out clears automatic session restoration and pairing secrets',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'auth.guest': true,
+        'monitor.activeRole': 'camera',
+        'monitor.activeMode': 'wifi',
+      });
+      final pairings = AudioPairingRepository();
+      final old = await pairings.cameraCredentials(AudioPairingMode.wifi);
+      await pairings.rememberMonitor(old.toUriString());
+      await AuthRepository(auth: FakeWorkingTimerAuth()).signOut();
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString('monitor.activeRole'), isNull);
+      expect(preferences.getString('monitor.activeMode'), isNull);
+      expect(await pairings.monitorPairing(AudioPairingMode.wifi), isNull);
+      expect(
+        (await pairings.cameraCredentials(AudioPairingMode.wifi)).secret,
+        isNot(old.secret),
+      );
+    },
+  );
 
   test('API token refreshes expired identity credentials silently', () async {
     final auth = FakeWorkingTimerAuth()

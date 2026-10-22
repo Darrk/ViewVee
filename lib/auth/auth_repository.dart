@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
+import '../audio/audio_pairing_repository.dart';
 import 'working_timer_auth.dart';
 
 enum WatchMode { baby, pet, home }
@@ -167,6 +168,9 @@ class AuthRepository {
     final preferences = await SharedPreferences.getInstance();
     final guest = preferences.getBool(_guestKey) ?? false;
     if (!guest) await _auth.signOut();
+    await AudioPairingRepository().clear();
+    await preferences.remove('monitor.activeRole');
+    await preferences.remove('monitor.activeMode');
     await preferences.remove(_guestKey);
     await _clearStoredProfile(preferences);
   }
@@ -177,6 +181,8 @@ class AuthRepository {
     // Every explicit login starts with a new monitoring choice. Session
     // restoration keeps the choice so reopening the app can resume it.
     await preferences.remove(_modeKey);
+    await preferences.remove('monitor.activeRole');
+    await preferences.remove('monitor.activeMode');
   }
 
   Future<WorkingTimerUser?> _syncProfileFromIdentity({

@@ -21,6 +21,38 @@ flutter pub get
 flutter run
 ```
 
+### Debug na fyzickem zarizeni ve VS Code
+
+1. Pripojte Android telefon pres USB, zapnete USB debugging v nastaveni pro
+   vyvojare a na telefonu povolte pristup tomuto pocitaci.
+2. Overte, ze telefon zobrazuje `flutter devices` (pri potizich spustte
+   `flutter doctor -v`).
+3. Ve VS Code spustte **Flutter: Select Device** a vyberte telefon.
+4. V panelu Run and Debug vyberte **ViewVee (Physical Device)** a stisknete F5.
+   Konfigurace pouziva vybrane zarizeni a podporuje breakpointy a hot reload.
+   **ViewVee (Android Emulator)** nadale spousti emulator `Pixel_7_API_36`.
+
+Pro fyzicky iPhone pouzijte stejnou konfiguraci na macOS s Xcode, pripojenym
+a duveryhodnym telefonem a nastavenym signing teamem v `ios/Runner.xcworkspace`.
+
+V rezimu kamery na Androidu tlacitko **Spustit na pozadi** nejprve zajisti
+foreground service pro kameru a mikrofon a pak presune aplikaci na pozadi.
+Tlacitko je dostupne po spusteni kamery, i pri cekani na monitor. Klepnutim
+na trvale oznameni se vratite do aplikace. Pokud service nelze spustit,
+aplikace zustane otevrena a zobrazi chybu. Tato funkce je pouze pro Android.
+
+### Obnoveni spojeni
+
+Kamera uchovava parovaci udaje v secure storage zvlast pro Wi-Fi a internet.
+Po restartu aplikace se obnovi posledni role a zpusob pripojeni; monitor
+pouzije ulozeny parovaci odkaz a po vypadku opakuje pripojeni automaticky
+s prodlevou nejvyse 15 sekund mezi pokusy. Nove skenovani QR kodu neni po
+beznem restartu kamery potreba. Opusteni role kamery/monitoru automaticke
+obnovovani zastavi. Odhlaseni smaze ulozene parovaci udaje.
+
+Po aktualizaci ze starsi verze aplikace sparujte zarizeni jednou znovu:
+starsi verze parovaci udaje kamery neuchovavala.
+
 Internet build lze nakonfigurovat pomoci `--dart-define`:
 
 ```sh

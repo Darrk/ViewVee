@@ -309,6 +309,7 @@ class ViewveeLocalizations {
 
   static const _translations = <String, Map<String, String>>{
     "ar": {
+      "run_in_background": "تشغيل في الخلفية",
       "support": "الدعم",
       "rate_app": "قيّم التطبيق",
       "rate_app_description":
@@ -405,6 +406,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "لا توجد عناصر محفوظة بعد",
     },
     "cs": {
+      "run_in_background": "Spustit na pozadí",
       "support": "Podpora",
       "rate_app": "Ohodnotťte aplikaci",
       "rate_app_description":
@@ -502,6 +504,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Zatím žádné uložené položky",
     },
     "da": {
+      "run_in_background": "Kør i baggrunden",
       "support": "Support",
       "rate_app": "Bedøm appen",
       "rate_app_description":
@@ -600,6 +603,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Ingen gemte elementer endnu",
     },
     "de": {
+      "run_in_background": "Im Hintergrund ausführen",
       "support": "Support",
       "rate_app": "App bewerten",
       "rate_app_description":
@@ -701,6 +705,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Noch keine gespeicherten Einträge",
     },
     "en": {
+      "run_in_background": "Run in background",
       "support": "Support",
       "rate_app": "Rate the App",
       "rate_app_description":
@@ -797,6 +802,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "No saved items yet",
     },
     "es": {
+      "run_in_background": "Ejecutar en segundo plano",
       "support": "Soporte",
       "rate_app": "Valorar la App",
       "rate_app_description":
@@ -898,6 +904,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Aún no hay elementos guardados",
     },
     "fi": {
+      "run_in_background": "Suorita taustalla",
       "support": "Tuki",
       "rate_app": "Arvostele sovellus",
       "rate_app_description":
@@ -996,6 +1003,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Ei vielä tallennettuja kohteita",
     },
     "fr": {
+      "run_in_background": "Exécuter en arrière-plan",
       "support": "Assistance",
       "rate_app": "Noter l'application",
       "rate_app_description":
@@ -1097,6 +1105,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Aucun élément enregistré",
     },
     "hr": {
+      "run_in_background": "Pokreni u pozadini",
       "support": "Podrška",
       "rate_app": "Ocijenite aplikaciju",
       "rate_app_description":
@@ -1196,6 +1205,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Još nema spremljenih stavki",
     },
     "hu": {
+      "run_in_background": "Futtatás a háttérben",
       "support": "Támogatás",
       "rate_app": "Alkalmazás értékelése",
       "rate_app_description":
@@ -1298,6 +1308,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Még nincsenek mentett elemek",
     },
     "id": {
+      "run_in_background": "Jalankan di latar belakang",
       "support": "Dukungan",
       "rate_app": "Beri Rating Aplikasi",
       "rate_app_description":
@@ -1394,6 +1405,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Belum ada item tersimpan",
     },
     "it": {
+      "run_in_background": "Esegui in background",
       "support": "Supporto",
       "rate_app": "Valuta l'app",
       "rate_app_description":
@@ -1493,6 +1505,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Nessun elemento salvato",
     },
     "ja": {
+      "run_in_background": "バックグラウンドで実行",
       "support": "サポート",
       "rate_app": "アプリを評価する",
       "rate_app_description": "このアプリを気に入っていただけたら、ぜひ評価をお願いします。大変励みになります！",
@@ -1584,6 +1597,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "保存済みアイテムはまだありません",
     },
     "ko": {
+      "run_in_background": "백그라운드에서 실행",
       "support": "지원",
       "rate_app": "앱 평가하기",
       "rate_app_description": "이 앱이 마음에 드시면 잠시 시간을 내어 평가해 주세요. 저희에게 큰 도움이 됩니다!",
@@ -1675,6 +1689,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "아직 저장된 항목이 없습니다",
     },
     "nb": {
+      "run_in_background": "Kjør i bakgrunnen",
       "support": "Støtte",
       "rate_app": "Vurder appen",
       "rate_app_description":
@@ -1774,6 +1789,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Ingen lagrede elementer ennå",
     },
     "nl": {
+      "run_in_background": "Op de achtergrond uitvoeren",
       "support": "Ondersteuning",
       "rate_app": "Beoordeel de app",
       "rate_app_description":
@@ -1873,6 +1889,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Nog geen opgeslagen items",
     },
     "pl": {
+      "run_in_background": "Uruchom w tle",
       "support": "Wsparcie",
       "rate_app": "Oceń aplikację",
       "rate_app_description":
@@ -1971,6 +1988,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Brak zapisanych elementów",
     },
     "pt": {
+      "run_in_background": "Executar em segundo plano",
       "support": "Suporte",
       "rate_app": "Avaliar o App",
       "rate_app_description":
@@ -2071,6 +2089,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Sem itens guardados ainda",
     },
     "ro": {
+      "run_in_background": "Rulează în fundal",
       "support": "Asistență",
       "rate_app": "Evaluează aplicația",
       "rate_app_description":
@@ -2172,6 +2191,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Niciun element salvat încă",
     },
     "ru": {
+      "run_in_background": "Работать в фоне",
       "support": "Поддержка",
       "rate_app": "Оценить приложение",
       "rate_app_description":
@@ -2270,6 +2290,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Пока нет сохранённых элементов",
     },
     "sk": {
+      "run_in_background": "Spustiť na pozadí",
       "support": "Podpora",
       "rate_app": "Ohodnoťte aplikáciu",
       "rate_app_description":
@@ -2368,6 +2389,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Zatiaľ žiadne uložené položky",
     },
     "sv": {
+      "run_in_background": "Kör i bakgrunden",
       "support": "Support",
       "rate_app": "Betygsätt appen",
       "rate_app_description":
@@ -2467,6 +2489,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Inga sparade objekt ännu",
     },
     "th": {
+      "run_in_background": "ทำงานในพื้นหลัง",
       "support": "การสนับสนุน",
       "rate_app": "ให้คะแนนแอป",
       "rate_app_description":
@@ -2561,6 +2584,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "ยังไม่มีรายการที่บันทึก",
     },
     "tr": {
+      "run_in_background": "Arka planda çalıştır",
       "support": "Destek",
       "rate_app": "Uygulamayı Değerlendir",
       "rate_app_description":
@@ -2659,6 +2683,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Henüz kaydedilen öğe yok",
     },
     "uk": {
+      "run_in_background": "Працювати у фоні",
       "support": "Підтримка",
       "rate_app": "Оцінити додаток",
       "rate_app_description":
@@ -2757,6 +2782,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Збережених елементів ще немає",
     },
     "vi": {
+      "run_in_background": "Chạy trong nền",
       "support": "Hỗ trợ",
       "rate_app": "Đánh giá ứng dụng",
       "rate_app_description":
@@ -2854,6 +2880,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "Chưa có mục nào được lưu",
     },
     "zh": {
+      "run_in_background": "在后台运行",
       "support": "支持",
       "rate_app": "给应用评分",
       "rate_app_description": "如果您喜欢使用这个应用，请花一点时间给我们评分，这对我们帮助很大！",
@@ -2944,6 +2971,7 @@ class ViewveeLocalizations {
       "ai_no_saved_items": "暂无保存的项目",
     },
     "zh_Hant": {
+      "run_in_background": "在背景執行",
       "support": "支援",
       "rate_app": "評價應用程式",
       "rate_app_description": "如果您喜歡使用這個應用程式，請花一點時間為我們評分，這對我們幫助很大！",

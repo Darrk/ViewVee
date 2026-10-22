@@ -94,14 +94,16 @@ class AudioMonitorService {
   bool _remoteDescriptionSet = false;
   bool _changingTalkback = false;
   bool _talkbackEnabled = false;
+  bool _transmitterIsHd = false;
   bool _stopping = false;
   final List<RTCIceCandidate> _pendingCandidates = [];
   static const _reconnectBackoff = Duration(seconds: 3);
-  static const _maxReconnectAttempts = 5;
   String? _lastPairingValue;
   Timer? _reconnectTimer;
+  Timer? _negotiationTimer;
   int _reconnectAttempts = 0;
   bool _sessionActive = false;
+  int _sessionGeneration = 0;
   bool _reconnecting = false;
   final Battery _battery = Battery();
   final FrameMotionDetector _motionDetector = FrameMotionDetector();
@@ -138,6 +140,7 @@ class AudioMonitorService {
 
   Future<String> startTransmitter({bool isHd = false}) async {
     await _prepare(AudioMonitorRole.transmitter);
+    _transmitterIsHd = isHd;
     _setState(AudioConnectionState.creatingRoom);
     try {
       _sessionActive = true;
@@ -173,13 +176,16 @@ class AudioMonitorService {
       _lastPairingValue = pairingValue;
       _reconnectAttempts = 0;
       _configureSignaling();
-      final joined = await _signaling.joinRoom(pairingValue);
+      final joined = await _signaling
+          .joinRoom(pairingValue)
+          .timeout(const Duration(seconds: 45));
       if (!joined) {
         await _fail(StateError('Relace nebyla nalezena.'));
         return false;
       }
       _peerConnection ??= await _createConnection();
       await _startForegroundService('receiver');
+      _watchNegotiation();
       return true;
     } catch (error) {
       await _fail(error);
@@ -241,6 +247,7 @@ class AudioMonitorService {
       throw StateError('Connection creation was cancelled.');
     }
     connection.onIceCandidate = (candidate) {
+      if (generation != _connectionGeneration) return;
       if (candidate.candidate == null) return;
       _signaling.addCandidate({
         'candidate': candidate.candidate,
@@ -248,8 +255,13 @@ class AudioMonitorService {
         'sdpMLineIndex': candidate.sdpMLineIndex,
       });
     };
-    connection.onTrack = (event) => unawaited(_handleRemoteTrack(event));
+    connection.onTrack = (event) {
+      if (generation == _connectionGeneration) {
+        unawaited(_handleRemoteTrack(event));
+      }
+    };
     connection.onConnectionState = (connectionState) {
+      if (generation != _connectionGeneration) return;
       switch (connectionState) {
         case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
           _setState(AudioConnectionState.connected);
@@ -298,9 +310,11 @@ class AudioMonitorService {
       await _peerConnection!.setLocalDescription(offer);
       await _signaling.sendOffer(_descriptionMap(offer));
       _setState(AudioConnectionState.connecting);
+      _watchNegotiation();
     } catch (error) {
       _initialOfferSent = false;
       onError?.call(error);
+      _scheduleReconnect();
     }
   }
 
@@ -404,6 +418,7 @@ class AudioMonitorService {
   }
 
   Future<void> setVideoQuality({required bool isHd}) async {
+    _transmitterIsHd = isHd;
     final tracks = _localStream?.getVideoTracks() ?? <MediaStreamTrack>[];
     if (tracks.isEmpty) return;
     await tracks.first.applyConstraints({
@@ -550,6 +565,7 @@ class AudioMonitorService {
   Future<void> stop() async {
     if (_stopping) return;
     _stopping = true;
+    _sessionGeneration++;
     _connectionGeneration++;
     _creatingConnection = null;
     try {
@@ -559,6 +575,8 @@ class AudioMonitorService {
       _sessionActive = false;
       _reconnectTimer?.cancel();
       _reconnectTimer = null;
+      _negotiationTimer?.cancel();
+      _negotiationTimer = null;
       _reconnectAttempts = 0;
       _reconnecting = false;
       _stopMonitoring();
@@ -606,69 +624,106 @@ class AudioMonitorService {
   Future<void> _fail(Object error) async {
     onError?.call(error);
     _setState(AudioConnectionState.error);
+    _scheduleReconnect();
+  }
+
+  void _watchNegotiation() {
+    _negotiationTimer?.cancel();
+    if (_state == AudioConnectionState.connected) return;
+    _negotiationTimer = Timer(const Duration(seconds: 30), () {
+      if (!_sessionActive ||
+          _stopping ||
+          _state == AudioConnectionState.connected) {
+        return;
+      }
+      _setState(AudioConnectionState.disconnected);
+      _scheduleReconnect();
+    });
   }
 
   void _scheduleReconnect() {
     if (!_sessionActive || _stopping || _reconnecting) return;
-    if (_reconnectAttempts >= _maxReconnectAttempts) {
-      _setState(AudioConnectionState.error);
-      onError?.call(StateError('Automatické připojení se nezdařilo.'));
-      return;
-    }
-    _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(_reconnectBackoff, () {
+    if (_reconnectTimer?.isActive ?? false) return;
+    final delay = _reconnectBackoff * (_reconnectAttempts + 1).clamp(1, 5);
+    _reconnectTimer = Timer(delay, () {
+      _reconnectTimer = null;
       unawaited(_reconnect());
     });
   }
 
   Future<void> _reconnect() async {
     if (!_sessionActive || _stopping || _reconnecting || _role == null) return;
+    final generation = _sessionGeneration;
+    bool current() =>
+        generation == _sessionGeneration && _sessionActive && !_stopping;
     _reconnecting = true;
     _reconnectAttempts += 1;
+    _negotiationTimer?.cancel();
     _setState(AudioConnectionState.connecting);
     try {
-      await _resetPeerConnection(keepLocalStream: true);
+      if (_role == AudioMonitorRole.transmitter && _localStream == null) {
+        await startTransmitter(isHd: _transmitterIsHd);
+        return;
+      }
       _peerReady = false;
       _initialOfferSent = false;
       _remoteDescriptionSet = false;
       _pendingCandidates.clear();
+      await _resetPeerConnection(keepLocalStream: true);
+      if (!current() || _role == null) return;
       _configureSignaling();
 
       if (_role == AudioMonitorRole.transmitter) {
         _peerConnection = await _createConnection();
+        if (!current()) return;
         final stream = _localStream;
         if (stream == null) throw StateError('Kamera již není dostupná.');
         for (final track in stream.getTracks()) {
           await _peerConnection!.addTrack(track, stream);
         }
-        await _signaling.rearmForNewPeer();
-        _setState(AudioConnectionState.waitingForPeer);
+        if (!_peerReady) await _signaling.rearmForNewPeer();
+        if (!current()) return;
+        if (!_initialOfferSent && _state != AudioConnectionState.connected) {
+          _setState(AudioConnectionState.waitingForPeer);
+        }
+        await _sendInitialOfferIfReady();
       } else {
         final pairingValue = _lastPairingValue;
         if (pairingValue == null) throw StateError('Chybí párovací údaje.');
         await _signaling.hangUp();
+        if (!current()) return;
         _configureSignaling();
-        final joined = await _signaling.joinRoom(pairingValue);
+        final joined = await _signaling
+            .joinRoom(pairingValue)
+            .timeout(const Duration(seconds: 45));
+        if (!current()) return;
         if (!joined) throw StateError('Kamera nebyla nalezena.');
         _peerConnection ??= await _createConnection();
+        _watchNegotiation();
       }
-      _reconnectAttempts = 0;
     } catch (error) {
+      if (!current()) return;
       onError?.call(error);
       _setState(AudioConnectionState.disconnected);
     } finally {
-      _reconnecting = false;
-      if (_state == AudioConnectionState.disconnected) _scheduleReconnect();
+      if (generation == _sessionGeneration) {
+        _reconnecting = false;
+        if (_state == AudioConnectionState.disconnected ||
+            _state == AudioConnectionState.error) {
+          _scheduleReconnect();
+        }
+      }
     }
   }
 
   Future<void> _resetPeerConnection({required bool keepLocalStream}) async {
     _connectionGeneration++;
     _creatingConnection = null;
-    try {
-      await _peerConnection?.close().timeout(const Duration(seconds: 5));
-    } catch (_) {}
+    final previous = _peerConnection;
     _peerConnection = null;
+    try {
+      await previous?.close().timeout(const Duration(seconds: 5));
+    } catch (_) {}
     if (!keepLocalStream) {
       for (final track in _localStream?.getTracks() ?? <MediaStreamTrack>[]) {
         track.stop();
@@ -683,6 +738,9 @@ class AudioMonitorService {
     _state = value;
     if (value == AudioConnectionState.connected) {
       _reconnectAttempts = 0;
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+      _negotiationTimer?.cancel();
       _startMonitoring();
       if (_role == AudioMonitorRole.receiver) {
         unawaited(
@@ -887,6 +945,19 @@ class AudioMonitorService {
     'height': {'ideal': isHd ? 720 : 480},
     'frameRate': {'ideal': isHd ? 24 : 15, 'max': 30},
   };
+
+  Future<void> backgroundCamera() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      throw UnsupportedError('Background camera requires Android.');
+    }
+    if (_role != AudioMonitorRole.transmitter ||
+        _localStream == null ||
+        (_state != AudioConnectionState.waitingForPeer &&
+            _state != AudioConnectionState.connected)) {
+      throw StateError('Start the camera before running in the background.');
+    }
+    await _nativeChannel.invokeMethod<void>('backgroundCamera');
+  }
 
   Future<void> _startForegroundService(String role) async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;

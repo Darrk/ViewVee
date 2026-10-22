@@ -8,12 +8,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'audio_pairing.dart';
+import 'audio_pairing_repository.dart';
 import 'audio_signaling.dart';
 
 class LocalAudioSignaling implements AudioSignaling {
-  LocalAudioSignaling({MethodChannel? nativeChannel})
-    : _nativeChannel =
-          nativeChannel ?? const MethodChannel('viewvee/audio_monitor');
+  LocalAudioSignaling({
+    MethodChannel? nativeChannel,
+    AudioPairingRepository? pairingRepository,
+  }) : _pairingRepository = pairingRepository ?? AudioPairingRepository(),
+       _nativeChannel =
+           nativeChannel ?? const MethodChannel('viewvee/audio_monitor');
 
   static const _serviceType = '_viewvee._tcp';
   static const _handshakeTimeout = Duration(seconds: 10);
@@ -21,6 +25,7 @@ class LocalAudioSignaling implements AudioSignaling {
   static const _pongTimeout = Duration(seconds: 20);
 
   final MethodChannel _nativeChannel;
+  final AudioPairingRepository _pairingRepository;
 
   @override
   void Function()? onPeerReady;
@@ -63,8 +68,8 @@ class LocalAudioSignaling implements AudioSignaling {
 
   @override
   Future<String> createRoom() async {
-    _credentials = AudioPairingCredentials.generate(
-      mode: AudioPairingMode.wifi,
+    _credentials = await _pairingRepository.cameraCredentials(
+      AudioPairingMode.wifi,
     );
     _isClient = false;
     await _acquireMulticastLock();

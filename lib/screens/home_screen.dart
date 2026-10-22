@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/auth_repository.dart';
 import '../audio/audio_monitor_service.dart';
 import '../audio/audio_pairing.dart';
+import '../audio/audio_pairing_repository.dart';
 import '../config.dart';
 import '../monitor/monitor_settings.dart';
 import '../notifications/monitor_notification_service.dart';
@@ -49,6 +51,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _activeRoleKey = 'monitor.activeRole';
+  static const _activeModeKey = 'monitor.activeMode';
+  final _pairingRepository = AudioPairingRepository();
   late AudioMonitorService _audioMonitor;
   final _settingsRepository = MonitorSettingsRepository();
   final _notificationService = MonitorNotificationService();
@@ -62,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _nightMode = false;
   bool _microphone = false;
   bool _audioBusy = false;
+  bool _backgroundBusy = false;
   AudioConnectionState _audioState = AudioConnectionState.idle;
   String? _pairingUri;
   String? _roomCode;
@@ -89,13 +95,55 @@ class _HomeScreenState extends State<HomeScreen> {
     _createAudioMonitor();
     unawaited(_loadSettings());
     unawaited(_notificationService.initialize());
+    unawaited(_restoreSession());
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final role = preferences.getString(_activeRoleKey);
+      final mode = preferences.getString(_activeModeKey);
+      if (!mounted || _role != null || role == null) return;
+      if (mode == AudioConnectionMode.internet.name && !_isPremium) return;
+      setState(() {
+        _connectionMode = mode == AudioConnectionMode.internet.name
+            ? AudioConnectionMode.internet
+            : AudioConnectionMode.wifi;
+        _createAudioMonitor();
+      });
+      if (role == DeviceRole.camera.name) {
+        await _selectRole(DeviceRole.camera);
+      } else if (role == DeviceRole.monitor.name) {
+        final pairing = await _pairingRepository.monitorPairing(
+          _connectionMode == AudioConnectionMode.wifi
+              ? AudioPairingMode.wifi
+              : AudioPairingMode.internet,
+        );
+        if (!mounted || _role != null) return;
+        await _selectRole(DeviceRole.monitor);
+        if (pairing != null && mounted) await _joinReceiver(pairing);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    }
   }
 
   void _createAudioMonitor() {
     _audioMonitor = AudioMonitorService(mode: _connectionMode);
     _audioMonitor.onStateChanged = (state) {
       if (!mounted) return;
-      setState(() => _audioState = state);
+      setState(() {
+        _audioState = state;
+        if (state == AudioConnectionState.connected ||
+            state == AudioConnectionState.waitingForPeer) {
+          _audioError = null;
+        }
+        if (_role == DeviceRole.camera &&
+            state == AudioConnectionState.waitingForPeer) {
+          _pairingUri = _audioMonitor.pairingUri;
+          _roomCode = _audioMonitor.roomCode;
+        }
+      });
     };
     _audioMonitor.onRemoteHangup = () {
       if (!mounted) return;
@@ -299,8 +347,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final preferences = await SharedPreferences.getInstance();
     if (!mounted) return;
     final premium =
-      !Config.enablePremiumFeatures ||
-      (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false);
+        !Config.enablePremiumFeatures ||
+        (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false);
     final premiumWasRemoved = _isPremium && !premium;
     final mustLeaveInternet =
         !premium && _connectionMode == AudioConnectionMode.internet;
@@ -450,6 +498,21 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         _AudioStatusBar(state: _audioState, onReconnect: _startTransmitter),
         if (_audioError != null) _AudioError(message: _audioError!),
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            key: const Key('backgroundCameraButton'),
+            onPressed:
+                !_audioBusy &&
+                    !_backgroundBusy &&
+                    (_audioState == AudioConnectionState.waitingForPeer ||
+                        _audioState == AudioConnectionState.connected)
+                ? _backgroundCamera
+                : null,
+            icon: const Icon(Icons.picture_in_picture_alt_rounded),
+            label: const VvText('Spustit na pozadí'),
+          ),
+        ],
         if (_pairingUri != null &&
             _audioState != AudioConnectionState.connected) ...[
           const SizedBox(height: 12),
@@ -720,6 +783,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _leaveDeviceRole() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_activeRoleKey);
+    await preferences.remove(_activeModeKey);
     await _stopRecording(showMessage: false);
     if (_flash) await _audioMonitor.setTorchEnabled(false);
     await _audioMonitor.stop();
@@ -863,6 +929,8 @@ class _HomeScreenState extends State<HomeScreen> {
       _roomCode = null;
       _createAudioMonitor();
     });
+    final role = _role;
+    if (role != null) await _selectRole(role);
   }
 
   Future<void> _selectRole(DeviceRole role) async {
@@ -881,12 +949,34 @@ class _HomeScreenState extends State<HomeScreen> {
       _role = role;
       _audioError = null;
     });
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_activeRoleKey, role.name);
+    await preferences.setString(_activeModeKey, _connectionMode.name);
     if (role == DeviceRole.camera) await _startTransmitter();
     if (role == DeviceRole.monitor &&
         (_motionNotification ||
             _soundNotification ||
             _connectionNotification)) {
       await _notificationService.requestPermission();
+    }
+  }
+
+  Future<void> _backgroundCamera() async {
+    setState(() {
+      _backgroundBusy = true;
+      _audioError = null;
+    });
+    try {
+      await Permission.notification.request();
+      if (!mounted ||
+          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        return;
+      }
+      await _audioMonitor.backgroundCamera();
+    } catch (error) {
+      if (mounted) setState(() => _audioError = error.toString());
+    } finally {
+      if (mounted) setState(() => _backgroundBusy = false);
     }
   }
 
@@ -1008,6 +1098,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _audioError = null;
     });
     try {
+      await _pairingRepository.rememberMonitor(pairingValue);
       final joined = await _audioMonitor.joinAsReceiver(pairingValue);
       if (!joined && mounted) {
         setState(() => _audioError = 'Kamera nebyla nalezena.');

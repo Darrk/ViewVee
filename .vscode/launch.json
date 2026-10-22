@@ -2,6 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "ViewVee (Physical Device)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
       "name": "ViewVee (Android Emulator)",
       "request": "launch",
       "type": "dart",
