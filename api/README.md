@@ -93,3 +93,12 @@ go vet ./...
 Tests cover a local IdentityServer discovery/JWKS fixture with signed tokens,
 incorrect signatures/issuers/audiences, expired and future tokens, required scopes,
 Coturn credential generation, CORS, disabled configuration, and rate limiting.
+
+## Purchases and self-service deletion
+
+`POST /api/purchases/verify` verifies App Store signed transactions and live
+transaction status, or Google Play purchase tokens, before granting lifetime
+Premium. `DELETE /api/account` forwards the signed-in user's self-service deletion
+to IdentityServer. Both fail closed when upstream configuration is missing.
+See [store release configuration](../docs/app-store-release.md) for secret mounts,
+product IDs, identity provisioning/revocation, and deployment order.

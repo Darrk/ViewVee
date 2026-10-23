@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -189,48 +190,46 @@ void main() {
     expect(preferences.getString('profile.phone'), isNull);
   });
 
-  testWidgets('account deletion requires confirmation and opens account page', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({
-      'profile.firstName': 'Jana',
-      'profile.lastName': 'Nováková',
-      'profile.email': 'jana@example.cz',
-    });
-    Uri? openedUri;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: buildViewVeeTheme(),
-        home: AccountMenuScreen(
-          isGuest: false,
-          isPremium: true,
-          accountId: 42,
-          watchMode: WatchMode.baby,
-          themeMode: ThemeMode.light,
-          onWatchModeChanged: (_) async {},
-          onThemeModeChanged: (_) async {},
-          onPasswordReset: (_) async {},
-          onAddDevice: (_) async {},
-          onSignOut: () {},
-          openExternalUrl: (uri) async => openedUri = uri,
+  testWidgets(
+    'account deletion requires confirmation and invokes self-service deletion',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'profile.firstName': 'Jana',
+        'profile.lastName': 'Nováková',
+        'profile.email': 'jana@example.cz',
+      });
+      var deleted = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildViewVeeTheme(),
+          home: AccountMenuScreen(
+            isGuest: false,
+            isPremium: true,
+            accountId: 42,
+            watchMode: WatchMode.baby,
+            themeMode: ThemeMode.light,
+            onWatchModeChanged: (_) async {},
+            onThemeModeChanged: (_) async {},
+            onPasswordReset: (_) async {},
+            onAddDevice: (_) async {},
+            onSignOut: () {},
+            onDeleteAccount: () async => deleted = true,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('deleteAccountMenuItem')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('deleteAccountMenuItem')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Smazat účet?'), findsOneWidget);
-    expect(find.text('Zrušit'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('continueAccountDeletionButton')));
-    await tester.pumpAndSettle();
+      expect(find.text('Smazat účet?'), findsOneWidget);
+      expect(find.text('Zrušit'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('continueAccountDeletionButton')));
+      await tester.pumpAndSettle();
 
-    expect(
-      openedUri,
-      Uri.parse('https://viewvee.com/account/delete?accountId=42'),
-    );
-  });
+      expect(deleted, isTrue);
+    },
+  );
 
   testWidgets('changes watch mode directly from the drawer without leaving', (
     tester,
@@ -413,24 +412,29 @@ void main() {
     expect(find.text('jana@example.cz'), findsOneWidget);
   });
 
-  testWidgets('app rating stores the selected number of stars', (tester) async {
+  testWidgets('app rating requests the system review flow', (tester) async {
+    final calls = <MethodCall>[];
+    const channel = MethodChannel('dev.britannio.in_app_review');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'isAvailable') return true;
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     await tester.pumpWidget(
       buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
-
     await tester.ensureVisible(find.byKey(const Key('rateAppItem')));
     await tester.tap(find.byKey(const Key('rateAppItem')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('ratingColorHeader')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('ratingStar5')));
-    await tester.pump();
-    expect(find.text('Děkujeme za vaše hodnocení.'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('submitRatingButton')));
-    await tester.pumpAndSettle();
-
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getInt('feedback.appRating'), 5);
-    expect(find.text('Děkujeme za vaše hodnocení.'), findsOneWidget);
+    expect(calls.map((call) => call.method), contains('requestReview'));
+    expect(find.byKey(const Key('ratingStar5')), findsNothing);
+    expect(
+      (await SharedPreferences.getInstance()).getInt('feedback.appRating'),
+      isNull,
+    );
   });
 
   testWidgets('frequently asked questions contain expandable answers', (

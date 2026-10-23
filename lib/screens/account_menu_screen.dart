@@ -1,9 +1,13 @@
+import '../auth/account_deletion_service.dart';
+import '../purchases/premium_purchase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:in_app_review/in_app_review.dart';
+import '../ads/ad_consent_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
 import '../monitor/device_limits.dart';
 import 'recordings_screen.dart';
 import '../theme/viewvee_theme.dart';
@@ -36,6 +40,7 @@ class AccountMenuScreen extends StatefulWidget {
     required this.onAddDevice,
     required this.onSignOut,
     this.openExternalUrl,
+    this.onDeleteAccount,
     this.initialDestination = ViewVeeDrawerDestination.account,
   });
 
@@ -50,6 +55,7 @@ class AccountMenuScreen extends StatefulWidget {
   final Future<void> Function(DevicePairingAction action) onAddDevice;
   final VoidCallback onSignOut;
   final Future<void> Function(Uri uri)? openExternalUrl;
+  final Future<void> Function()? onDeleteAccount;
   final ViewVeeDrawerDestination initialDestination;
 
   @override
@@ -446,18 +452,19 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    final uri = Uri.https(
-      'viewvee.com',
-      '/account/delete',
-      widget.accountId == null
-          ? null
-          : {'accountId': widget.accountId.toString()},
-    );
-    final openExternalUrl = widget.openExternalUrl;
-    if (openExternalUrl != null) {
-      await openExternalUrl(uri);
-    } else {
-      await launchUrl(uri);
+    try {
+      await (widget.onDeleteAccount?.call() ??
+          AccountDeletionService().delete());
+      if (!mounted) return;
+      widget.onSignOut();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: VvText('Něco se pokazilo. Zkuste to prosím znovu.'),
+        ),
+      );
     }
   }
 }
@@ -969,6 +976,19 @@ class _AboutPage extends StatelessWidget {
             onTap: () =>
                 launchUrl(Uri.parse('https://viewvee.com/privacy-policy.html')),
           ),
+          ListenableBuilder(
+            listenable: AdConsentService.instance,
+            builder: (context, _) =>
+                AdConsentService.instance.privacyOptionsRequired
+                ? _MenuTile(
+                    icon: Icons.privacy_tip_outlined,
+                    color: ViewVeeColors.teal,
+                    title: 'Nastavení soukromí reklam',
+                    subtitle: '',
+                    onTap: AdConsentService.instance.showPrivacyOptions,
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     ],
@@ -1383,74 +1403,148 @@ class _WatchModeChoice extends StatelessWidget {
   );
 }
 
-class _SubscriptionSheet extends StatelessWidget {
+class _SubscriptionSheet extends StatefulWidget {
   const _SubscriptionSheet({required this.isPremium});
   final bool isPremium;
+  @override
+  State<_SubscriptionSheet> createState() => _SubscriptionSheetState();
+}
+
+class _SubscriptionSheetState extends State<_SubscriptionSheet> {
+  @override
+  void initState() {
+    super.initState();
+    PremiumPurchaseService.instance.initialize();
+  }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: SingleChildScrollView(
-      key: const Key('subscriptionPage'),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _PageIntro(
-            icon: Icons.workspace_premium_rounded,
-            color: ViewVeeColors.logoBlue,
-            title: 'Vyberte si tarif',
-            subtitle: 'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
-          ),
-          const SizedBox(height: 16),
-          _FreePlanCard(
-            key: const Key('freePlanCard'),
-            title: 'Zdarma',
-            subtitle: isPremium
-                ? 'Wi-Fi monitoring • 1 hodina'
-                : 'Aktuální tarif',
-            color: ViewVeeColors.blue,
-            features: [
-              _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
-              _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
-              _PlanFeature(Icons.devices_rounded, '1 kamera a 1 monitor'),
-              _PlanFeature(
-                Icons.lock_outline_rounded,
-                'Internet pouze s Premium',
-              ),
-              _PlanFeature(Icons.videocam_off_outlined, 'Bez nahrávání videa'),
-              _PlanFeature(
-                Icons.campaign_outlined,
-                'Reklama po každé hodině sledování',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _PremiumPlanCard(
-            key: const Key('premiumPlanCard'),
-            isCurrent: isPremium,
-            features: [
-              _PlanFeature(Icons.public_rounded, 'Neomezený internet'),
-              _PlanFeature(Icons.hd_rounded, 'HD video'),
-              _PlanFeature(
-                Icons.devices_rounded,
-                '${context.vv('Kamera')} × ${DeviceLimits.cameras} • ${context.vv('Monitor')} × ${DeviceLimits.monitors}',
-              ),
-              _PlanFeature(
-                Icons.video_library_rounded,
-                'Nahrávání videa • pouze lokálně',
-              ),
-              _PlanFeature(Icons.record_voice_over_outlined, 'Obousměrný zvuk'),
-              _PlanFeature(Icons.block_rounded, 'Žádné reklamy'),
-              _PlanFeature(
-                Icons.all_inclusive_rounded,
-                'Neomezená délka spojení',
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: PremiumPurchaseService.instance,
+    builder: (context, _) => _build(context),
   );
+  Widget _build(BuildContext context) {
+    final isPremium = (PremiumPurchaseService.instance.entitlementLoaded
+        ? PremiumPurchaseService.instance.entitled
+        : widget.isPremium);
+    return SafeArea(
+      child: SingleChildScrollView(
+        key: const Key('subscriptionPage'),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _PageIntro(
+              icon: Icons.workspace_premium_rounded,
+              color: ViewVeeColors.logoBlue,
+              title: 'Vyberte si tarif',
+              subtitle:
+                  'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
+            ),
+            const SizedBox(height: 16),
+            _FreePlanCard(
+              key: const Key('freePlanCard'),
+              title: 'Zdarma',
+              subtitle: isPremium
+                  ? 'Wi-Fi monitoring • 1 hodina'
+                  : 'Aktuální tarif',
+              color: ViewVeeColors.blue,
+              features: [
+                _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
+                _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
+                _PlanFeature(Icons.devices_rounded, '1 kamera a 1 monitor'),
+                _PlanFeature(
+                  Icons.lock_outline_rounded,
+                  'Internet pouze s Premium',
+                ),
+                _PlanFeature(
+                  Icons.videocam_off_outlined,
+                  'Bez nahrávání videa',
+                ),
+                _PlanFeature(
+                  Icons.campaign_outlined,
+                  'Reklama po každé hodině sledování',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _PremiumPlanCard(
+              key: const Key('premiumPlanCard'),
+              isCurrent: isPremium,
+              features: [
+                _PlanFeature(Icons.public_rounded, 'Neomezený internet'),
+                _PlanFeature(Icons.hd_rounded, 'HD video'),
+                _PlanFeature(
+                  Icons.devices_rounded,
+                  '${context.vv('Kamera')} × ${DeviceLimits.cameras} • ${context.vv('Monitor')} × ${DeviceLimits.monitors}',
+                ),
+                _PlanFeature(
+                  Icons.video_library_rounded,
+                  'Nahrávání videa • pouze lokálně',
+                ),
+                _PlanFeature(
+                  Icons.record_voice_over_outlined,
+                  'Obousměrný zvuk',
+                ),
+                _PlanFeature(Icons.block_rounded, 'Žádné reklamy'),
+                _PlanFeature(
+                  Icons.all_inclusive_rounded,
+                  'Neomezená délka spojení',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (PremiumPurchaseService.instance.busy)
+              const Center(child: CircularProgressIndicator()),
+            if (PremiumPurchaseService.instance.error != null)
+              VvText(
+                PremiumPurchaseService.instance.error!,
+                textAlign: TextAlign.center,
+              ),
+            TextButton(
+              key: const Key('restorePurchases'),
+              onPressed: PremiumPurchaseService.instance.busy
+                  ? null
+                  : PremiumPurchaseService.instance.restore,
+              child: const VvText('Obnovit nákup'),
+            ),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              children: [
+                TextButton(
+                  key: const Key('premiumPrivacyPolicy'),
+                  onPressed: () => launchUrl(
+                    Uri.parse(Config.privacyPolicyUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const VvText('Zásady ochrany osobních údajů'),
+                ),
+                ListenableBuilder(
+                  listenable: AdConsentService.instance,
+                  builder: (context, _) =>
+                      AdConsentService.instance.privacyOptionsRequired
+                      ? TextButton(
+                          onPressed:
+                              AdConsentService.instance.showPrivacyOptions,
+                          child: const VvText('Nastavení soukromí reklam'),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                TextButton(
+                  key: const Key('premiumTermsOfUse'),
+                  onPressed: () => launchUrl(
+                    Uri.parse(Config.termsUri),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const VvText('Podmínky použití'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PremiumPlanCard extends StatelessWidget {
@@ -1571,12 +1665,7 @@ class _PremiumPlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     VvText(
-                      NumberFormat.currency(
-                        locale: Localizations.localeOf(context).toLanguageTag(),
-                        name: 'EUR',
-                        symbol: '€',
-                        decimalDigits: 2,
-                      ).format(9.99),
+                      PremiumPurchaseService.instance.product?.price ?? '—',
                       key: const Key('premiumLocalizedPrice'),
                       style: TextStyle(
                         color: Colors.white,
@@ -1628,7 +1717,12 @@ class _PremiumPlanCard extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   key: const Key('startSubscriptionButton'),
-                  onPressed: isCurrent ? null : () {},
+                  onPressed:
+                      isCurrent ||
+                          PremiumPurchaseService.instance.busy ||
+                          PremiumPurchaseService.instance.product == null
+                      ? null
+                      : PremiumPurchaseService.instance.buy,
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: ViewVeeColors.violet,
@@ -1988,19 +2082,12 @@ class _SupportPage extends StatelessWidget {
       );
 
   Future<void> _showRating(BuildContext context) async {
-    final rating = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _RatingSheet(),
-    );
-    if (rating == null) return;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt('feedback.appRating', rating);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: VvText('Děkujeme za vaše hodnocení.')),
-    );
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) await review.requestReview();
+    } catch (_) {
+      // StoreKit controls whether a prompt can be displayed.
+    }
   }
 }
 
@@ -2236,164 +2323,6 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
       });
     }
   }
-}
-
-class _RatingSheet extends StatefulWidget {
-  const _RatingSheet();
-
-  @override
-  State<_RatingSheet> createState() => _RatingSheetState();
-}
-
-class _RatingSheetState extends State<_RatingSheet> {
-  int _rating = 0;
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Container(
-      key: const Key('ratingColorHeader'),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            ViewVeeColors.navy,
-            Color(0xFF075F75),
-            ViewVeeColors.blue,
-            ViewVeeColors.violet,
-          ],
-          stops: [0, 0.34, 0.68, 1],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.44),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Row(
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Padding(
-                      padding: EdgeInsets.all(7),
-                      child: ViewVeeMark(size: 42),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      VvText(
-                        'Jak se vám ViewVee líbí?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          height: 1.15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      VvText(
-                        'Vaše hodnocení nám pomáhá aplikaci zlepšovat.',
-                        style: TextStyle(
-                          color: Color(0xD9FFFFFF),
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            VvText(
-              _ratingLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (var value = 1; value <= 5; value++)
-                    IconButton(
-                      key: Key('ratingStar$value'),
-                      tooltip: '$value / 5',
-                      onPressed: () => setState(() => _rating = value),
-                      iconSize: 38,
-                      color: value <= _rating
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.4),
-                      icon: Icon(
-                        value <= _rating
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            FilledButton(
-              key: const Key('submitRatingButton'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: ViewVeeColors.violet,
-                disabledBackgroundColor: Colors.white.withValues(alpha: 0.2),
-                disabledForegroundColor: Colors.white.withValues(alpha: 0.55),
-                minimumSize: const Size.fromHeight(52),
-                textStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              onPressed: _rating == 0
-                  ? null
-                  : () => Navigator.of(context).pop(_rating),
-              child: const VvText('Odeslat hodnocení'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  String get _ratingLabel =>
-      _rating == 0 ? 'Jak se vám ViewVee líbí?' : 'Děkujeme za vaše hodnocení.';
 }
 
 class _FaqPage extends StatelessWidget {

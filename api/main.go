@@ -59,6 +59,7 @@ type mailSender interface {
 type smtpSender struct{ config config }
 
 type rateLimiter struct {
+	limit    int
 	mu       sync.Mutex
 	requests map[string][]time.Time
 	now      func() time.Time
@@ -123,6 +124,16 @@ func env(name, fallback string) string {
 
 func newHandler(cfg config, sender mailSender, turn ...*turnService) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /api/account", handleAccountDeletion)
+	purchases := newPurchaseVerifier()
+	purchaseLimit := &rateLimiter{limit: 60, requests: make(map[string][]time.Time), now: time.Now}
+	mux.HandleFunc("POST /api/purchases/verify", func(w http.ResponseWriter, r *http.Request) {
+		if !purchaseLimit.Allow("purchase:" + clientIP(r)) {
+			writeJSONError(w, 429, "Too many verification requests.")
+			return
+		}
+		purchases.handle(w, r)
+	})
 	var credentials *turnService
 	if len(turn) > 0 {
 		credentials = turn[0]
@@ -271,7 +282,11 @@ func (l *rateLimiter) Allow(key string) bool {
 			recent = append(recent, requestTime)
 		}
 	}
-	if len(recent) >= 3 {
+	limit := l.limit
+	if limit == 0 {
+		limit = 3
+	}
+	if len(recent) >= limit {
 		l.requests[key] = recent
 		return false
 	}

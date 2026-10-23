@@ -170,18 +170,15 @@ void main() {
       expect(auth.silentSignInCalls, 0);
     },
   );
-  test(
-    'Free is the default and a stored Premium entitlement is respected',
-    () async {
-      SharedPreferences.setMockInitialValues({});
-      final repository = AuthRepository(auth: FakeWorkingTimerAuth());
-      await repository.continueAsGuest();
-      expect((await repository.restoreSession()).isPremium, isFalse);
-      final preferences = await SharedPreferences.getInstance();
-      await preferences.setBool(AuthRepository.premiumUnlockedKey, true);
-      expect((await repository.restoreSession()).isPremium, isTrue);
-    },
-  );
+  test('legacy preferences alone cannot unlock Premium', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repository = AuthRepository(auth: FakeWorkingTimerAuth());
+    await repository.continueAsGuest();
+    expect((await repository.restoreSession()).isPremium, isFalse);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(AuthRepository.premiumUnlockedKey, true);
+    expect((await repository.restoreSession()).isPremium, isFalse);
+  });
 
   for (final method in ['email', 'apple', 'facebook', 'google', 'guest']) {
     test('$method login requires a fresh monitoring choice', () async {
@@ -238,7 +235,7 @@ void main() {
     expect(auth.silentSignInCalls, 1);
   });
 
-  test('registration uses Working Timer arguments and signs in', () async {
+  test('registration uses the ViewVee application and signs in', () async {
     final auth = FakeWorkingTimerAuth()
       ..signUpResult = ApiResult<UserModel>.success(_user());
 
@@ -254,7 +251,7 @@ void main() {
       'password1',
       'Jan',
       'Novak',
-      'workingtimer',
+      'viewvee',
     ]);
     expect(auth.signInCalls, 1);
   });

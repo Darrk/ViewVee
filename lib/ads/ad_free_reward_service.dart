@@ -1,3 +1,4 @@
+import 'ad_consent_service.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -57,6 +58,7 @@ class ViewVeeRewardedAdService {
   static const _iosRewardedId = 'ca-app-pub-3940256099942544/1712485313';
 
   RewardedAd? _ad;
+  int _consentGeneration = -1;
   Future<bool>? _loading;
   bool _mobileAdsInitialized = false;
 
@@ -69,7 +71,13 @@ class ViewVeeRewardedAdService {
     };
   }
 
-  Future<bool> preload() {
+  Future<bool> preload() async {
+    if (!await AdConsentService.instance.canRequestAds()) return false;
+    if (_consentGeneration != AdConsentService.instance.generation) {
+      _ad?.dispose();
+      _ad = null;
+      _consentGeneration = AdConsentService.instance.generation;
+    }
     if (_ad != null) return Future.value(true);
     return _loading ??= _load().whenComplete(() => _loading = null);
   }
@@ -107,7 +115,12 @@ class ViewVeeRewardedAdService {
   }
 
   Future<RewardedAdResult> show() async {
-    if (_ad == null && !await preload()) return RewardedAdResult.unavailable;
+    if (!await preload()) return RewardedAdResult.unavailable;
+    if (_consentGeneration != AdConsentService.instance.generation ||
+        !await AdConsentService.instance.canRequestAds()) {
+      dispose();
+      return RewardedAdResult.unavailable;
+    }
     final ad = _ad;
     if (ad == null) return RewardedAdResult.unavailable;
     _ad = null;

@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "ViewVee använder kameran för liveövervakning och för att skanna parkopplingskoder.";
+"NSMicrophoneUsageDescription" = "ViewVee använder mikrofonen för att sända liveljud och prata med den parkopplade enheten.";
+"NSLocalNetworkUsageDescription" = "ViewVee hittar och ansluter dina parkopplade enheter på samma Wi-Fi-nätverk.";
+"NSUserTrackingUsageDescription" = "Med ditt tillstånd använder ViewVee enhetsidentifierare för att mäta annonsering.";

@@ -1,3 +1,4 @@
+import '../purchases/premium_purchase_service.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -79,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _lifecycleUpdate = Future<void>.value();
   bool _audioBusy = false;
   bool _backgroundBusy = false;
+  Completer<void>? _backgroundResume;
   AudioConnectionState _audioState = AudioConnectionState.idle;
   String? _pairingUri;
   String? _roomCode;
@@ -109,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onExpired: () => unawaited(_endFreeSession()),
     );
     _isPremium = widget.isPremium;
+    PremiumPurchaseService.instance.addListener(_onPurchaseChanged);
     _cameraDirectory.setPremiumEnabled(_isPremium);
     _isHd = _isPremium;
     _connectionMode = _isPremium
@@ -153,6 +156,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _backgroundResume?.complete();
+      _backgroundResume = null;
+    }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       return;
@@ -346,6 +353,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    PremiumPurchaseService.instance.removeListener(_onPurchaseChanged);
+    _backgroundResume?.complete();
+    _backgroundResume = null;
     if (_monitorFullscreen) {
       unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     }
@@ -511,12 +521,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
     );
-    if (!mounted) return;
-    final preferences = await SharedPreferences.getInstance();
+    await _reloadPremium();
+  }
+
+  void _onPurchaseChanged() {
+    final purchases = PremiumPurchaseService.instance;
+    if (purchases.entitlementLoaded && purchases.entitled != _isPremium) {
+      unawaited(_reloadPremium());
+    }
+  }
+
+  Future<void> _reloadPremium() async {
     if (!mounted) return;
     final premium =
         !Config.enablePremiumFeatures ||
-        (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false);
+        await PremiumPurchaseService.instance.hasEntitlement();
+    if (!mounted || _isPremium == premium) return;
     final premiumWasRemoved = _isPremium && !premium;
     final mustLeaveInternet =
         !premium && _connectionMode == AudioConnectionMode.internet;
@@ -1341,10 +1361,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
     try {
       await Permission.notification.request();
-      if (!mounted ||
-          WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-        return;
+      if (!mounted) return;
+      // Permission results can arrive before Android resumes the activity.
+      // Keep this tap pending until the activity can start the camera service.
+      if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+        final resumed = Completer<void>();
+        _backgroundResume = resumed;
+        await resumed.future;
       }
+      if (!mounted || _role != DeviceRole.camera) return;
       await _audioMonitor.backgroundCamera();
     } catch (error) {
       if (mounted) setState(() => _audioError = error.toString());

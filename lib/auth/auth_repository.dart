@@ -1,3 +1,4 @@
+import '../purchases/premium_purchase_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config.dart';
@@ -88,7 +89,7 @@ class AuthRepository {
       watchMode: watchMode,
       isPremium:
           !Config.enablePremiumFeatures ||
-          (preferences.getBool(premiumUnlockedKey) ?? false),
+          (await PremiumPurchaseService.instance.hasEntitlement()),
     );
   }
 
@@ -135,7 +136,7 @@ class AuthRepository {
       password,
       firstName.trim(),
       lastName.trim(),
-      'workingtimer',
+      'viewvee',
     );
     if (result == null || !result.isOk()) {
       throw AuthException(

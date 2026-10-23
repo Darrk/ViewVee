@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'purchases/premium_purchase_service.dart';
+import 'ads/ad_consent_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,7 +18,11 @@ import 'widgets/viewvee_logo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  unawaited(PremiumPurchaseService.instance.initialize());
   runApp(const ViewVeeApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(AdConsentService.instance.canRequestAds());
+  });
 }
 
 class ViewVeeApp extends StatefulWidget {
@@ -140,34 +147,38 @@ class _ViewVeeAppState extends State<ViewVeeApp> {
     AppSession session,
     ViewVeeDrawerDestination destination,
   ) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AccountMenuScreen(
-          isGuest: session.isGuest,
-          isPremium: session.isPremium,
-          accountId: session.accountId,
-          watchMode: session.watchMode,
-          themeMode: _themeMode,
-          initialDestination: destination,
-          onWatchModeChanged: _selectWatchMode,
-          onThemeModeChanged: _changeThemeMode,
-          onPasswordReset: _resetPassword,
-          onAddDevice: (_) async {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: VvText('Nejprve vyberte, co chcete hlídat.'),
-              ),
-            );
-          },
-          onSignOut: () async {
-            if (_authRepository == null) return;
-            await _authRepository.signOut();
-            _refreshSession();
-          },
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => AccountMenuScreen(
+              isGuest: session.isGuest,
+              isPremium: session.isPremium,
+              accountId: session.accountId,
+              watchMode: session.watchMode,
+              themeMode: _themeMode,
+              initialDestination: destination,
+              onWatchModeChanged: _selectWatchMode,
+              onThemeModeChanged: _changeThemeMode,
+              onPasswordReset: _resetPassword,
+              onAddDevice: (_) async {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: VvText('Nejprve vyberte, co chcete hlídat.'),
+                  ),
+                );
+              },
+              onSignOut: () async {
+                if (_authRepository == null) return;
+                await _authRepository.signOut();
+                _refreshSession();
+              },
+            ),
+          ),
+        )
+        .then((_) {
+          if (mounted && _authRepository != null) _refreshSession();
+        });
   }
 
   @override

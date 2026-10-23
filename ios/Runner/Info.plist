@@ -29,12 +29,14 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
+		<key>NSUserTrackingUsageDescription</key>
+		<string>With your permission, ViewVee uses device identifiers to measure advertising.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>ViewVee používá mikrofon pro živý a obousměrný přenos zvuku.</string>
+		<string>ViewVee uses the microphone to transmit live audio and let you talk to the paired device.</string>
 		<key>NSCameraUsageDescription</key>
-		<string>ViewVee používá kameru pro živý dohled a párování zařízení.</string>
+		<string>ViewVee uses the camera for live monitoring and to scan device pairing codes.</string>
 		<key>NSLocalNetworkUsageDescription</key>
-		<string>ViewVee vyhledává druhý telefon ve stejné Wi-Fi síti.</string>
+		<string>ViewVee finds and connects to your paired devices on the same Wi-Fi network.</string>
 		<key>NSBonjourServices</key>
 		<array>
 			<string>_viewvee._tcp</string>

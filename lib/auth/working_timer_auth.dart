@@ -1,60 +1,18 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:universal_io/io.dart';
+import '../config.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
-class ViewVeeAuthConfig implements AuthConfig, ServicesConfig {
-  @override
-  String get authClientId => 'working-timer-app';
-
-  @override
-  String get authClientSecret => '33fd7b5d-5be2-4649-a20d-c5f740e87575';
-
-  @override
-  String get authClientExtId => 'working-timer-app-ext';
-
-  @override
-  String get authClientExtSecret => '377d51c7-cad8-4e46-a692-7b4d63e7a4ae';
-
+class ViewVeeAuthConfig extends Config {
   @override
   String get authScopes => const String.fromEnvironment(
     'VIEWVEE_AUTH_SCOPES',
     defaultValue: 'openid email profile offline_access viewvee-api',
   );
-
   @override
   String get identityUrl => const String.fromEnvironment(
     'VIEWVEE_IDENTITY_URL',
     defaultValue: 'https://identity.specterint.com/',
   );
-
-  @override
-  String get keyPKCEVerifier => 'keyPKCEVerifier';
-
-  @override
-  String get googleClientId => Platform.isAndroid
-      ? '1091619601783-8esuvmlepls892s565mj4rcgt9lea17m.apps.googleusercontent.com'
-      : '';
-
-  @override
-  String get appleClientId => 'com.specterinteractive.workingtimer';
-
-  @override
-  String get microsoftClientId => '';
-
-  @override
-  bool get enableExternalAuth => true;
-
-  @override
-  String get authRedirectUri => 'http://localhost:43507/signin-oidc';
-
-  @override
-  String get homeUri => 'http://localhost:43507/';
-
-  @override
-  String get appUrl => 'http://localhost:43507/';
-
-  @override
-  String get apiUrl => 'https://wt-api.specterint.com/';
 }
 
 abstract class WorkingTimerAuth {

@@ -1,4 +1,6 @@
 const viewveePremiumSources = <String>[
+  'Nastavení soukromí reklam',
+  'Zásady ochrany osobních údajů',
   'Wi-Fi monitoring • 1 hodina',
   'SD kvalita',
   'Internet pouze s Premium',
@@ -26,6 +28,8 @@ const viewveePremiumSources = <String>[
 
 const viewveePremiumTranslations = <String, List<String>>{
   'ar': [
+    'إعدادات خصوصية الإعلانات',
+    'سياسة الخصوصية',
     'مراقبة عبر Wi-Fi • ساعة واحدة',
     'جودة SD',
     'الإنترنت متاح مع Premium فقط',
@@ -51,6 +55,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'da': [
+    'Privatlivsindstillinger for annoncer',
+    'Privatlivspolitik',
     'Wi-Fi-overvågning • 1 time',
     'SD-kvalitet',
     'Internet kun med Premium',
@@ -76,6 +82,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'de': [
+    'Datenschutzeinstellungen für Werbung',
+    'Datenschutzerklärung',
     'WLAN-Überwachung • 1 Stunde',
     'SD-Qualität',
     'Internet nur mit Premium',
@@ -101,6 +109,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'en': [
+    'Ad Privacy Settings',
+    'Privacy Policy',
     'Wi-Fi monitoring • 1 hour',
     'SD quality',
     'Internet with Premium only',
@@ -126,6 +136,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'es': [
+    'Privacidad de los anuncios',
+    'Política de privacidad',
     'Supervisión por Wi-Fi • 1 hora',
     'Calidad SD',
     'Internet solo con Premium',
@@ -151,6 +163,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'fi': [
+    'Mainonnan tietosuoja-asetukset',
+    'Tietosuojakäytäntö',
     'Wi-Fi-seuranta • 1 tunti',
     'SD-laatu',
     'Internet vain Premiumilla',
@@ -176,6 +190,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'fr': [
+    'Confidentialité des annonces',
+    'Politique de confidentialité',
     'Surveillance Wi-Fi • 1 heure',
     'Qualité SD',
     'Internet avec Premium uniquement',
@@ -201,6 +217,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'hr': [
+    'Postavke privatnosti oglasa',
+    'Pravila privatnosti',
     'Wi-Fi nadzor • 1 sat',
     'SD kvaliteta',
     'Internet samo uz Premium',
@@ -226,6 +244,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'hu': [
+    'Hirdetési adatvédelmi beállítások',
+    'Adatvédelmi irányelvek',
     'Wi-Fi-megfigyelés • 1 óra',
     'SD minőség',
     'Internet csak Premiummal',
@@ -251,6 +271,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'id': [
+    'Pengaturan Privasi Iklan',
+    'Kebijakan Privasi',
     'Pemantauan Wi-Fi • 1 jam',
     'Kualitas SD',
     'Internet hanya dengan Premium',
@@ -276,6 +298,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'it': [
+    'Privacy degli annunci',
+    'Informativa sulla privacy',
     'Monitoraggio Wi-Fi • 1 ora',
     'Qualità SD',
     'Internet solo con Premium',
@@ -301,6 +325,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'ja': [
+    '広告のプライバシー設定',
+    'プライバシーポリシー',
     'Wi-Fiモニタリング • 1時間',
     'SD画質',
     'インターネット接続はPremium限定',
@@ -326,6 +352,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'ko': [
+    '광고 개인정보 보호 설정',
+    '개인정보 처리방침',
     'Wi-Fi 모니터링 • 1시간',
     'SD 화질',
     '인터넷은 Premium 전용',
@@ -351,6 +379,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'nb': [
+    'Personverninnstillinger for annonser',
+    'Personvernerklæring',
     'Wi-Fi-overvåking • 1 time',
     'SD-kvalitet',
     'Internett kun med Premium',
@@ -376,6 +406,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'nl': [
+    'Privacyinstellingen voor advertenties',
+    'Privacybeleid',
     'Wi-Fi-toezicht • 1 uur',
     'SD-kwaliteit',
     'Internet alleen met Premium',
@@ -401,6 +433,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'pl': [
+    'Ustawienia prywatności reklam',
+    'Polityka prywatności',
     'Monitoring przez Wi-Fi • 1 godzina',
     'Jakość SD',
     'Internet tylko z Premium',
@@ -426,6 +460,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'pt': [
+    'Privacidade dos anúncios',
+    'Política de privacidade',
     'Monitorização por Wi-Fi • 1 hora',
     'Qualidade SD',
     'Internet apenas com Premium',
@@ -451,6 +487,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'ro': [
+    'Setări de confidențialitate pentru reclame',
+    'Politica de confidențialitate',
     'Monitorizare prin Wi-Fi • 1 oră',
     'Calitate SD',
     'Internet doar cu Premium',
@@ -476,6 +514,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'ru': [
+    'Настройки конфиденциальности рекламы',
+    'Политика конфиденциальности',
     'Наблюдение по Wi-Fi • 1 час',
     'Качество SD',
     'Интернет только с Premium',
@@ -501,6 +541,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'sk': [
+    'Nastavenia súkromia reklám',
+    'Zásady ochrany osobných údajov',
     'Wi-Fi sledovanie • 1 hodina',
     'SD kvalita',
     'Internet iba s Premium',
@@ -526,6 +568,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'sv': [
+    'Sekretessinställningar för annonser',
+    'Integritetspolicy',
     'Wi-Fi-övervakning • 1 timme',
     'SD-kvalitet',
     'Internet endast med Premium',
@@ -551,6 +595,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'th': [
+    'การตั้งค่าความเป็นส่วนตัวของโฆษณา',
+    'นโยบายความเป็นส่วนตัว',
     'การเฝ้าดูผ่าน Wi-Fi • 1 ชั่วโมง',
     'คุณภาพ SD',
     'อินเทอร์เน็ตเฉพาะ Premium',
@@ -576,6 +622,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'tr': [
+    'Reklam Gizlilik Ayarları',
+    'Gizlilik Politikası',
     'Wi-Fi üzerinden izleme • 1 saat',
     'SD kalitesi',
     'İnternet yalnızca Premium ile',
@@ -601,6 +649,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'uk': [
+    'Налаштування конфіденційності реклами',
+    'Політика конфіденційності',
     'Спостереження через Wi-Fi • 1 година',
     'Якість SD',
     'Інтернет лише з Premium',
@@ -626,6 +676,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'vi': [
+    'Cài đặt quyền riêng tư quảng cáo',
+    'Chính sách quyền riêng tư',
     'Theo dõi qua Wi-Fi • 1 giờ',
     'Chất lượng SD',
     'Internet chỉ dành cho Premium',
@@ -651,6 +703,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'zh': [
+    '广告隐私设置',
+    '隐私政策',
     'Wi-Fi 监控 • 1 小时',
     'SD 画质',
     '仅 Premium 可使用互联网',
@@ -676,6 +730,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "SD / HD",
   ],
   'zh_Hant': [
+    '廣告隱私權設定',
+    '隱私權政策',
     'Wi-Fi 監控 • 1 小時',
     'SD 畫質',
     '僅 Premium 可使用網際網路',

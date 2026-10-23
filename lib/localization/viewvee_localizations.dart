@@ -118,6 +118,7 @@ class ViewVeeLocalizations {
   ];
 
   static const _aliases = <String, String>{
+    'Podmínky použití': 'terms_use',
     'Podpora': 'support',
     'Hodnocení aplikace': 'rate_app',
     'Kontaktovat podporu': 'contact_us',

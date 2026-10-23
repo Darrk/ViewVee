@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ad_free_reward_service.dart';
+import 'ad_consent_service.dart';
 
 /// An interstitial is offered at the natural break between free sessions.
 /// A missing ad does not prevent the user from starting the next free hour.
@@ -15,6 +16,8 @@ class SessionBreakAd {
     }
     final preferences = await SharedPreferences.getInstance();
     if (AdFreeRewardStore(preferences).isActive) return;
+    if (!await AdConsentService.instance.canRequestAds()) return;
+    final consentGeneration = AdConsentService.instance.generation;
     InterstitialAd? loaded;
     var accepting = true;
     try {
@@ -54,7 +57,11 @@ class SessionBreakAd {
         onTimeout: () => null,
       );
       accepting = false;
-      if (loaded == null) return;
+      if (loaded == null ||
+          consentGeneration != AdConsentService.instance.generation ||
+          !await AdConsentService.instance.canRequestAds()) {
+        return;
+      }
       final dismissed = Completer<void>();
       loaded.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (_) {

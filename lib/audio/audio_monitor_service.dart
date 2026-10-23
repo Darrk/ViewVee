@@ -134,7 +134,10 @@ class AudioMonitorService {
   bool _viewerVideoEnabled = true;
   bool _remoteVideoPaused = false;
   bool get isRemoteVideoPaused => _remoteVideoPaused;
-  bool get _cameraBackgrounded => (_cameraOwner ?? this)._appBackgrounded;
+  // Android keeps capture alive through its camera foreground service.
+  bool get _cameraVideoPaused =>
+      (_cameraOwner ?? this)._appBackgrounded &&
+      (kIsWeb || defaultTargetPlatform != TargetPlatform.android);
   bool _receiverMuted = false;
   bool get isReceiverMuted => _receiverMuted;
   bool _viewerActive = true;
@@ -462,7 +465,7 @@ class AudioMonitorService {
               _localVideoRenderer?.srcObject = _localStream;
               for (final track
                   in _localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) {
-                track.enabled = !_appBackgrounded;
+                track.enabled = !_cameraVideoPaused;
               }
             },
           );
@@ -796,7 +799,8 @@ class AudioMonitorService {
     }
   }
 
-  /// Keep audio alive in the background; video also stays active while recording.
+  /// Keep Android camera capture alive; background viewers request audio only
+  /// unless they are recording.
   Future<void> setAppBackgrounded(bool backgrounded) async {
     _appBackgrounded = backgrounded;
     if (_role == AudioMonitorRole.receiver) {
@@ -807,7 +811,7 @@ class AudioMonitorService {
     await _cameraVideo?.settled;
     for (final track
         in _localStream?.getVideoTracks() ?? <MediaStreamTrack>[]) {
-      track.enabled = !backgrounded;
+      track.enabled = !_cameraVideoPaused;
     }
     for (final session in [this, ..._additionalMonitors]) {
       await session._applyViewerActivity();
@@ -830,7 +834,7 @@ class AudioMonitorService {
             encoding.active =
                 _viewerActive &&
                 (sender.track?.kind != 'video' ||
-                    (_viewerVideoEnabled && !_cameraBackgrounded));
+                    (_viewerVideoEnabled && !_cameraVideoPaused));
             if (sender.track?.kind == 'video') {
               encoding.scaleResolutionDownBy = _isHd && !_viewerHdAllowed
                   ? 1.5
@@ -897,7 +901,7 @@ class AudioMonitorService {
     }
     onVideoSettingsChanged?.call();
     if (_state != AudioConnectionState.connected) return;
-    if (!_viewerHdAllowed || !_viewerVideoEnabled || _cameraBackgrounded) {
+    if (!_viewerHdAllowed || !_viewerVideoEnabled || _cameraVideoPaused) {
       await _applyViewerActivity();
     }
     await _sendControl({
@@ -905,7 +909,7 @@ class AudioMonitorService {
       'isHd': _isHd && _viewerHdAllowed,
       'nightMode': _nightMode,
       'torchEnabled': _torchEnabled,
-      'videoPaused': _cameraBackgrounded,
+      'videoPaused': _cameraVideoPaused,
     });
   }
 
@@ -1437,7 +1441,7 @@ class AudioMonitorService {
       if (_role == AudioMonitorRole.transmitter) {
         unawaited(_rememberConnectedMonitor());
         unawaited(_publishVideoSettings());
-        if (!_viewerActive || !_viewerVideoEnabled || _cameraBackgrounded) {
+        if (!_viewerActive || !_viewerVideoEnabled || _cameraVideoPaused) {
           unawaited(_applyViewerActivity());
         }
       }
@@ -1511,7 +1515,7 @@ class AudioMonitorService {
         _lastSoundEvent = DateTime.now();
         await _sendControl({'kind': 'event', 'event': 'sound'});
       }
-      if (_motionDetectionEnabled && !_cameraBackgrounded) {
+      if (_motionDetectionEnabled && !_cameraVideoPaused) {
         await _detectMotion();
       }
     } catch (error) {

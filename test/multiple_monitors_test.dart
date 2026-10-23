@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -523,101 +524,113 @@ void main() {
     },
   );
 
-  test(
-    'background viewer receives audio only; locked camera still detects sound',
-    () async {
-      Future<void> connectPeer(int pc, int signal) async {
-        signals[signal].onControl!({
-          'kind': 'detection_config',
-          'motion': false,
-          'sound': false,
-        });
-        messenger.handlePlatformMessage(
-          'FlutterWebRTC/peerConnectionEventpc$pc',
-          const StandardMethodCodec().encodeSuccessEnvelope({
-            'event': 'peerConnectionState',
-            'state': 'connected',
-          }),
-          (_) {},
-        );
-        await Future<void>.delayed(Duration.zero);
-      }
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    test(
+      'background camera on $platform preserves viewer preferences and sound',
+      () async {
+        debugDefaultTargetPlatformOverride = platform;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        final videoPaused = platform != TargetPlatform.android;
+        Future<void> connectPeer(int pc, int signal) async {
+          signals[signal].onControl!({
+            'kind': 'detection_config',
+            'motion': false,
+            'sound': false,
+          });
+          messenger.handlePlatformMessage(
+            'FlutterWebRTC/peerConnectionEventpc$pc',
+            const StandardMethodCodec().encodeSuccessEnvelope({
+              'event': 'peerConnectionState',
+              'state': 'connected',
+            }),
+            (_) {},
+          );
+          await Future<void>.delayed(Duration.zero);
+        }
 
-      await camera.startTransmitter();
-      await connectPeer(1, 0);
-      await camera.createMonitorPairing();
-      await connectPeer(2, 1);
-      calls.clear();
-      signals[1].onControl!({
-        'kind': 'viewer_activity',
-        'active': true,
-        'videoEnabled': false,
-      });
-      await Future<void>.delayed(Duration.zero);
-      final updates = calls
-          .where((call) => call.method == 'rtpSenderSetParameters')
-          .toList();
-      expect(
-        updates.every((call) => call.arguments['peerConnectionId'] == 'pc2'),
-        isTrue,
-      );
-      bool enabled(String sender) =>
+        await camera.startTransmitter();
+        await connectPeer(1, 0);
+        await camera.createMonitorPairing();
+        await connectPeer(2, 1);
+        calls.clear();
+        signals[1].onControl!({
+          'kind': 'viewer_activity',
+          'active': true,
+          'videoEnabled': false,
+        });
+        await Future<void>.delayed(Duration.zero);
+        final updates = calls
+            .where((call) => call.method == 'rtpSenderSetParameters')
+            .toList();
+        expect(
+          updates.every((call) => call.arguments['peerConnectionId'] == 'pc2'),
+          isTrue,
+        );
+        bool enabled(String sender) =>
+            calls
+                    .lastWhere(
+                      (call) =>
+                          call.method == 'rtpSenderSetParameters' &&
+                          call.arguments['rtpSenderId'] == sender,
+                    )
+                    .arguments['parameters']['encodings'][0]['active']
+                as bool;
+        expect(enabled('pc2-audio'), isTrue);
+        expect(enabled('pc2-video'), isFalse);
+        await camera.setAppBackgrounded(true);
+        expect(enabled('pc1-audio'), isTrue);
+        expect(enabled('pc1-video'), !videoPaused);
+        expect(enabled('pc2-audio'), isTrue);
+        expect(enabled('pc2-video'), isFalse);
+        expect(
           calls
-                  .lastWhere(
-                    (call) =>
-                        call.method == 'rtpSenderSetParameters' &&
-                        call.arguments['rtpSenderId'] == sender,
-                  )
-                  .arguments['parameters']['encodings'][0]['active']
-              as bool;
-      expect(enabled('pc2-audio'), isTrue);
-      expect(enabled('pc2-video'), isFalse);
-      await camera.setAppBackgrounded(true);
-      expect(enabled('pc1-audio'), isTrue);
-      expect(enabled('pc1-video'), isFalse);
-      expect(enabled('pc2-audio'), isTrue);
-      expect(
-        signals.first.controls.lastWhere(
-          (message) => message['kind'] == 'video_settings',
-        )['videoPaused'],
-        isTrue,
-      );
-      stats = [
-        {
-          'id': 'mic',
-          'type': 'media-source',
-          'timestamp': 1.0,
-          'values': {'kind': 'audio', 'audioLevel': 0.9},
-        },
-      ];
-      signals.first.onControl!({
-        'kind': 'detection_config',
-        'sound': true,
-        'motion': true,
-        'sensitivity': 1,
-      });
-      await Future<void>.delayed(const Duration(milliseconds: 2100));
-      expect(
-        signals.first.controls.where(
-          (message) =>
-              message['kind'] == 'event' && message['event'] == 'sound',
-        ),
-        isNotEmpty,
-      );
-      expect(calls.where((call) => call.method == 'captureFrame'), isEmpty);
-      await camera.setAppBackgrounded(false);
-      expect(enabled('pc1-video'), isTrue);
-      expect(enabled('pc2-video'), isFalse);
-      expect(
-        signals.first.controls.lastWhere(
-          (message) => message['kind'] == 'video_settings',
-        )['videoPaused'],
-        isFalse,
-      );
-      expect(camera.connectedMonitorCount, 2);
-      await camera.stop();
-    },
-  );
+              .lastWhere((call) => call.method == 'mediaStreamTrackSetEnable')
+              .arguments['enabled'],
+          !videoPaused,
+        );
+        expect(
+          signals.first.controls.lastWhere(
+            (message) => message['kind'] == 'video_settings',
+          )['videoPaused'],
+          videoPaused,
+        );
+        stats = [
+          {
+            'id': 'mic',
+            'type': 'media-source',
+            'timestamp': 1.0,
+            'values': {'kind': 'audio', 'audioLevel': 0.9},
+          },
+        ];
+        signals.first.onControl!({
+          'kind': 'detection_config',
+          'sound': true,
+          'motion': false,
+          'sensitivity': 1,
+        });
+        await Future<void>.delayed(const Duration(milliseconds: 2100));
+        expect(
+          signals.first.controls.where(
+            (message) =>
+                message['kind'] == 'event' && message['event'] == 'sound',
+          ),
+          isNotEmpty,
+        );
+        expect(calls.where((call) => call.method == 'captureFrame'), isEmpty);
+        await camera.setAppBackgrounded(false);
+        expect(enabled('pc1-video'), isTrue);
+        expect(enabled('pc2-video'), isFalse);
+        expect(
+          signals.first.controls.lastWhere(
+            (message) => message['kind'] == 'video_settings',
+          )['videoPaused'],
+          isFalse,
+        );
+        expect(camera.connectedMonitorCount, 2);
+        await camera.stop();
+      },
+    );
+  }
 
   testWidgets('pausing one viewer stops only its media senders', (
     tester,

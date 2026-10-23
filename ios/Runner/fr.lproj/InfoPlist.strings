@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "ViewVee utilise la caméra pour la surveillance en direct et pour scanner les codes de jumelage.";
+"NSMicrophoneUsageDescription" = "ViewVee utilise le microphone pour transmettre le son en direct et parler à votre appareil jumelé.";
+"NSLocalNetworkUsageDescription" = "ViewVee recherche et connecte vos appareils jumelés sur le même réseau Wi-Fi.";
+"NSUserTrackingUsageDescription" = "Avec votre autorisation, ViewVee utilise les identifiants de votre appareil pour mesurer la publicité.";
