@@ -98,7 +98,10 @@ Coturn credential generation, CORS, disabled configuration, and rate limiting.
 
 `POST /api/purchases/verify` verifies App Store signed transactions and live
 transaction status, or Google Play purchase tokens, before granting lifetime
-Premium. `DELETE /api/account` forwards the signed-in user's self-service deletion
+Premium, and binds the purchase to the caller's account when a bearer token is sent
+(guests may verify without one; receipts an account owns are refused to guests).
+`GET /api/purchases/entitlement` returns the account's Premium state, and TURN
+credentials require it. `DELETE /api/account` forwards the signed-in user's self-service deletion
 to IdentityServer. Both fail closed when upstream configuration is missing.
 See [store release configuration](../docs/app-store-release.md) for secret mounts,
 product IDs, identity provisioning/revocation, and deployment order.

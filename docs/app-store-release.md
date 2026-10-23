@@ -7,7 +7,7 @@ been changed by this implementation.
 
 ## Lifetime Premium
 
-Create a **non-consumable** product with ID `viewvee.premium.lifetime` in App Store
+Create a **non-consumable** product with ID `premium` in App Store
 Connect and Google Play. Set price/availability in the store. The app displays
 `ProductDetails.price`; it does not manufacture a price or unlock on payment
 callbacks alone. To use another ID, set `VIEWVEE_PREMIUM_PRODUCT_ID` in Flutter
@@ -16,7 +16,7 @@ and matching `PREMIUM_PRODUCT_ID` on the Go API.
 Configure the Go API with:
 
 ```text
-PREMIUM_PRODUCT_ID=viewvee.premium.lifetime
+PREMIUM_PRODUCT_ID=premium
 PURCHASE_BUNDLE_ID=com.specterint.viewvee
 APPLE_STORE_ISSUER_ID=<App Store Connect issuer UUID>
 APPLE_STORE_KEY_ID=<In-App Purchase API key ID>
@@ -31,8 +31,14 @@ Apple production and sandbox receipts, since App Review purchases use sandbox.
 `Production` rejects sandbox receipts; `Sandbox` allows sandbox testing as well
 as production receipts. Verification uses the environment in the Apple-signed
 receipt, never a client-selected API hostname. Missing server credentials return
-503 and do not grant new entitlements. Guest purchases are supported: possession
-of a cryptographically verified store transaction is required, not an account.
+503 and do not grant new entitlements. Guests can buy (App Store 5.1.1(v)); a
+guest purchase unlocks only that device until the user signs in. With a token,
+the API binds each verified transaction to the first account that redeems it
+(409 for any other account, and for guests presenting an owned receipt), and `GET /api/purchases/entitlement` lets the
+same account unlock its other devices. TURN credentials are issued only to
+accounts with an active purchase (`TURN_REQUIRE_PREMIUM=true`). Purchases are
+stored in `ENTITLEMENT_STORE_FILE` (default `/data/entitlements.json`) on a
+persistent volume, and re-verified with the store every 24 hours.
 
 `POST /api/purchases/verify` receives `platform` (`apple` or `google`), `productId`,
 `transactionId`, and `verificationData`. Apple proof must be StoreKit 2 signed JWS;

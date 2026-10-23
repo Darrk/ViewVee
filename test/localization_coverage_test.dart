@@ -35,7 +35,9 @@ void main() {
             .allMatches(literalSequence)
             .map((literal) => literal.group(1) ?? '')
             .join();
-        if (!source.contains(r'$') && !invariantSources.contains(source)) {
+        if (source.isNotEmpty &&
+            !source.contains(r'$') &&
+            !invariantSources.contains(source)) {
           sources.add(source);
         }
       }

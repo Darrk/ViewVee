@@ -129,7 +129,7 @@ func TestAppleVerification(t *testing.T) {
 }
 func TestPurchaseEndpointRejectsMissingAndUntrustedProof(t *testing.T) {
 	v := newPurchaseVerifier()
-	for _, body := range []string{`{}`, `{"platform":"apple","productId":"wrong","verificationData":"token"}`, `{"platform":"apple","productId":"viewvee.premium.lifetime","verificationData":"not-a-signed-receipt"}`} {
+	for _, body := range []string{`{}`, `{"platform":"apple","productId":"wrong","verificationData":"token"}`, `{"platform":"apple","productId":"premium","verificationData":"not-a-signed-receipt"}`} {
 		response := httptest.NewRecorder()
 		v.handle(response, httptest.NewRequest("POST", "/api/purchases/verify", strings.NewReader(body)))
 		if response.Code == 200 {
@@ -146,5 +146,67 @@ func TestAccountDeletionRejectsUnauthenticatedOrUnconfirmedRequests(t *testing.T
 		if response.Code != 401 && response.Code != 400 {
 			t.Fatalf("unexpected status %d", response.Code)
 		}
+	}
+}
+
+func TestPurchaseIsBoundToFirstAccount(t *testing.T) {
+	v, sign := appleFixture(t)
+	transaction := appleTransaction{TransactionID: "77", ProductID: v.product, BundleID: v.bundle, Environment: "Production", Type: "Non-Consumable", SignedDate: time.Now().UnixMilli()}
+	v.client = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		data, _ := json.Marshal(map[string]string{"signedTransactionInfo": sign(transaction)})
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(data))}, nil
+	})}
+	v.scope = "viewvee-api"
+	v.identify = func(_ context.Context, token string) (turnIdentity, error) {
+		return turnIdentity{subject: token, scopes: []string{"viewvee-api"}}, nil
+	}
+	v.store.path = filepath.Join(t.TempDir(), "entitlements.json")
+	body, _ := json.Marshal(purchaseProof{Platform: "apple", ProductID: v.product, TransactionID: "77", VerificationData: sign(transaction)})
+	call := func(method, path, subject string) *httptest.ResponseRecorder {
+		response := httptest.NewRecorder()
+		request := httptest.NewRequest(method, path, bytes.NewReader(body))
+		if subject != "" {
+			request.Header.Set("Authorization", "Bearer "+subject)
+		}
+		if method == "POST" {
+			v.handle(response, request)
+		} else {
+			v.handleEntitlement(response, request)
+		}
+		return response
+	}
+	if w := call("POST", "/api/purchases/verify", ""); w.Code != 200 || !strings.Contains(w.Body.String(), `"active":true`) {
+		t.Fatalf("guest purchase rejected: %d %s", w.Code, w.Body)
+	}
+	if len(v.store.records) != 0 {
+		t.Fatal("guest purchase bound to an account")
+	}
+	if w := call("POST", "/api/purchases/verify", "alice"); w.Code != 200 || !strings.Contains(w.Body.String(), `"active":true`) {
+		t.Fatalf("owner rejected: %d %s", w.Code, w.Body)
+	}
+	if w := call("POST", "/api/purchases/verify", "alice"); w.Code != 200 {
+		t.Fatalf("owner restore rejected: %d", w.Code)
+	}
+	if w := call("POST", "/api/purchases/verify", "mallory"); w.Code != 409 {
+		t.Fatalf("receipt replay accepted: %d", w.Code)
+	}
+	if w := call("POST", "/api/purchases/verify", ""); w.Code != 409 {
+		t.Fatalf("owned receipt unlocked a guest device: %d", w.Code)
+	}
+	if w := call("GET", "/api/purchases/entitlement", "alice"); !strings.Contains(w.Body.String(), `"active":true`) {
+		t.Fatalf("owner entitlement missing: %s", w.Body)
+	}
+	if w := call("GET", "/api/purchases/entitlement", "mallory"); !strings.Contains(w.Body.String(), `"active":false`) {
+		t.Fatalf("entitlement leaked: %s", w.Body)
+	}
+	reopened, err := openEntitlementStore(v.store.path)
+	if err != nil || len(reopened.forSubject("alice")) != 1 {
+		t.Fatalf("store not persisted: %v", err)
+	}
+	// A refund found during the periodic re-check revokes Premium.
+	v.now = func() time.Time { return time.Now().Add(2 * entitlementRecheck) }
+	transaction.RevocationDate = time.Now().UnixMilli()
+	if v.premium(context.Background(), "alice") {
+		t.Fatal("refunded purchase still grants Premium")
 	}
 }

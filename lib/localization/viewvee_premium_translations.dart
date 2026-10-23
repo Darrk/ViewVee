@@ -24,6 +24,8 @@ const viewveePremiumSources = <String>[
   "Pouze zvuk",
   "Zatím nemáte spárované zařízení.",
   "SD / HD",
+  "Tento nákup už patří jinému účtu ViewVee.",
+  "Premium teď není k dispozici. Zkuste to prosím později.",
 ];
 
 const viewveePremiumTranslations = <String, List<String>>{
@@ -53,6 +55,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "صوت فقط",
     "لم تقم بإقران أي جهاز بعد.",
     "SD / HD",
+    "ينتمي هذا الشراء بالفعل إلى حساب ViewVee آخر.",
+    "Premium غير متاح حاليًا. يُرجى المحاولة لاحقًا.",
   ],
   'da': [
     'Privatlivsindstillinger for annoncer',
@@ -80,6 +84,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Kun lyd",
     "Du har ikke parret nogen enheder endnu.",
     "SD / HD",
+    "Dette køb tilhører allerede en anden ViewVee-konto.",
+    "Premium er ikke tilgængelig lige nu. Prøv igen senere.",
   ],
   'de': [
     'Datenschutzeinstellungen für Werbung',
@@ -107,6 +113,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Nur Audio",
     "Du hast noch kein Gerät gekoppelt.",
     "SD / HD",
+    "Dieser Kauf gehört bereits zu einem anderen ViewVee-Konto.",
+    "Premium ist gerade nicht verfügbar. Bitte versuche es später erneut.",
   ],
   'en': [
     'Ad Privacy Settings',
@@ -134,6 +142,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Audio only",
     "You have not paired any devices yet.",
     "SD / HD",
+    "This purchase already belongs to another ViewVee account.",
+    "Premium isn't available right now. Please try again later.",
   ],
   'es': [
     'Privacidad de los anuncios',
@@ -161,6 +171,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Solo audio",
     "Aún no has vinculado ningún dispositivo.",
     "SD / HD",
+    "Esta compra ya pertenece a otra cuenta de ViewVee.",
+    "Premium no está disponible en este momento. Inténtalo más tarde.",
   ],
   'fi': [
     'Mainonnan tietosuoja-asetukset',
@@ -188,6 +200,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Vain ääni",
     "Et ole vielä yhdistänyt yhtään laitetta.",
     "SD / HD",
+    "Tämä ostos kuuluu jo toiselle ViewVee-tilille.",
+    "Premium ei ole juuri nyt saatavilla. Yritä myöhemmin uudelleen.",
   ],
   'fr': [
     'Confidentialité des annonces',
@@ -215,6 +229,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Audio uniquement",
     "Vous n’avez encore associé aucun appareil.",
     "SD / HD",
+    "Cet achat appartient déjà à un autre compte ViewVee.",
+    "Premium n'est pas disponible pour le moment. Réessayez plus tard.",
   ],
   'hr': [
     'Postavke privatnosti oglasa',
@@ -242,6 +258,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Samo zvuk",
     "Još niste uparili nijedan uređaj.",
     "SD / HD",
+    "Ova kupnja već pripada drugom ViewVee računu.",
+    "Premium trenutačno nije dostupan. Pokušajte ponovno kasnije.",
   ],
   'hu': [
     'Hirdetési adatvédelmi beállítások',
@@ -269,6 +287,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Csak hang",
     "Még nem párosított eszközt.",
     "SD / HD",
+    "Ez a vásárlás már egy másik ViewVee-fiókhoz tartozik.",
+    "A Premium jelenleg nem érhető el. Próbáld újra később.",
   ],
   'id': [
     'Pengaturan Privasi Iklan',
@@ -296,6 +316,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Hanya audio",
     "Anda belum memasangkan perangkat apa pun.",
     "SD / HD",
+    "Pembelian ini sudah menjadi milik akun ViewVee lain.",
+    "Premium sedang tidak tersedia. Silakan coba lagi nanti.",
   ],
   'it': [
     'Privacy degli annunci',
@@ -323,6 +345,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Solo audio",
     "Non hai ancora associato alcun dispositivo.",
     "SD / HD",
+    "Questo acquisto appartiene già a un altro account ViewVee.",
+    "Premium non è disponibile al momento. Riprova più tardi.",
   ],
   'ja': [
     '広告のプライバシー設定',
@@ -350,6 +374,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "音声のみ",
     "まだデバイスをペアリングしていません。",
     "SD / HD",
+    "この購入はすでに別のViewVeeアカウントに属しています。",
+    "現在Premiumはご利用いただけません。しばらくしてからもう一度お試しください。",
   ],
   'ko': [
     '광고 개인정보 보호 설정',
@@ -377,6 +403,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "오디오만",
     "아직 페어링한 기기가 없습니다.",
     "SD / HD",
+    "이 구매는 이미 다른 ViewVee 계정에 속해 있습니다.",
+    "지금은 Premium을 이용할 수 없습니다. 나중에 다시 시도하세요.",
   ],
   'nb': [
     'Personverninnstillinger for annonser',
@@ -404,6 +432,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Kun lyd",
     "Du har ikke paret noen enheter ennå.",
     "SD / HD",
+    "Dette kjøpet tilhører allerede en annen ViewVee-konto.",
+    "Premium er ikke tilgjengelig akkurat nå. Prøv igjen senere.",
   ],
   'nl': [
     'Privacyinstellingen voor advertenties',
@@ -431,6 +461,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Alleen audio",
     "Je hebt nog geen apparaten gekoppeld.",
     "SD / HD",
+    "Deze aankoop hoort al bij een ander ViewVee-account.",
+    "Premium is op dit moment niet beschikbaar. Probeer het later opnieuw.",
   ],
   'pl': [
     'Ustawienia prywatności reklam',
@@ -458,6 +490,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Tylko dźwięk",
     "Nie sparowano jeszcze żadnego urządzenia.",
     "SD / HD",
+    "Ten zakup należy już do innego konta ViewVee.",
+    "Premium jest teraz niedostępne. Spróbuj ponownie później.",
   ],
   'pt': [
     'Privacidade dos anúncios',
@@ -485,6 +519,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Apenas áudio",
     "Ainda não emparelhou nenhum dispositivo.",
     "SD / HD",
+    "Esta compra já pertence a outra conta ViewVee.",
+    "O Premium não está disponível neste momento. Tente novamente mais tarde.",
   ],
   'ro': [
     'Setări de confidențialitate pentru reclame',
@@ -512,6 +548,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Doar audio",
     "Nu ați asociat încă niciun dispozitiv.",
     "SD / HD",
+    "Această achiziție aparține deja altui cont ViewVee.",
+    "Premium nu este disponibil momentan. Încearcă din nou mai târziu.",
   ],
   'ru': [
     'Настройки конфиденциальности рекламы',
@@ -539,6 +577,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Только звук",
     "Вы ещё не подключили ни одного устройства.",
     "SD / HD",
+    "Эта покупка уже принадлежит другой учётной записи ViewVee.",
+    "Premium сейчас недоступен. Повторите попытку позже.",
   ],
   'sk': [
     'Nastavenia súkromia reklám',
@@ -566,6 +606,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Iba zvuk",
     "Zatiaľ nemáte spárované zariadenie.",
     "SD / HD",
+    "Tento nákup už patrí inému účtu ViewVee.",
+    "Premium momentálne nie je k dispozícii. Skúste to prosím neskôr.",
   ],
   'sv': [
     'Sekretessinställningar för annonser',
@@ -593,6 +635,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Endast ljud",
     "Du har inte parkopplat någon enhet ännu.",
     "SD / HD",
+    "Det här köpet tillhör redan ett annat ViewVee-konto.",
+    "Premium är inte tillgängligt just nu. Försök igen senare.",
   ],
   'th': [
     'การตั้งค่าความเป็นส่วนตัวของโฆษณา',
@@ -620,6 +664,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "เสียงเท่านั้น",
     "คุณยังไม่ได้จับคู่อุปกรณ์ใด",
     "SD / HD",
+    "การซื้อนี้เป็นของบัญชี ViewVee อื่นแล้ว",
+    "Premium ไม่พร้อมใช้งานในขณะนี้ โปรดลองอีกครั้งภายหลัง",
   ],
   'tr': [
     'Reklam Gizlilik Ayarları',
@@ -647,6 +693,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Yalnızca ses",
     "Henüz hiçbir cihaz eşleştirmediniz.",
     "SD / HD",
+    "Bu satın alma zaten başka bir ViewVee hesabına ait.",
+    "Premium şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin.",
   ],
   'uk': [
     'Налаштування конфіденційності реклами',
@@ -674,6 +722,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Лише звук",
     "Ви ще не сполучили жодного пристрою.",
     "SD / HD",
+    "Ця покупка вже належить іншому обліковому запису ViewVee.",
+    "Premium зараз недоступний. Спробуйте пізніше.",
   ],
   'vi': [
     'Cài đặt quyền riêng tư quảng cáo',
@@ -701,6 +751,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "Chỉ âm thanh",
     "Bạn chưa ghép nối thiết bị nào.",
     "SD / HD",
+    "Giao dịch mua này đã thuộc về một tài khoản ViewVee khác.",
+    "Premium hiện không khả dụng. Vui lòng thử lại sau.",
   ],
   'zh': [
     '广告隐私设置',
@@ -728,6 +780,8 @@ const viewveePremiumTranslations = <String, List<String>>{
     "仅音频",
     "您尚未配对任何设备。",
     "SD / HD",
+    "此购买已属于另一个 ViewVee 账户。",
+    "Premium 目前不可用。请稍后再试。",
   ],
   'zh_Hant': [
     '廣告隱私權設定',
@@ -755,5 +809,7 @@ const viewveePremiumTranslations = <String, List<String>>{
     "僅音訊",
     "您尚未配對任何裝置。",
     "SD / HD",
+    "此購買已屬於另一個 ViewVee 帳戶。",
+    "Premium 目前無法使用。請稍後再試。",
   ],
 };

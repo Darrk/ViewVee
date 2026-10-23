@@ -30,7 +30,7 @@ type turnConfig struct {
 func loadTURNConfig() (turnConfig, error) {
 	c := turnConfig{
 		secret:   strings.TrimSpace(os.Getenv("TURN_SHARED_SECRET")),
-		issuer:   env("TURN_IDENTITY_ISSUER", "https://identity.specterint.com/"),
+		issuer:   env("TURN_IDENTITY_ISSUER", "https://identity.specterint.com"),
 		audience: env("TURN_IDENTITY_AUDIENCE", "viewvee-api"),
 		scope:    env("TURN_REQUIRED_SCOPE", "viewvee-api"),
 		urls:     strings.Split(env("TURN_URLS", "turn:turn.viewvee.com:3478?transport=udp,turn:turn.viewvee.com:3478?transport=tcp,turns:turn.viewvee.com:443?transport=tcp"), ","),
@@ -85,28 +85,35 @@ type issuanceWindow struct {
 	count int
 }
 type turnService struct {
-	config  turnConfig
-	verify  turnVerifier
+	config turnConfig
+	verify turnVerifier
+	// premium reports whether the subject owns ViewVee Premium; nil disables the check.
+	premium func(context.Context, string) bool
 	now     func() time.Time
 	mu      sync.Mutex
 	windows map[string]issuanceWindow
 }
 
-func newTURNService(ctx context.Context, c turnConfig) (*turnService, error) {
+func newTURNService(ctx context.Context, c turnConfig, verify turnVerifier) (*turnService, error) {
 	if c.secret == "" {
 		return nil, nil
 	}
+	return &turnService{config: c, now: time.Now, windows: make(map[string]issuanceWindow), verify: verify}, nil
+}
+
+// newIdentityVerifier validates IdentityServer access tokens for the API audience.
+func newIdentityVerifier(ctx context.Context, issuer, audience string) (turnVerifier, error) {
 	// Keep a persistent context for future JWKS refreshes; bound each HTTP call.
 	client := &http.Client{Timeout: 8 * time.Second}
-	provider, err := oidc.NewProvider(oidc.ClientContext(ctx, client), c.issuer)
+	provider, err := oidc.NewProvider(oidc.ClientContext(ctx, client), issuer)
 	if err != nil {
 		return nil, fmt.Errorf("IdentityServer discovery: %w", err)
 	}
 	verifier := provider.VerifierContext(oidc.ClientContext(ctx, client), &oidc.Config{
-		ClientID:             c.audience,
+		ClientID:             audience,
 		SupportedSigningAlgs: []string{oidc.RS256, oidc.RS384, oidc.RS512, oidc.PS256, oidc.PS384, oidc.PS512, oidc.ES256, oidc.ES384, oidc.ES512},
 	})
-	return &turnService{config: c, now: time.Now, windows: make(map[string]issuanceWindow), verify: func(ctx context.Context, raw string) (turnIdentity, error) {
+	return func(ctx context.Context, raw string) (turnIdentity, error) {
 		token, err := verifier.Verify(ctx, raw)
 		if err != nil {
 			return turnIdentity{}, err
@@ -129,7 +136,35 @@ func newTURNService(ctx context.Context, c turnConfig) (*turnService, error) {
 			return turnIdentity{}, errors.New("missing access token scope")
 		}
 		return turnIdentity{subject: token.Subject, scopes: scopes}, nil
-	}}, nil
+	}, nil
+}
+
+// bearerSubject authenticates the request's bearer token and requires scope.
+// It writes the error response itself and returns "" on failure.
+func bearerSubject(w http.ResponseWriter, r *http.Request, verify turnVerifier, scope string) string {
+	if verify == nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "Authentication is not configured.")
+		return ""
+	}
+	auth := strings.Fields(r.Header.Get("Authorization"))
+	if len(auth) != 2 || !strings.EqualFold(auth[0], "Bearer") || len(auth[1]) > 16384 {
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		writeJSONError(w, http.StatusUnauthorized, "A valid access token is required.")
+		return ""
+	}
+	identity, err := verify(r.Context(), auth[1])
+	if err != nil || identity.subject == "" {
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
+		writeJSONError(w, http.StatusUnauthorized, "A valid access token is required.")
+		return ""
+	}
+	for _, granted := range identity.scopes {
+		if granted == scope {
+			return identity.subject
+		}
+	}
+	writeJSONError(w, http.StatusForbidden, "The access token does not authorize this API.")
+	return ""
 }
 
 func (s *turnService) cors(w http.ResponseWriter, r *http.Request) bool {
@@ -193,37 +228,23 @@ func (s *turnService) handleCredentials(w http.ResponseWriter, r *http.Request) 
 		writeJSONError(w, http.StatusServiceUnavailable, "TURN credentials are not configured.")
 		return
 	}
-	auth := strings.Fields(r.Header.Get("Authorization"))
-	if len(auth) != 2 || !strings.EqualFold(auth[0], "Bearer") || len(auth[1]) > 16384 {
-		w.Header().Set("WWW-Authenticate", "Bearer")
-		writeJSONError(w, http.StatusUnauthorized, "A valid access token is required.")
+	subject := bearerSubject(w, r, s.verify, s.config.scope)
+	if subject == "" {
 		return
 	}
-	identity, err := s.verify(r.Context(), auth[1])
-	if err != nil || identity.subject == "" {
-		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
-		writeJSONError(w, http.StatusUnauthorized, "A valid access token is required.")
+	// The relay is the paid feature: enforce Premium here, not only in the app.
+	if s.premium != nil && !s.premium(r.Context(), subject) {
+		writeJSONError(w, http.StatusForbidden, "premium_required")
 		return
 	}
-	permitted := false
-	for _, scope := range identity.scopes {
-		if scope == s.config.scope {
-			permitted = true
-			break
-		}
-	}
-	if !permitted {
-		writeJSONError(w, http.StatusForbidden, "The access token does not authorize TURN.")
-		return
-	}
-	if !s.allow(identity.subject) {
+	if !s.allow(subject) {
 		w.Header().Set("Retry-After", "3600")
 		writeJSONError(w, http.StatusTooManyRequests, "Too many credential requests.")
 		return
 	}
 	expires := s.now().Add(s.config.ttl).Truncate(time.Second)
 	// Avoid putting IdentityServer's subject/PII into relay logs, or accepting ':' in it.
-	user := sha256.Sum256([]byte(identity.subject))
+	user := sha256.Sum256([]byte(subject))
 	username := strconv.FormatInt(expires.Unix(), 10) + ":" + hex.EncodeToString(user[:16])
 	mac := hmac.New(sha1.New, []byte(s.config.secret)) // Coturn TURN REST requires HMAC-SHA1.
 	_, _ = mac.Write([]byte(username))

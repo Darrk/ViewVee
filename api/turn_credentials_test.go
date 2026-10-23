@@ -35,7 +35,11 @@ func TestTURNEndpointWithIdentityServer(t *testing.T) {
 	}))
 	defer issuer.Close()
 	cfg := turnConfig{secret: strings.Repeat("s", 32), issuer: issuer.URL, audience: "viewvee-api", scope: "viewvee-api", urls: []string{"turns:turn.viewvee.com:443?transport=tcp"}, ttl: time.Hour, origins: []string{"https://app.viewvee.com"}}
-	service, err := newTURNService(context.Background(), cfg)
+	verify, err := newIdentityVerifier(context.Background(), cfg.issuer, cfg.audience)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := newTURNService(context.Background(), cfg, verify)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -192,5 +196,26 @@ func TestTURNConfigValidation(t *testing.T) {
 	}
 	if cfg.audience != "viewvee-api" || cfg.scope != "viewvee-api" || cfg.ttl != 24*time.Hour {
 		t.Fatal("unexpected defaults")
+	}
+}
+
+func TestTURNRequiresPremiumWhenEnabled(t *testing.T) {
+	owned := false
+	s := &turnService{config: turnConfig{secret: strings.Repeat("s", 32), scope: "viewvee-api", ttl: time.Hour, urls: []string{"turns:turn.viewvee.com:443?transport=tcp"}}, now: time.Now, windows: make(map[string]issuanceWindow), verify: func(context.Context, string) (turnIdentity, error) {
+		return turnIdentity{"user", []string{"viewvee-api"}}, nil
+	}, premium: func(context.Context, string) bool { return owned }}
+	request := func() *httptest.ResponseRecorder {
+		r := httptest.NewRequest("GET", "/api/turn/credentials", nil)
+		r.Header.Set("Authorization", "Bearer token")
+		w := httptest.NewRecorder()
+		s.handleCredentials(w, r)
+		return w
+	}
+	if w := request(); w.Code != 403 || !strings.Contains(w.Body.String(), "premium_required") {
+		t.Fatalf("free account received TURN credentials: %d", w.Code)
+	}
+	owned = true
+	if w := request(); w.Code != 200 {
+		t.Fatalf("premium account rejected: %d", w.Code)
 	}
 }

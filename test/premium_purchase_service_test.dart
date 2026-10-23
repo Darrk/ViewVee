@@ -81,8 +81,10 @@ void main() {
       await service.eventsSettled;
       expect(await service.hasEntitlement(), isTrue);
       expect(store.completed, hasLength(1));
+      // Android also restores once in the background at startup.
+      final restoredBefore = store.restored;
       await service.restore();
-      expect(store.restored, 1);
+      expect(store.restored, restoredBefore + 1);
       service.dispose();
       await store.events.close();
     },
@@ -115,6 +117,7 @@ void main() {
     final service = PremiumPurchaseService(
       store: store,
       verifyPurchase: (_) async => false,
+      fetchEntitlement: () async => false,
     );
     await service.initialize();
     expect(await service.hasEntitlement(), isFalse);
@@ -130,7 +133,9 @@ void main() {
   test(
     'verification rejects redirects, outages, and another product',
     () async {
-      final service = PremiumPurchaseService();
+      final service = PremiumPurchaseService(
+        getAccessToken: ({forceRefresh = false}) async => 'token',
+      );
       for (final status in [302, 503]) {
         final client = MockClient((request) async {
           expect(request.followRedirects, isFalse);
@@ -149,6 +154,78 @@ void main() {
         throwsFormatException,
       );
       service.dispose();
+    },
+  );
+  test('verification sends the account token and refreshes it once', () async {
+    final refreshes = <bool>[];
+    final service = PremiumPurchaseService(
+      getAccessToken: ({forceRefresh = false}) async {
+        refreshes.add(forceRefresh);
+        return forceRefresh ? 'fresh' : 'stale';
+      },
+    );
+    final client = MockClient((request) async {
+      if (request.headers['Authorization'] == 'Bearer stale') {
+        return http.Response('', 401);
+      }
+      expect(request.headers['Authorization'], 'Bearer fresh');
+      return http.Response(
+        jsonEncode({
+          'active': true,
+          'productId': PremiumPurchaseService.productId,
+        }),
+        200,
+      );
+    });
+    expect(await service.verify({}, client: client), isTrue);
+    expect(refreshes, [false, true]);
+    service.dispose();
+  });
+  test(
+    'a receipt owned by another account is reported, not unlocked',
+    () async {
+      final service = PremiumPurchaseService(
+        getAccessToken: ({forceRefresh = false}) async => 'token',
+      );
+      final client = MockClient((_) async => http.Response('', 409));
+      await expectLater(
+        service.verify({}, client: client),
+        throwsA(isA<PurchaseOwnedElsewhere>()),
+      );
+      service.dispose();
+    },
+  );
+  test('guests verify without a token (App Store 5.1.1(v))', () async {
+    final service = PremiumPurchaseService(
+      getAccessToken: ({forceRefresh = false}) async => null,
+    );
+    final client = MockClient((request) async {
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      return http.Response(
+        jsonEncode({
+          'active': true,
+          'productId': PremiumPurchaseService.productId,
+        }),
+        200,
+      );
+    });
+    expect(await service.verify({}, client: client), isTrue);
+    service.dispose();
+  });
+  test(
+    'account entitlement unlocks a device without a local purchase',
+    () async {
+      final store = _Store();
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => true,
+      );
+      await service.initialize();
+      expect(await service.hasEntitlement(), isTrue);
+      await service.clearCachedEntitlement();
+      expect(await service.hasEntitlement(), isFalse);
+      service.dispose();
+      await store.events.close();
     },
   );
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../purchases/premium_purchase_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -77,6 +79,11 @@ class AuthRepository {
     final identityUser = authenticated
         ? await _syncProfileFromIdentity()
         : null;
+    if (authenticated && Config.enablePremiumFeatures) {
+      // A purchase made on another device of this account unlocks this one;
+      // the home screen listens and updates when the API answers.
+      unawaited(PremiumPurchaseService.instance.refreshEntitlement());
+    }
     final modeName = preferences.getString(_modeKey);
     WatchMode? watchMode;
     for (final mode in WatchMode.values) {
@@ -171,7 +178,11 @@ class AuthRepository {
   Future<void> signOut() async {
     final preferences = await SharedPreferences.getInstance();
     final guest = preferences.getBool(_guestKey) ?? false;
-    if (!guest) await _auth.signOut();
+    if (!guest) {
+      await _auth.signOut();
+      // Account Premium belongs to the account; a guest's own purchase stays.
+      await PremiumPurchaseService.instance.clearCachedEntitlement();
+    }
     await AudioPairingRepository().clear();
     const storage = FlutterSecureStorage();
     await storage.delete(key: CameraPairingRepository.storageKey);

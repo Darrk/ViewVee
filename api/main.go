@@ -26,14 +26,18 @@ const supportEmailAddress = "support@specterint.com"
 
 type config struct {
 	turn         turnConfig
-	addr         string
-	staticDir    string
-	smtpHost     string
-	smtpPort     int
-	smtpUsername string
-	smtpPassword string
-	smtpFrom     string
-	smtpFromName string
+	identity     turnVerifier
+	entitlements *entitlementStore
+	// requirePremium gates TURN credentials on a server-verified purchase.
+	requirePremium bool
+	addr           string
+	staticDir      string
+	smtpHost       string
+	smtpPort       int
+	smtpUsername   string
+	smtpPassword   string
+	smtpFrom       string
+	smtpFromName   string
 }
 
 type deletionRequest struct {
@@ -71,7 +75,21 @@ func main() {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
-	turn, err := newTURNService(context.Background(), cfg.turn)
+	cfg.identity, err = newIdentityVerifier(context.Background(), cfg.turn.issuer, cfg.turn.audience)
+	if err != nil {
+		if cfg.turn.secret != "" {
+			slog.Error("invalid TURN authentication configuration", "error", err)
+			os.Exit(1)
+		}
+		// Purchases and TURN answer 503 until IdentityServer is reachable at startup.
+		slog.Warn("identity verification unavailable", "error", err)
+	}
+	cfg.entitlements, err = openEntitlementStore(env("ENTITLEMENT_STORE_FILE", "/data/entitlements.json"))
+	if err != nil {
+		slog.Error("cannot open entitlement store", "error", err)
+		os.Exit(1)
+	}
+	turn, err := newTURNService(context.Background(), cfg.turn, cfg.identity)
 	if err != nil {
 		slog.Error("invalid TURN authentication configuration", "error", err)
 		os.Exit(1)
@@ -102,15 +120,16 @@ func loadConfig() (config, error) {
 		return config{}, errors.New("SMTP_PORT must be a valid TCP port")
 	}
 	cfg := config{
-		turn:         turn,
-		addr:         env("HTTP_ADDR", ":8080"),
-		staticDir:    env("STATIC_DIR", "web"),
-		smtpHost:     env("SMTP_HOST", "email-smtp.eu-central-1.amazonaws.com"),
-		smtpPort:     port,
-		smtpUsername: os.Getenv("SMTP_USERNAME"),
-		smtpPassword: os.Getenv("SMTP_PASSWORD"),
-		smtpFrom:     env("SMTP_FROM", "info@specterint.com"),
-		smtpFromName: env("SMTP_FROM_NAME", "ViewVee Support"),
+		turn:           turn,
+		requirePremium: env("TURN_REQUIRE_PREMIUM", "true") == "true",
+		addr:           env("HTTP_ADDR", ":8080"),
+		staticDir:      env("STATIC_DIR", "web"),
+		smtpHost:       env("SMTP_HOST", "email-smtp.eu-central-1.amazonaws.com"),
+		smtpPort:       port,
+		smtpUsername:   os.Getenv("SMTP_USERNAME"),
+		smtpPassword:   os.Getenv("SMTP_PASSWORD"),
+		smtpFrom:       env("SMTP_FROM", "info@specterint.com"),
+		smtpFromName:   env("SMTP_FROM_NAME", "ViewVee Support"),
 	}
 	return cfg, nil
 }
@@ -126,6 +145,10 @@ func newHandler(cfg config, sender mailSender, turn ...*turnService) http.Handle
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /api/account", handleAccountDeletion)
 	purchases := newPurchaseVerifier()
+	purchases.identify, purchases.scope = cfg.identity, cfg.turn.scope
+	if cfg.entitlements != nil {
+		purchases.store = cfg.entitlements
+	}
 	purchaseLimit := &rateLimiter{limit: 60, requests: make(map[string][]time.Time), now: time.Now}
 	mux.HandleFunc("POST /api/purchases/verify", func(w http.ResponseWriter, r *http.Request) {
 		if !purchaseLimit.Allow("purchase:" + clientIP(r)) {
@@ -134,9 +157,19 @@ func newHandler(cfg config, sender mailSender, turn ...*turnService) http.Handle
 		}
 		purchases.handle(w, r)
 	})
+	mux.HandleFunc("GET /api/purchases/entitlement", func(w http.ResponseWriter, r *http.Request) {
+		if !purchaseLimit.Allow("purchase:" + clientIP(r)) {
+			writeJSONError(w, 429, "Too many verification requests.")
+			return
+		}
+		purchases.handleEntitlement(w, r)
+	})
 	var credentials *turnService
 	if len(turn) > 0 {
 		credentials = turn[0]
+	}
+	if credentials != nil && cfg.requirePremium {
+		credentials.premium = purchases.premium
 	}
 	mux.HandleFunc("GET /api/turn/credentials", credentials.handleCredentials)
 	mux.HandleFunc("OPTIONS /api/turn/credentials", credentials.handleOptions)

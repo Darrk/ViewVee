@@ -50,37 +50,60 @@ type purchaseVerifier struct {
 	product, bundle, environment, issuer, keyID, keyFile, googleCredentials string
 	roots                                                                   *x509.CertPool
 	client                                                                  *http.Client
+	// identify authenticates the buyer; purchases are bound to their subject.
+	identify turnVerifier
+	scope    string
+	store    *entitlementStore
+	now      func() time.Time
 }
+
+// Stored purchases are re-checked with the store after this long, so refunds
+// and revocations take effect without the app's involvement.
+const entitlementRecheck = 24 * time.Hour
 
 func newPurchaseVerifier() *purchaseVerifier {
 	roots := x509.NewCertPool()
 	roots.AppendCertsFromPEM(appleRootPEM)
 	return &purchaseVerifier{
-		product:     env("PREMIUM_PRODUCT_ID", "viewvee.premium.lifetime"),
+		product:     env("PREMIUM_PRODUCT_ID", "premium"),
 		bundle:      env("PURCHASE_BUNDLE_ID", "com.specterint.viewvee"),
 		environment: env("APPLE_STORE_ENVIRONMENT", "Both"),
 		issuer:      os.Getenv("APPLE_STORE_ISSUER_ID"), keyID: os.Getenv("APPLE_STORE_KEY_ID"),
 		keyFile: os.Getenv("APPLE_STORE_PRIVATE_KEY_FILE"), googleCredentials: os.Getenv("GOOGLE_PLAY_CREDENTIALS_FILE"),
+		store: &entitlementStore{records: map[string]entitlementRecord{}}, now: time.Now,
 		roots: roots, client: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
 }
 func (v *purchaseVerifier) handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	// Guests may buy (App Store 5.1.1(v)); their purchase stays on the device
+	// until they sign in. A presented token must still be valid.
+	subject := ""
+	if r.Header.Get("Authorization") != "" {
+		if subject = bearerSubject(w, r, v.identify, v.scope); subject == "" {
+			return
+		}
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<10)
 	var proof purchaseProof
 	if json.NewDecoder(r.Body).Decode(&proof) != nil || proof.ProductID != v.product || proof.VerificationData == "" {
 		writeJSONError(w, 400, "Invalid purchase proof.")
 		return
 	}
-	var active bool
-	var err error
-	switch proof.Platform {
-	case "apple":
-		active, err = v.verifyApple(r.Context(), proof)
-	case "google":
-		active, err = v.verifyGoogle(r.Context(), proof)
-	default:
-		err = errInvalidPurchase
+	active, err := v.verifyProof(r.Context(), proof)
+	if err == nil {
+		if subject == "" {
+			// A receipt an account already owns cannot unlock guest devices.
+			if v.store.owned(proof) {
+				err = errPurchaseOwnedElsewhere
+			}
+		} else {
+			err = v.store.claim(subject, proof, active, v.now())
+		}
+		if errors.Is(err, errPurchaseOwnedElsewhere) {
+			writeJSONError(w, 409, "Purchase belongs to another account.")
+			return
+		}
 	}
 	if errors.Is(err, errInvalidPurchase) {
 		writeJSONError(w, 422, "Purchase could not be verified.")
@@ -92,6 +115,45 @@ func (v *purchaseVerifier) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]any{"productId": v.product, "active": active})
 }
+func (v *purchaseVerifier) verifyProof(ctx context.Context, proof purchaseProof) (bool, error) {
+	switch proof.Platform {
+	case "apple":
+		return v.verifyApple(ctx, proof)
+	case "google":
+		return v.verifyGoogle(ctx, proof)
+	}
+	return false, errInvalidPurchase
+}
+
+// premium reports whether subject owns an active purchase. Records older than
+// entitlementRecheck are re-verified; a store outage keeps the last result.
+func (v *purchaseVerifier) premium(ctx context.Context, subject string) bool {
+	owned := false
+	for key, record := range v.store.forSubject(subject) {
+		active := record.Active
+		if v.now().Sub(record.VerifiedAt) > entitlementRecheck {
+			current, err := v.verifyProof(ctx, record.Proof)
+			if err == nil || errors.Is(err, errInvalidPurchase) {
+				active = err == nil && current
+				_ = v.store.update(key, active, v.now())
+			}
+		}
+		owned = owned || active
+	}
+	return owned
+}
+
+// handleEntitlement lets a signed-in device learn about a purchase made on
+// another device without asking the store to restore it.
+func (v *purchaseVerifier) handleEntitlement(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	subject := bearerSubject(w, r, v.identify, v.scope)
+	if subject == "" {
+		return
+	}
+	writeJSON(w, 200, map[string]any{"productId": v.product, "active": v.premium(r.Context(), subject)})
+}
+
 func (v *purchaseVerifier) decodeApple(raw string) (appleTransaction, error) {
 	var transaction appleTransaction
 	parts := strings.Split(raw, ".")
