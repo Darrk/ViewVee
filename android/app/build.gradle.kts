@@ -60,6 +60,10 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // google_mobile_ads pulls in WorkManager 2.7 / Room 2.2.5, whose reflective
+    // WorkDatabase creation breaks under R8 and crashes at startup. Force a
+    // modern WorkManager (Room 2.6+) with correct consumer rules.
+    implementation("androidx.work:work-runtime:2.10.5")
 }
 
 kotlin {
