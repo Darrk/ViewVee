@@ -43,10 +43,23 @@ class PremiumPurchaseService extends ChangeNotifier {
   Future<void> get eventsSettled => _events;
 
   static final instance = PremiumPurchaseService();
-  static const productId = String.fromEnvironment(
-    'VIEWVEE_PREMIUM_PRODUCT_ID',
-    defaultValue: 'premium',
-  );
+  static String get platform =>
+      defaultTargetPlatform == TargetPlatform.iOS ? 'apple' : 'google';
+
+  static String get productId {
+    const override = String.fromEnvironment('VIEWVEE_PREMIUM_PRODUCT_ID');
+    if (override.isNotEmpty) return override;
+    return platform == 'apple'
+        ? const String.fromEnvironment(
+            'VIEWVEE_APPLE_PREMIUM_PRODUCT_ID',
+            defaultValue: 'viewvee_premium',
+          )
+        : const String.fromEnvironment(
+            'VIEWVEE_GOOGLE_PREMIUM_PRODUCT_ID',
+            defaultValue: 'premium',
+          );
+  }
+
   static const _proofKey = 'purchase.verifiedPremium.v1';
   static const entitlementKey = 'subscription.premiumUnlocked';
   static const _storage = FlutterSecureStorage();
@@ -162,8 +175,8 @@ class PremiumPurchaseService extends ChangeNotifier {
     } catch (_) {
       return;
     }
-    if (active == null) return;
-    if (!active) {
+    // Guests have no account entitlement; recheck their saved store proof too.
+    if (active != true) {
       // A purchase verified before accounts were bound is claimed now.
       try {
         final saved = await _storage.read(key: _proofKey);
@@ -179,6 +192,7 @@ class PremiumPurchaseService extends ChangeNotifier {
         return;
       }
     }
+    if (active == null) return;
     if (active) {
       if (await _storage.read(key: _proofKey) == null) {
         await _storage.write(
@@ -253,7 +267,7 @@ class PremiumPurchaseService extends ChangeNotifier {
             'VIEWVEE_PURCHASE_ENTITLEMENT_URL',
             defaultValue: 'https://viewvee.com/api/purchases/entitlement',
           ),
-        ),
+        ).replace(queryParameters: {'platform': platform}),
         transport,
       );
       if (response.statusCode != 200) {
@@ -317,15 +331,14 @@ class PremiumPurchaseService extends ChangeNotifier {
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         final proof = <String, dynamic>{
-          'platform': defaultTargetPlatform == TargetPlatform.iOS
-              ? 'apple'
-              : 'google',
+          'platform': platform,
           'productId': productId,
           'transactionId': purchase.purchaseID,
           'verificationData': purchase.verificationData.serverVerificationData,
         };
         try {
           if (!await (verifyPurchase?.call(proof) ?? verify(proof))) {
+            await clearCachedEntitlement();
             _fail();
             continue;
           }

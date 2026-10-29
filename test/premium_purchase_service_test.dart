@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -13,6 +14,7 @@ class _Store extends Fake implements InAppPurchase {
   final events = StreamController<List<PurchaseDetails>>.broadcast(sync: true);
   final completed = <PurchaseDetails>[];
   int restored = 0;
+  Set<String>? queried;
   @override
   Stream<List<PurchaseDetails>> get purchaseStream => events.stream;
   @override
@@ -20,19 +22,23 @@ class _Store extends Fake implements InAppPurchase {
   @override
   Future<ProductDetailsResponse> queryProductDetails(
     Set<String> identifiers,
-  ) async => ProductDetailsResponse(
-    productDetails: [
-      ProductDetails(
-        id: PremiumPurchaseService.productId,
-        title: 'Premium',
-        description: 'Lifetime',
-        price: r'$12.34',
-        rawPrice: 12.34,
-        currencyCode: 'USD',
-      ),
-    ],
-    notFoundIDs: [],
-  );
+  ) async {
+    queried = identifiers;
+    return ProductDetailsResponse(
+      productDetails: [
+        ProductDetails(
+          id: PremiumPurchaseService.productId,
+          title: 'Premium',
+          description: 'Lifetime',
+          price: r'$12.34',
+          rawPrice: 12.34,
+          currencyCode: 'USD',
+        ),
+      ],
+      notFoundIDs: [],
+    );
+  }
+
   @override
   Future<void> completePurchase(PurchaseDetails purchase) async {
     completed.add(purchase);
@@ -61,6 +67,90 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStorage.setMockInitialValues({});
+  });
+  tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
+  });
+  for (final target in [TargetPlatform.iOS, TargetPlatform.android]) {
+    test('$target queries and verifies its own store product', () async {
+      debugDefaultTargetPlatformOverride = target;
+      final expectedId = target == TargetPlatform.iOS
+          ? 'viewvee_premium'
+          : 'premium';
+      final expectedPlatform = target == TargetPlatform.iOS
+          ? 'apple'
+          : 'google';
+      final store = _Store();
+      Map<String, dynamic>? submitted;
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => null,
+        verifyPurchase: (proof) async {
+          submitted = proof;
+          return true;
+        },
+      );
+      await service.initialize();
+      expect(store.queried, {expectedId});
+      store.events.add([_purchase()]);
+      await service.eventsSettled;
+      expect(submitted?['platform'], expectedPlatform);
+      expect(submitted?['productId'], expectedId);
+      expect(service.entitled, isTrue);
+      expect(store.completed, hasLength(1));
+      service.dispose();
+      await store.events.close();
+    });
+  }
+  for (final offline in [false, true]) {
+    test('guest saved proof recheck: offline=$offline', () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'purchase.verifiedPremium.v1': jsonEncode({
+          'platform': 'google',
+          'productId': 'premium',
+          'verificationData': 'saved-token',
+        }),
+      });
+      final store = _Store();
+      var checks = 0;
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => null,
+        verifyPurchase: (proof) async {
+          checks++;
+          expect(proof['verificationData'], 'saved-token');
+          if (offline) throw StateError('API unavailable');
+          return false;
+        },
+      );
+      await service.initialize();
+      expect(checks, 1);
+      expect(await service.hasEntitlement(), offline);
+      expect(service.entitled, offline);
+      service.dispose();
+      await store.events.close();
+    });
+  }
+  test('negative restored purchase clears an existing unlock', () async {
+    final store = _Store();
+    var valid = true;
+    final service = PremiumPurchaseService(
+      store: store,
+      fetchEntitlement: () async => null,
+      verifyPurchase: (_) async => valid,
+    );
+    await service.initialize();
+    store.events.add([_purchase()]);
+    await service.eventsSettled;
+    expect(await service.hasEntitlement(), isTrue);
+    valid = false;
+    store.events.add([_purchase()..status = PurchaseStatus.restored]);
+    await service.eventsSettled;
+    expect(await service.hasEntitlement(), isFalse);
+    expect(service.entitled, isFalse);
+    expect(store.completed, hasLength(1));
+    service.dispose();
+    await store.events.close();
   });
   test(
     'delivery and store completion wait for successful server verification',

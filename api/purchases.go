@@ -47,9 +47,9 @@ type appleTransaction struct {
 	SignedDate     int64  `json:"signedDate"`
 }
 type purchaseVerifier struct {
-	product, bundle, environment, issuer, keyID, keyFile, googleCredentials string
-	roots                                                                   *x509.CertPool
-	client                                                                  *http.Client
+	appleProduct, googleProduct, bundle, environment, issuer, keyID, keyFile, googleCredentials string
+	roots                                                                                       *x509.CertPool
+	client                                                                                      *http.Client
 	// identify authenticates the buyer; purchases are bound to their subject.
 	identify turnVerifier
 	scope    string
@@ -65,11 +65,12 @@ func newPurchaseVerifier() *purchaseVerifier {
 	roots := x509.NewCertPool()
 	roots.AppendCertsFromPEM(appleRootPEM)
 	return &purchaseVerifier{
-		product:     env("PREMIUM_PRODUCT_ID", "premium"),
-		bundle:      env("PURCHASE_BUNDLE_ID", "com.specterint.viewvee"),
-		environment: env("APPLE_STORE_ENVIRONMENT", "Both"),
-		issuer:      os.Getenv("APPLE_STORE_ISSUER_ID"), keyID: os.Getenv("APPLE_STORE_KEY_ID"),
-		keyFile: os.Getenv("APPLE_STORE_PRIVATE_KEY_FILE"), googleCredentials: os.Getenv("GOOGLE_PLAY_CREDENTIALS_FILE"),
+		appleProduct:  env("APPLE_PREMIUM_PRODUCT_ID", "viewvee_premium"),
+		googleProduct: env("GOOGLE_PREMIUM_PRODUCT_ID", env("PREMIUM_PRODUCT_ID", "premium")),
+		bundle:        env("PURCHASE_BUNDLE_ID", "com.specterint.viewvee"),
+		environment:   env("APPLE_STORE_ENVIRONMENT", "Both"),
+		issuer:        env("APPLE_STORE_ISSUER_ID", "49f17177-b00f-455e-88ab-d46ba7a9500f"), keyID: env("APPLE_STORE_KEY_ID", "GW82BWB989"),
+		keyFile: env("APPLE_STORE_PRIVATE_KEY_FILE", "/secrets/SubscriptionKey_GW82BWB989.p8"), googleCredentials: env("GOOGLE_PLAY_CREDENTIALS_FILE", "/secrets/viewvee-a3881-868a3ffb2c44.json"),
 		store: &entitlementStore{records: map[string]entitlementRecord{}}, now: time.Now,
 		roots: roots, client: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
 	}
@@ -86,7 +87,7 @@ func (v *purchaseVerifier) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 32<<10)
 	var proof purchaseProof
-	if json.NewDecoder(r.Body).Decode(&proof) != nil || proof.ProductID != v.product || proof.VerificationData == "" {
+	if json.NewDecoder(r.Body).Decode(&proof) != nil || v.productID(proof.Platform) == "" || proof.ProductID != v.productID(proof.Platform) || proof.VerificationData == "" {
 		writeJSONError(w, 400, "Invalid purchase proof.")
 		return
 	}
@@ -113,9 +114,22 @@ func (v *purchaseVerifier) handle(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, 503, "Purchase verification is temporarily unavailable.")
 		return
 	}
-	writeJSON(w, 200, map[string]any{"productId": v.product, "active": active})
+	writeJSON(w, 200, map[string]any{"productId": proof.ProductID, "active": active})
 }
+func (v *purchaseVerifier) productID(platform string) string {
+	switch platform {
+	case "apple":
+		return v.appleProduct
+	case "google":
+		return v.googleProduct
+	}
+	return ""
+}
+
 func (v *purchaseVerifier) verifyProof(ctx context.Context, proof purchaseProof) (bool, error) {
+	if v.productID(proof.Platform) == "" || proof.ProductID != v.productID(proof.Platform) {
+		return false, errInvalidPurchase
+	}
 	switch proof.Platform {
 	case "apple":
 		return v.verifyApple(ctx, proof)
@@ -151,7 +165,18 @@ func (v *purchaseVerifier) handleEntitlement(w http.ResponseWriter, r *http.Requ
 	if subject == "" {
 		return
 	}
-	writeJSON(w, 200, map[string]any{"productId": v.product, "active": v.premium(r.Context(), subject)})
+	// Older Android clients omitted platform and expect "premium".
+	platform := r.URL.Query().Get("platform")
+	if platform == "" {
+		platform = "google"
+	}
+	product := v.productID(platform)
+	if product == "" {
+		writeJSONError(w, 400, "Invalid purchase platform.")
+		return
+	}
+	// Account Premium applies on both platforms, regardless of purchase origin.
+	writeJSON(w, 200, map[string]any{"productId": product, "active": v.premium(r.Context(), subject)})
 }
 
 func (v *purchaseVerifier) decodeApple(raw string) (appleTransaction, error) {
@@ -209,7 +234,7 @@ func (v *purchaseVerifier) decodeApple(raw string) (appleTransaction, error) {
 	if !ok || key.Curve.Params().BitSize != 256 || err != nil || len(signature) != 64 || !ecdsa.Verify(key, digest[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:])) {
 		return transaction, errInvalidPurchase
 	}
-	if transaction.BundleID != v.bundle || transaction.ProductID != v.product || transaction.Type != "Non-Consumable" || transaction.TransactionID == "" {
+	if transaction.BundleID != v.bundle || transaction.ProductID != v.appleProduct || transaction.Type != "Non-Consumable" || transaction.TransactionID == "" {
 		return transaction, errInvalidPurchase
 	}
 	return transaction, nil
@@ -310,7 +335,7 @@ func (v *purchaseVerifier) verifyGoogle(ctx context.Context, proof purchaseProof
 	if err != nil {
 		return false, err
 	}
-	endpoint := "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/" + url.PathEscape(v.bundle) + "/purchases/products/" + url.PathEscape(v.product) + "/tokens/" + url.PathEscape(proof.VerificationData)
+	endpoint := "https://androidpublisher.googleapis.com/androidpublisher/v3/applications/" + url.PathEscape(v.bundle) + "/purchases/products/" + url.PathEscape(v.googleProduct) + "/tokens/" + url.PathEscape(proof.VerificationData)
 	request, _ := http.NewRequestWithContext(ctx, "GET", endpoint, nil)
 	request.Header.Set("Authorization", "Bearer "+token.AccessToken)
 	response, err := v.client.Do(request)

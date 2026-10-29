@@ -33,13 +33,14 @@ TURN_URLS=turn:turn.viewvee.com:3478?transport=udp,turn:turn.viewvee.com:3478?tr
 TURN_REQUIRE_PREMIUM=true
 
 # Purchases
-PREMIUM_PRODUCT_ID=premium
+APPLE_PREMIUM_PRODUCT_ID=viewvee_premium
+GOOGLE_PREMIUM_PRODUCT_ID=premium
 PURCHASE_BUNDLE_ID=com.specterint.viewvee
-APPLE_STORE_ISSUER_ID=<App Store Connect issuer UUID>
-APPLE_STORE_KEY_ID=<In-App Purchase key ID>
-APPLE_STORE_PRIVATE_KEY_FILE=/run/secrets/app-store-api.p8
+APPLE_STORE_ISSUER_ID=49f17177-b00f-455e-88ab-d46ba7a9500f
+APPLE_STORE_KEY_ID=GW82BWB989
+APPLE_STORE_PRIVATE_KEY_FILE=/secrets/SubscriptionKey_GW82BWB989.p8
 APPLE_STORE_ENVIRONMENT=Both
-GOOGLE_PLAY_CREDENTIALS_FILE=/run/secrets/play-publisher.json
+GOOGLE_PLAY_CREDENTIALS_FILE=/secrets/viewvee-a3881-868a3ffb2c44.json
 ENTITLEMENT_STORE_FILE=/data/entitlements.json
 
 # Email
@@ -77,7 +78,7 @@ SMTP_PASSWORD=...
 
 ## 4. App Store Connect
 
-- [ ] Non-consumable `premium`, cleared for sale, with review
+- [ ] Non-consumable `viewvee_premium` (Apple app ID `6801280302`), cleared for sale, with review
       screenshot.
 - [ ] In-App Purchase API key (Users and Access → Integrations) for the API.
 - [ ] Sandbox tester; complete a sandbox purchase on a TestFlight build.

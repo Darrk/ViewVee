@@ -7,22 +7,27 @@ been changed by this implementation.
 
 ## Lifetime Premium
 
-Create a **non-consumable** product with ID `premium` in App Store
-Connect and Google Play. Set price/availability in the store. The app displays
-`ProductDetails.price`; it does not manufacture a price or unlock on payment
-callbacks alone. To use another ID, set `VIEWVEE_PREMIUM_PRODUCT_ID` in Flutter
-and matching `PREMIUM_PRODUCT_ID` on the Go API.
+Create non-consumable products with ID `viewvee_premium` in App Store Connect
+and `premium` in Google Play. The Apple app ID is `6801280302`; the bundle ID
+is `com.specterint.viewvee`. The numeric app ID is not the App Store Server API
+issuer ID or key ID. The app displays the store-provided price.
+
+The app defaults to these product IDs. To override them, use Flutter build defines
+`VIEWVEE_APPLE_PREMIUM_PRODUCT_ID` and `VIEWVEE_GOOGLE_PREMIUM_PRODUCT_ID` and
+set the corresponding API environment variables. The legacy Flutter define
+`VIEWVEE_PREMIUM_PRODUCT_ID` overrides both platform defaults.
 
 Configure the Go API with:
 
 ```text
-PREMIUM_PRODUCT_ID=premium
+APPLE_PREMIUM_PRODUCT_ID=viewvee_premium
+GOOGLE_PREMIUM_PRODUCT_ID=premium
 PURCHASE_BUNDLE_ID=com.specterint.viewvee
-APPLE_STORE_ISSUER_ID=<App Store Connect issuer UUID>
-APPLE_STORE_KEY_ID=<In-App Purchase API key ID>
-APPLE_STORE_PRIVATE_KEY_FILE=/run/secrets/app-store-api.p8
+APPLE_STORE_ISSUER_ID=49f17177-b00f-455e-88ab-d46ba7a9500f
+APPLE_STORE_KEY_ID=GW82BWB989
+APPLE_STORE_PRIVATE_KEY_FILE=/secrets/SubscriptionKey_GW82BWB989.p8
 APPLE_STORE_ENVIRONMENT=Both
-GOOGLE_PLAY_CREDENTIALS_FILE=/run/secrets/play-publisher.json
+GOOGLE_PLAY_CREDENTIALS_FILE=/secrets/viewvee-a3881-868a3ffb2c44.json
 ```
 
 Mount the keys as server secrets, never app assets or source files. The Play
@@ -49,7 +54,7 @@ The app listens from startup, serializes transaction handling, delivers verified
 entitlements before acknowledging the purchase, and leaves failed verification
 unfinished for retry. Restore Purchases is available on the Premium screen.
 Previously verified purchases remain usable when the verification service is
-offline. Reopening the app checks for refunds/revocations. The current entitlement
+offline. Reopening the app rechecks saved guest proofs and account entitlements for refunds/revocations. The current entitlement
 belongs to the store account/device and is restored on other devices with that
 store account; it is not an account-to-account entitlement transfer service.
 

@@ -134,21 +134,20 @@ Formuláře odesílají e-mail přes AWS SES SMTP na pevnou adresu
 `email-smtp.eu-central-1.amazonaws.com:587` s TLS a odesílatel
 `ViewVee Support <info@specterint.com>`. Nasazení musí dodat přihlašovací údaje
 `SMTP_USERNAME` a `SMTP_PASSWORD`. Volitelně lze změnit `SMTP_HOST`,
-`SMTP_PORT`, `SMTP_FROM` a `SMTP_FROM_NAME`. Obraz sestavíte a odešlete do AWS
-ECR pomocí:
+`SMTP_PORT`, `SMTP_FROM` a `SMTP_FROM_NAME`. Obrazy sestavíte a odešlete do GitHub
+Container Registry pomocí:
 
 ```sh
 ./build.sh
 ```
 
-Skript ve výchozím nastavení publikuje víceplatformový obraz
-`139685415139.dkr.ecr.eu-central-1.amazonaws.com/specterint/viewvee-web:latest`.
-Bez argumentů nyní publikuje také `specterint/viewvee-signal` a
-`specterint/viewvee-turn`. Pro jednotlivé služby použijte `./build.sh web`,
-`./build.sh signaling` nebo `./build.sh turn`. Registry, region, repozitáře,
-tag a platformy lze změnit proměnnými `AWS_ACCOUNT_ID`, `AWS_REGION`,
-`ECR_REPOSITORY` (web), `SIGNAL_ECR_REPOSITORY`, `TURN_ECR_REPOSITORY`,
-`IMAGE_TAG` a `PLATFORMS`.
+Skript ve výchozím nastavení publikuje víceplatformové obrazy do GitHub
+Container Registry: `ghcr.io/specterinteractive/viewvee-web`,
+`viewvee-signal` a `viewvee-turn`, vždy s tagy `:latest` a `:sha-<commit>`.
+Předem se přihlaste `docker login ghcr.io`, nebo nastavte `GHCR_USER` a
+`GHCR_TOKEN` (token s právem `write:packages`). Pro jednotlivé služby použijte
+`./build.sh web`, `./build.sh signaling` nebo `./build.sh turn`. Registry, tag
+a platformy lze změnit proměnnými `REGISTRY`, `IMAGE_TAG` a `PLATFORMS`.
 
 ## Sdílená signaling a TURN infrastruktura
 

@@ -5,10 +5,10 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
-readonly AWS_REGION="${AWS_REGION:-eu-central-1}"
-readonly AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-139685415139}"
-readonly ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-readonly ECR_REPOSITORY="${ECR_REPOSITORY:-specterint/viewvee-web}"
+# Images go to GitHub Container Registry. Log in beforehand with
+# `docker login ghcr.io`, or set GHCR_USER and GHCR_TOKEN (write:packages).
+readonly REGISTRY="${REGISTRY:-ghcr.io/specterinteractive}"
+readonly REVISION="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
 readonly IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 # With no arguments, publish all infrastructure maintained by ViewVee.
@@ -23,26 +23,29 @@ for service in "$@"; do
   esac
 done
 
-aws ecr get-login-password --region "${AWS_REGION}" \
-  | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
+if [[ -n "${GHCR_TOKEN:-}" ]]; then
+  printf '%s' "${GHCR_TOKEN}" \
+    | docker login ghcr.io --username "${GHCR_USER:?GHCR_USER is required}" --password-stdin
+fi
 
 build_and_push() {
-  local repository="$1"
+  local name="$1"
   local context="$2"
-  local image="${ECR_REGISTRY}/${repository}"
+  local image="${REGISTRY}/${name}"
+  local cache=(--cache-from "type=registry,ref=${image}:cache" --cache-to "type=registry,ref=${image}:cache,mode=max")
 
-  aws ecr describe-repositories \
-    --region "${AWS_REGION}" \
-    --repository-names "${repository}" >/dev/null 2>&1 \
-    || aws ecr create-repository \
-      --region "${AWS_REGION}" \
-      --repository-name "${repository}" >/dev/null
+  # A FROM-only image has no layers to cache; the missing :cache tag only adds noise.
+  if [[ $(grep -cvE '^\s*(#|$)' "${context}/Dockerfile") == 1 ]]; then
+    cache=()
+  fi
 
   docker buildx build \
     --platform "${PLATFORMS:-linux/amd64,linux/arm64}" \
-    --cache-from "type=registry,ref=${image}:cache" \
-    --cache-to "type=registry,ref=${image}:cache,mode=max" \
+    "${cache[@]}" \
+    --label "org.opencontainers.image.source=https://github.com/Darrk/ViewVee" \
+    --label "org.opencontainers.image.revision=${REVISION}" \
     --tag "${image}:${IMAGE_TAG}" \
+    --tag "${image}:sha-${REVISION}" \
     --file "${context}/Dockerfile" \
     --push \
     "${context}"
@@ -52,8 +55,8 @@ build_and_push() {
 
 for service in "$@"; do
   case "${service}" in
-    web) build_and_push "${ECR_REPOSITORY}" api ;;
-    signaling) build_and_push "${SIGNAL_ECR_REPOSITORY:-specterint/viewvee-signal}" api/signaling-server ;;
-    turn) build_and_push "${TURN_ECR_REPOSITORY:-specterint/viewvee-turn}" api/turn-server ;;
+    web) build_and_push viewvee-web api ;;
+    signaling) build_and_push viewvee-signal api/signaling-server ;;
+    turn) build_and_push viewvee-turn api/turn-server ;;
   esac
 done

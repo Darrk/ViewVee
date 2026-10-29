@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"io"
 	"math/big"
 	"net/http"
@@ -85,7 +86,7 @@ func appleFixture(t *testing.T) (*purchaseVerifier, func(appleTransaction) strin
 }
 func TestAppleVerification(t *testing.T) {
 	v, sign := appleFixture(t)
-	transaction := appleTransaction{TransactionID: "42", ProductID: v.product, BundleID: v.bundle, Environment: "Production", Type: "Non-Consumable", SignedDate: time.Now().UnixMilli()}
+	transaction := appleTransaction{TransactionID: "42", ProductID: v.appleProduct, BundleID: v.bundle, Environment: "Production", Type: "Non-Consumable", SignedDate: time.Now().UnixMilli()}
 	current := transaction
 	v.client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if r.URL.String() != "https://api.storekit.apple.com/inApps/v1/transactions/42" || !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
@@ -94,7 +95,7 @@ func TestAppleVerification(t *testing.T) {
 		data, _ := json.Marshal(map[string]string{"signedTransactionInfo": sign(current)})
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(data))}, nil
 	})}
-	proof := purchaseProof{Platform: "apple", ProductID: v.product, TransactionID: "42", VerificationData: sign(transaction)}
+	proof := purchaseProof{Platform: "apple", ProductID: v.appleProduct, TransactionID: "42", VerificationData: sign(transaction)}
 	active, err := v.verifyApple(context.Background(), proof)
 	if err != nil || !active {
 		t.Fatalf("valid transaction rejected: %v", err)
@@ -115,7 +116,7 @@ func TestAppleVerification(t *testing.T) {
 	if _, err = v.verifyApple(context.Background(), proof); err == nil {
 		t.Fatal("wrong product accepted")
 	}
-	transaction.ProductID = v.product
+	transaction.ProductID = v.appleProduct
 	transaction.Environment = "Sandbox"
 	proof.VerificationData = sign(transaction)
 	v.environment = "Production"
@@ -137,6 +138,35 @@ func TestPurchaseEndpointRejectsMissingAndUntrustedProof(t *testing.T) {
 		}
 	}
 }
+func TestPurchaseProductIsSpecificToPlatform(t *testing.T) {
+	v := newPurchaseVerifier()
+	for _, tc := range []struct {
+		platform, product string
+		status            int
+	}{
+		{"apple", "viewvee_premium", 422},
+		{"apple", "premium", 400},
+		{"google", "viewvee_premium", 400},
+		{"unknown", "premium", 400},
+	} {
+		t.Run(tc.platform+"/"+tc.product, func(t *testing.T) {
+			body, _ := json.Marshal(purchaseProof{Platform: tc.platform, ProductID: tc.product, VerificationData: "invalid-proof"})
+			w := httptest.NewRecorder()
+			v.handle(w, httptest.NewRequest("POST", "/api/purchases/verify", bytes.NewReader(body)))
+			if w.Code != tc.status {
+				t.Fatalf("status=%d body=%s", w.Code, w.Body)
+			}
+		})
+	}
+	if v.googleProduct != "premium" {
+		t.Fatalf("wrong Google product %q", v.googleProduct)
+	}
+	// Persisted proofs must undergo the same product/platform validation on recheck.
+	if _, err := v.verifyProof(context.Background(), purchaseProof{Platform: "google", ProductID: "viewvee_premium"}); !errors.Is(err, errInvalidPurchase) {
+		t.Fatalf("cross-platform product accepted: %v", err)
+	}
+}
+
 func TestAccountDeletionRejectsUnauthenticatedOrUnconfirmedRequests(t *testing.T) {
 	for _, auth := range []string{"", "Bearer valid-token"} {
 		response := httptest.NewRecorder()
@@ -151,7 +181,7 @@ func TestAccountDeletionRejectsUnauthenticatedOrUnconfirmedRequests(t *testing.T
 
 func TestPurchaseIsBoundToFirstAccount(t *testing.T) {
 	v, sign := appleFixture(t)
-	transaction := appleTransaction{TransactionID: "77", ProductID: v.product, BundleID: v.bundle, Environment: "Production", Type: "Non-Consumable", SignedDate: time.Now().UnixMilli()}
+	transaction := appleTransaction{TransactionID: "77", ProductID: v.appleProduct, BundleID: v.bundle, Environment: "Production", Type: "Non-Consumable", SignedDate: time.Now().UnixMilli()}
 	v.client = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 		data, _ := json.Marshal(map[string]string{"signedTransactionInfo": sign(transaction)})
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(data))}, nil
@@ -161,7 +191,7 @@ func TestPurchaseIsBoundToFirstAccount(t *testing.T) {
 		return turnIdentity{subject: token, scopes: []string{"viewvee-api"}}, nil
 	}
 	v.store.path = filepath.Join(t.TempDir(), "entitlements.json")
-	body, _ := json.Marshal(purchaseProof{Platform: "apple", ProductID: v.product, TransactionID: "77", VerificationData: sign(transaction)})
+	body, _ := json.Marshal(purchaseProof{Platform: "apple", ProductID: v.appleProduct, TransactionID: "77", VerificationData: sign(transaction)})
 	call := func(method, path, subject string) *httptest.ResponseRecorder {
 		response := httptest.NewRecorder()
 		request := httptest.NewRequest(method, path, bytes.NewReader(body))
@@ -195,6 +225,24 @@ func TestPurchaseIsBoundToFirstAccount(t *testing.T) {
 	}
 	if w := call("GET", "/api/purchases/entitlement", "alice"); !strings.Contains(w.Body.String(), `"active":true`) {
 		t.Fatalf("owner entitlement missing: %s", w.Body)
+	}
+
+	for _, tc := range []struct{ query, product string }{
+		{"", "premium"},
+		{"?platform=apple", "viewvee_premium"},
+		{"?platform=google", "premium"},
+	} {
+		w := call("GET", "/api/purchases/entitlement"+tc.query, "alice")
+		var entitlement struct {
+			ProductID string `json:"productId"`
+			Active    bool   `json:"active"`
+		}
+		if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &entitlement) != nil || !entitlement.Active || entitlement.ProductID != tc.product {
+			t.Fatalf("cross-platform entitlement failed for %s: %d %s", tc.query, w.Code, w.Body)
+		}
+	}
+	if w := call("GET", "/api/purchases/entitlement?platform=unknown", "alice"); w.Code != 400 {
+		t.Fatalf("invalid platform status=%d", w.Code)
 	}
 	if w := call("GET", "/api/purchases/entitlement", "mallory"); !strings.Contains(w.Body.String(), `"active":false`) {
 		t.Fatalf("entitlement leaked: %s", w.Body)

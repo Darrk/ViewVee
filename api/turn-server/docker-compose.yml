@@ -1,6 +1,6 @@
 services:
   coturn:
-    image: coturn/coturn:4.12.0-r0-alpine
+    image: ${TURN_IMAGE:-coturn/coturn:4.12.0-r0-alpine}
     restart: unless-stopped
     network_mode: host
     command: ["-c", "/etc/coturn/turnserver.conf"]

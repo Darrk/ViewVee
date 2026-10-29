@@ -42,7 +42,8 @@ When using HAProxy TLS passthrough, keep the certificate loaded by Coturn. Its
 which can differ from the load balancer's address. Certificate renewal must
 preserve Coturn's read access and reload/restart Coturn.
 
-`../../build.sh turn` publishes the ViewVee TURN image to ECR. The Compose
+`../../build.sh turn` publishes the ViewVee TURN image to
+`ghcr.io/specterinteractive/viewvee-turn`. The Compose
 deployment defaults to the upstream coturn image; set `TURN_IMAGE` to the
 published image to deploy that build.
 
