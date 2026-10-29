@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/auth_repository.dart';
 import '../audio/audio_monitor_service.dart';
+import '../audio/premium_cleanup.dart';
 import '../audio/audio_pairing.dart';
 import '../audio/audio_pairing_repository.dart';
 import '../config.dart';
@@ -540,21 +541,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final premiumWasRemoved = _isPremium && !premium;
     final mustLeaveInternet =
         !premium && _connectionMode == AudioConnectionMode.internet;
-    if (premiumWasRemoved) {
-      await _audioMonitor.setTalkbackEnabled(false);
-      await _stopRecording(showMessage: false);
-      await _audioMonitor.setVideoQuality(isHd: false);
-    }
+    // Disable paid features before attempting operations that may fail when a
+    // camera or network connection has already gone away.
+    _audioMonitor.setPremiumEnabled(premium);
+    _cameraDirectory.setPremiumEnabled(premium);
     if (mustLeaveInternet) {
       _audioMonitor.onStateChanged = null;
       _audioMonitor.onRemoteHangup = null;
       _audioMonitor.onError = null;
-      await _cameraDirectory.stop();
-      await _audioMonitor.stop();
     }
+    await runPremiumCleanup([
+      if (premiumWasRemoved) ...[
+        () => _audioMonitor.setTalkbackEnabled(false),
+        () => _stopRecording(showMessage: false),
+        () => _audioMonitor.setVideoQuality(isHd: false),
+      ],
+      if (mustLeaveInternet) ...[
+        () => _cameraDirectory.stop(),
+        () => _audioMonitor.stop(),
+      ],
+    ]);
     if (!mounted) return;
-    _audioMonitor.setPremiumEnabled(premium);
-    _cameraDirectory.setPremiumEnabled(premium);
     setState(() {
       _isPremium = premium;
       if (!_isPremium) {

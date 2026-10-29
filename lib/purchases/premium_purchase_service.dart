@@ -25,6 +25,7 @@ class PremiumPurchaseService extends ChangeNotifier {
     this.verifyPurchase,
     this.fetchEntitlement,
     AccessTokenLoader? getAccessToken,
+    this.requestTimeout = const Duration(seconds: 15),
   }) : _storeOverride = store,
        _getAccessToken = getAccessToken;
   final InAppPurchase? _storeOverride;
@@ -33,6 +34,7 @@ class PremiumPurchaseService extends ChangeNotifier {
   /// Returns the account's Premium state, or null when no account is signed in.
   final Future<bool?> Function()? fetchEntitlement;
   final AccessTokenLoader? _getAccessToken;
+  final Duration requestTimeout;
 
   static const unavailableMessage =
       'Premium teď není k dispozici. Zkuste to prosím později.';
@@ -246,9 +248,10 @@ class PremiumPurchaseService extends ChangeNotifier {
           ..headers['Content-Type'] = 'application/json'
           ..body = body;
       }
-      final response = await http.Response.fromStream(
-        await transport.send(request),
-      ).timeout(const Duration(seconds: 15));
+      final response = await (() async {
+        final streamed = await transport.send(request);
+        return http.Response.fromStream(streamed);
+      })().timeout(requestTimeout);
       if (response.statusCode != 401 || token == null || attempt > 0) {
         return response;
       }

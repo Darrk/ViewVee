@@ -246,6 +246,18 @@ void main() {
       service.dispose();
     },
   );
+  test('verification times out while waiting for response headers', () async {
+    final service = PremiumPurchaseService(
+      requestTimeout: const Duration(milliseconds: 20),
+      getAccessToken: ({forceRefresh = false}) async => null,
+    );
+    final client = MockClient((_) => Completer<http.Response>().future);
+    await expectLater(
+      service.verify({}, client: client),
+      throwsA(isA<TimeoutException>()),
+    );
+    service.dispose();
+  });
   test('verification sends the account token and refreshes it once', () async {
     final refreshes = <bool>[];
     final service = PremiumPurchaseService(
