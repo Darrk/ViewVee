@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
 import '../theme/viewvee_theme.dart';
 import 'viewvee_logo.dart';
 
-enum ViewveeDrawerDestination {
+enum ViewVeeDrawerDestination {
   monitor,
   devices,
   recordings,
@@ -16,8 +17,8 @@ enum ViewveeDrawerDestination {
   about,
 }
 
-class ViewveeAppDrawer extends StatelessWidget {
-  const ViewveeAppDrawer({
+class ViewVeeAppDrawer extends StatelessWidget {
+  const ViewVeeAppDrawer({
     super.key,
     required this.watchMode,
     required this.activeDestination,
@@ -36,7 +37,7 @@ class ViewveeAppDrawer extends StatelessWidget {
   });
 
   final WatchMode? watchMode;
-  final ViewveeDrawerDestination activeDestination;
+  final ViewVeeDrawerDestination activeDestination;
   final bool isPremium;
   final VoidCallback onOpenMonitor;
   final VoidCallback onOpenDevices;
@@ -103,7 +104,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                     _DrawerCard(
                       icon: Icons.visibility_outlined,
                       title: 'SLEDOVÁNÍ',
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                       children: [
                         _DrawerItem(
                           key: const Key('drawerMonitor'),
@@ -112,7 +113,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                           subtitle: _watchModeLabel,
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.monitor,
+                              ViewVeeDrawerDestination.monitor,
                           onTap: () => closeAndRun(onOpenMonitor),
                         ),
                         _DrawerItem(
@@ -122,7 +123,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                           subtitle: 'Kamera a monitor',
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.devices,
+                              ViewVeeDrawerDestination.devices,
                           onTap: () => closeAndRun(onOpenDevices),
                         ),
                         _DrawerItem(
@@ -135,7 +136,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                           locked: !isPremium,
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.recordings,
+                              ViewVeeDrawerDestination.recordings,
                           onTap: () => closeAndRun(onOpenRecordings),
                         ),
                       ],
@@ -143,7 +144,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                     _DrawerCard(
                       icon: Icons.tune_rounded,
                       title: 'ÚČET A APLIKACE',
-                      color: ViewveeColors.blue,
+                      color: ViewVeeColors.blue,
                       children: [
                         _DrawerItem(
                           key: const Key('drawerProfile'),
@@ -151,26 +152,29 @@ class ViewveeAppDrawer extends StatelessWidget {
                           title: 'Profil',
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.account,
+                              ViewVeeDrawerDestination.account,
                           onTap: () => closeAndRun(onOpenAccount),
                         ),
-                        _DrawerItem(
-                          key: const Key('drawerSubscription'),
-                          icon: Icons.workspace_premium_outlined,
-                          title: 'Předplatné',
-                          subtitle: 'ViewVee Free',
-                          selected:
-                              activeDestination ==
-                              ViewveeDrawerDestination.subscription,
-                          onTap: () => closeAndRun(onOpenSubscription),
-                        ),
+                        if (Config.showPurchaseOptions)
+                          _DrawerItem(
+                            key: const Key('drawerSubscription'),
+                            icon: Icons.workspace_premium_outlined,
+                            title: 'Předplatné',
+                            subtitle: isPremium
+                                ? 'ViewVee Premium'
+                                : 'ViewVee Free',
+                            selected:
+                                activeDestination ==
+                                ViewVeeDrawerDestination.subscription,
+                            onTap: () => closeAndRun(onOpenSubscription),
+                          ),
                         _DrawerItem(
                           key: const Key('drawerPreferences'),
                           icon: Icons.palette_outlined,
                           title: 'Jazyk a vzhled',
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.preferences,
+                              ViewVeeDrawerDestination.preferences,
                           onTap: () => closeAndRun(onOpenPreferences),
                         ),
                       ],
@@ -178,7 +182,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                     _DrawerCard(
                       icon: Icons.help_outline_rounded,
                       title: 'POMOC',
-                      color: ViewveeColors.violet,
+                      color: ViewVeeColors.violet,
                       children: [
                         _DrawerItem(
                           key: const Key('drawerSupport'),
@@ -186,7 +190,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                           title: 'Podpora',
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.support,
+                              ViewVeeDrawerDestination.support,
                           onTap: () => closeAndRun(onOpenSupport),
                         ),
                         _DrawerItem(
@@ -196,7 +200,7 @@ class ViewveeAppDrawer extends StatelessWidget {
                           subtitle: 'Verze 1.0.0',
                           selected:
                               activeDestination ==
-                              ViewveeDrawerDestination.about,
+                              ViewVeeDrawerDestination.about,
                           onTap: () => closeAndRun(onOpenAbout),
                         ),
                       ],
@@ -278,7 +282,7 @@ class _DrawerHeaderState extends State<_DrawerHeader> {
         border: Border.all(color: Theme.of(context).colorScheme.outline),
         boxShadow: [
           BoxShadow(
-            color: ViewveeColors.navy.withValues(alpha: 0.06),
+            color: ViewVeeColors.navy.withValues(alpha: 0.06),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -317,7 +321,7 @@ class _DrawerHeaderState extends State<_DrawerHeader> {
                           fit: BoxFit.cover,
                           filterQuality: FilterQuality.high,
                         )
-                      : const ViewveeMark(size: 36),
+                      : const ViewVeeMark(size: 36),
                 ),
               ),
               const SizedBox(width: 11),
@@ -473,7 +477,7 @@ class _DrawerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: selected
-        ? ViewveeColors.teal.withValues(alpha: 0.08)
+        ? ViewVeeColors.teal.withValues(alpha: 0.08)
         : Colors.transparent,
     borderRadius: BorderRadius.circular(8),
     child: InkWell(
@@ -486,7 +490,7 @@ class _DrawerItem extends StatelessWidget {
             Icon(
               icon,
               size: 20,
-              color: selected ? ViewveeColors.teal : ViewveeColors.blue,
+              color: selected ? ViewVeeColors.teal : ViewVeeColors.blue,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -515,7 +519,7 @@ class _DrawerItem extends StatelessWidget {
             Icon(
               locked ? Icons.lock_outline_rounded : Icons.chevron_right_rounded,
               size: 18,
-              color: ViewveeColors.violet,
+              color: ViewVeeColors.violet,
             ),
           ],
         ),

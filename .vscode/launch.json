@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ViewVee (Physical Device)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "ViewVee (iOS 18.4 Simulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "deviceId": "AFF6D6B7-4C3B-493D-83BB-DA30A7CFAE81",
+      "preLaunchTask": "Start ViewVee iOS Simulator"
+    },
+    {
+      "name": "ViewVee (Android Emulator)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "emulatorId": "Pixel_7_API_36"
+    },
+    {
+      "name": "ViewVee Web (Go Server)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:8080/",
+      "webRoot": "${workspaceFolder}/api/web",
+      "preLaunchTask": "Start ViewVee Go Web Server",
+      "postDebugTask": "Stop ViewVee Go Web Server"
+    }
+  ]
+}

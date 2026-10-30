@@ -5,8 +5,8 @@ import 'package:path_provider/path_provider.dart';
 
 enum RecordingSource { camera, monitor }
 
-class ViewveeRecording {
-  const ViewveeRecording({
+class ViewVeeRecording {
+  const ViewVeeRecording({
     required this.path,
     required this.source,
     required this.createdAt,
@@ -55,14 +55,14 @@ class RecordingRepository {
     );
   }
 
-  Future<List<ViewveeRecording>> loadRecordings() async {
+  Future<List<ViewVeeRecording>> loadRecordings() async {
     final directory = await _directory();
     final files = await directory
         .list()
         .where((entity) => entity is File && entity.path.endsWith('.mp4'))
         .cast<File>()
         .toList();
-    final recordings = <ViewveeRecording>[];
+    final recordings = <ViewVeeRecording>[];
     for (final file in files) {
       final stat = await file.stat();
       if (stat.size == 0) continue;
@@ -92,7 +92,7 @@ class RecordingRepository {
         }
       }
       recordings.add(
-        ViewveeRecording(
+        ViewVeeRecording(
           path: file.path,
           source: source,
           createdAt: createdAt,
@@ -105,7 +105,7 @@ class RecordingRepository {
     return recordings;
   }
 
-  Future<void> delete(ViewveeRecording recording) async {
+  Future<void> delete(ViewVeeRecording recording) async {
     final video = File(recording.path);
     final metadata = File(_metadataPath(recording.path));
     if (await video.exists()) await video.delete();

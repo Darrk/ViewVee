@@ -1,0 +1,15 @@
+services:
+  coturn:
+    image: ${TURN_IMAGE:-coturn/coturn:4.12.0-r0-alpine}
+    restart: unless-stopped
+    network_mode: host
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+      - /home/ubuntu/data/certbot/conf:/etc/letsencrypt:ro
+    read_only: true
+    tmpfs:
+      - /var/lib/coturn:size=16m,mode=0700
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true

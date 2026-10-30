@@ -1,5 +1,13 @@
+import 'dart:async';
+
+import '../purchases/premium_purchase_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config.dart';
+import '../audio/audio_pairing_repository.dart';
+import '../audio/camera_pairing_repository.dart';
+import '../monitor/saved_camera_repository.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'working_timer_auth.dart';
 
 enum WatchMode { baby, pet, home }
@@ -10,12 +18,14 @@ class AppSession {
   const AppSession({
     required this.isSignedIn,
     required this.isGuest,
+    this.accountId,
     this.watchMode,
     this.isPremium = false,
   });
 
   final bool isSignedIn;
   final bool isGuest;
+  final int? accountId;
   final WatchMode? watchMode;
   final bool isPremium;
 }
@@ -32,12 +42,48 @@ class AuthRepository {
   static const profileEmailKey = 'profile.email';
 
   final WorkingTimerAuth _auth;
+  Future<bool>? _tokenRefresh;
+
+  /// Returns an access token for authenticated API requests, never an ID token.
+  /// Guests remain eligible for direct connections, but cannot obtain TURN.
+  Future<String?> getAccessToken({bool forceRefresh = false}) async {
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool(_guestKey) == true || !await _auth.hasAccount()) {
+      return null;
+    }
+    if (forceRefresh || await _auth.isAccessTokenExpired()) {
+      final refresh = _tokenRefresh ??= _auth.trySilentSignIn();
+      try {
+        if (!await refresh) {
+          throw const AuthException(
+            'Pro internetové připojení se znovu přihlaste.',
+          );
+        }
+      } finally {
+        if (identical(_tokenRefresh, refresh)) _tokenRefresh = null;
+      }
+    }
+    final token = await _auth.getAccessToken();
+    if (token.isEmpty) {
+      throw const AuthException(
+        'Pro internetové připojení se znovu přihlaste.',
+      );
+    }
+    return token;
+  }
 
   Future<AppSession> restoreSession() async {
     final preferences = await SharedPreferences.getInstance();
     final guest = preferences.getBool(_guestKey) ?? false;
     final authenticated = guest ? false : await _restoreIdentitySession();
-    if (authenticated) await _syncProfileFromIdentity();
+    final identityUser = authenticated
+        ? await _syncProfileFromIdentity()
+        : null;
+    if (authenticated && Config.enablePremiumFeatures) {
+      // A purchase made on another device of this account unlocks this one;
+      // the home screen listens and updates when the API answers.
+      unawaited(PremiumPurchaseService.instance.refreshEntitlement());
+    }
     final modeName = preferences.getString(_modeKey);
     WatchMode? watchMode;
     for (final mode in WatchMode.values) {
@@ -46,8 +92,11 @@ class AuthRepository {
     return AppSession(
       isSignedIn: authenticated || guest,
       isGuest: guest,
+      accountId: identityUser?.id,
       watchMode: watchMode,
-      isPremium: preferences.getBool(premiumUnlockedKey) ?? false,
+      isPremium:
+          !Config.enablePremiumFeatures ||
+          (await PremiumPurchaseService.instance.hasEntitlement()),
     );
   }
 
@@ -55,7 +104,7 @@ class AuthRepository {
     _validateCredentials(email, password);
     final error = await _auth.signIn(email.trim(), password);
     if (error.isNotEmpty) throw AuthException(error);
-    await _clearGuestSession();
+    await _startAuthenticatedSession();
     await _syncProfileFromIdentity(fallbackEmail: email.trim());
   }
 
@@ -68,13 +117,14 @@ class AuthRepository {
     if (!signedIn) {
       throw const AuthException('Přihlášení bylo zrušeno nebo se nezdařilo.');
     }
-    await _clearGuestSession();
+    await _startAuthenticatedSession();
     await _syncProfileFromIdentity(clearWhenUnavailable: true);
   }
 
   Future<void> continueAsGuest() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_guestKey, true);
+    await preferences.remove(_modeKey);
     await _clearStoredProfile(preferences);
   }
 
@@ -93,7 +143,7 @@ class AuthRepository {
       password,
       firstName.trim(),
       lastName.trim(),
-      'workingtimer',
+      'viewvee',
     );
     if (result == null || !result.isOk()) {
       throw AuthException(
@@ -128,17 +178,33 @@ class AuthRepository {
   Future<void> signOut() async {
     final preferences = await SharedPreferences.getInstance();
     final guest = preferences.getBool(_guestKey) ?? false;
-    if (!guest) await _auth.signOut();
+    if (!guest) {
+      await _auth.signOut();
+      // Account Premium belongs to the account; a guest's own purchase stays.
+      await PremiumPurchaseService.instance.clearCachedEntitlement();
+    }
+    await AudioPairingRepository().clear();
+    const storage = FlutterSecureStorage();
+    await storage.delete(key: CameraPairingRepository.storageKey);
+    await storage.delete(key: SavedCameraRepository.storageKey);
+    SavedCameraRepository.changes.value++;
+    await preferences.remove('monitor.activeRole');
+    await preferences.remove('monitor.activeMode');
     await preferences.remove(_guestKey);
     await _clearStoredProfile(preferences);
   }
 
-  Future<void> _clearGuestSession() async {
+  Future<void> _startAuthenticatedSession() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_guestKey);
+    // Every explicit login starts with a new monitoring choice. Session
+    // restoration keeps the choice so reopening the app can resume it.
+    await preferences.remove(_modeKey);
+    await preferences.remove('monitor.activeRole');
+    await preferences.remove('monitor.activeMode');
   }
 
-  Future<void> _syncProfileFromIdentity({
+  Future<WorkingTimerUser?> _syncProfileFromIdentity({
     String fallbackFirstName = '',
     String fallbackLastName = '',
     String fallbackEmail = '',
@@ -167,7 +233,7 @@ class AuthRepository {
         lastName.isEmpty &&
         email.isEmpty) {
       if (clearWhenUnavailable) await _clearStoredProfile(preferences);
-      return;
+      return null;
     }
 
     await Future.wait([
@@ -181,6 +247,7 @@ class AuthRepository {
           ? preferences.remove(profileEmailKey)
           : preferences.setString(profileEmailKey, email),
     ]);
+    return identityUser;
   }
 
   Future<void> _clearStoredProfile([SharedPreferences? preferences]) async {

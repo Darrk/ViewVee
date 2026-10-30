@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'purchases/premium_purchase_service.dart';
+import 'ads/ad_consent_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth/auth_repository.dart';
+import 'config.dart';
 import 'screens/auth_screen.dart';
 import 'screens/account_menu_screen.dart';
 import 'screens/home_screen.dart';
@@ -14,11 +18,15 @@ import 'widgets/viewvee_logo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ViewveeApp());
+  unawaited(PremiumPurchaseService.instance.initialize());
+  runApp(const ViewVeeApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(AdConsentService.instance.canRequestAds());
+  });
 }
 
-class ViewveeApp extends StatefulWidget {
-  const ViewveeApp({
+class ViewVeeApp extends StatefulWidget {
+  const ViewVeeApp({
     super.key,
     this.authRepository,
     this.previewAuthenticated = false,
@@ -28,17 +36,17 @@ class ViewveeApp extends StatefulWidget {
   final bool previewAuthenticated;
 
   @override
-  State<ViewveeApp> createState() => _ViewveeAppState();
+  State<ViewVeeApp> createState() => _ViewVeeAppState();
 }
 
-class _ViewveeAppState extends State<ViewveeApp> {
+class _ViewVeeAppState extends State<ViewVeeApp> {
   static const _minimumIntroDuration = Duration(milliseconds: 3000);
   static const _themeModeKey = 'preferences.themeMode';
 
   late final AuthRepository? _authRepository;
   late Future<AppSession> _session;
   ThemeMode _themeMode = ThemeMode.system;
-  final _localeController = ViewveeLocaleController.instance;
+  final _localeController = ViewVeeLocaleController.instance;
 
   @override
   void initState() {
@@ -83,7 +91,8 @@ class _ViewveeAppState extends State<ViewveeApp> {
         isGuest: false,
         watchMode: null,
         isPremium:
-            preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false,
+            !Config.enablePremiumFeatures ||
+            (preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false),
       );
     }
     if (kDebugMode) {
@@ -116,7 +125,9 @@ class _ViewveeAppState extends State<ViewveeApp> {
             isGuest: false,
             watchMode: mode,
             isPremium:
-                preferences.getBool(AuthRepository.premiumUnlockedKey) ?? false,
+                !Config.enablePremiumFeatures ||
+                (preferences.getBool(AuthRepository.premiumUnlockedKey) ??
+                    false),
           ),
         );
       });
@@ -134,35 +145,40 @@ class _ViewveeAppState extends State<ViewveeApp> {
   void _openAccountMenu(
     BuildContext context,
     AppSession session,
-    ViewveeDrawerDestination destination,
+    ViewVeeDrawerDestination destination,
   ) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AccountMenuScreen(
-          isGuest: session.isGuest,
-          isPremium: session.isPremium,
-          watchMode: session.watchMode,
-          themeMode: _themeMode,
-          initialDestination: destination,
-          onWatchModeChanged: _selectWatchMode,
-          onThemeModeChanged: _changeThemeMode,
-          onPasswordReset: _resetPassword,
-          onAddDevice: (_) async {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: VvText('Nejprve vyberte, co chcete hlídat.'),
-              ),
-            );
-          },
-          onSignOut: () async {
-            if (_authRepository == null) return;
-            await _authRepository.signOut();
-            _refreshSession();
-          },
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute<void>(
+            builder: (_) => AccountMenuScreen(
+              isGuest: session.isGuest,
+              isPremium: session.isPremium,
+              accountId: session.accountId,
+              watchMode: session.watchMode,
+              themeMode: _themeMode,
+              initialDestination: destination,
+              onWatchModeChanged: _selectWatchMode,
+              onThemeModeChanged: _changeThemeMode,
+              onPasswordReset: _resetPassword,
+              onAddDevice: (_) async {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: VvText('Nejprve vyberte, co chcete hlídat.'),
+                  ),
+                );
+              },
+              onSignOut: () async {
+                if (_authRepository == null) return;
+                await _authRepository.signOut();
+                _refreshSession();
+              },
+            ),
+          ),
+        )
+        .then((_) {
+          if (mounted && _authRepository != null) _refreshSession();
+        });
   }
 
   @override
@@ -170,13 +186,13 @@ class _ViewveeAppState extends State<ViewveeApp> {
     return MaterialApp(
       title: 'ViewVee',
       debugShowCheckedModeBanner: false,
-      theme: buildViewveeTheme(),
-      darkTheme: buildViewveeDarkTheme(),
+      theme: buildViewVeeTheme(),
+      darkTheme: buildViewVeeDarkTheme(),
       themeMode: _themeMode,
       locale: _localeController.locale,
-      supportedLocales: ViewveeLocalizations.supportedLocales,
+      supportedLocales: ViewVeeLocalizations.supportedLocales,
       localizationsDelegates: const [
-        ViewveeLocalizations.delegate,
+        ViewVeeLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
@@ -195,47 +211,47 @@ class _ViewveeAppState extends State<ViewveeApp> {
           }
           if (session.watchMode == null) {
             return SetupScreen(
-              drawer: ViewveeAppDrawer(
+              drawer: ViewVeeAppDrawer(
                 watchMode: null,
-                activeDestination: ViewveeDrawerDestination.monitor,
+                activeDestination: ViewVeeDrawerDestination.monitor,
                 isPremium: session.isPremium,
                 onOpenMonitor: () {},
                 onOpenDevices: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.devices,
+                  ViewVeeDrawerDestination.devices,
                 ),
                 onOpenRecordings: () => _openAccountMenu(
                   context,
                   session,
                   session.isPremium
-                      ? ViewveeDrawerDestination.recordings
-                      : ViewveeDrawerDestination.subscription,
+                      ? ViewVeeDrawerDestination.recordings
+                      : ViewVeeDrawerDestination.subscription,
                 ),
                 onOpenAccount: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.account,
+                  ViewVeeDrawerDestination.account,
                 ),
                 onOpenSubscription: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.subscription,
+                  ViewVeeDrawerDestination.subscription,
                 ),
                 onOpenPreferences: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.preferences,
+                  ViewVeeDrawerDestination.preferences,
                 ),
                 onOpenSupport: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.support,
+                  ViewVeeDrawerDestination.support,
                 ),
                 onOpenAbout: () => _openAccountMenu(
                   context,
                   session,
-                  ViewveeDrawerDestination.about,
+                  ViewVeeDrawerDestination.about,
                 ),
                 onSignOut: () async {
                   if (_authRepository == null) return;
@@ -276,7 +292,7 @@ class _SplashScreen extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: const [
-            AnimatedViewveeLogo(),
+            AnimatedViewVeeLogo(),
             SizedBox(height: 28),
             _LoadingDots(),
           ],
@@ -315,9 +331,9 @@ class _LoadingDotsState extends State<_LoadingDots>
   @override
   Widget build(BuildContext context) {
     const colors = [
-      ViewveeColors.teal,
-      ViewveeColors.blue,
-      ViewveeColors.violet,
+      ViewVeeColors.teal,
+      ViewVeeColors.blue,
+      ViewVeeColors.violet,
     ];
     return AnimatedBuilder(
       animation: _controller,

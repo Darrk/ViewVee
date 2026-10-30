@@ -4,4 +4,12 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <application>
+        <!-- Emulator 36.3.10 / API 36 segfaults in the software graphics
+             backend when opening a monitoring role with Impeller enabled.
+             Keep this workaround in debug builds only. -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
+    </application>
 </manifest>

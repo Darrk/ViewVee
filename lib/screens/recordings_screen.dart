@@ -12,7 +12,7 @@ class RecordingsScreen extends StatefulWidget {
   const RecordingsScreen({super.key, this.repository, this.initialRecordings});
 
   final RecordingRepository? repository;
-  final List<ViewveeRecording>? initialRecordings;
+  final List<ViewVeeRecording>? initialRecordings;
 
   @override
   State<RecordingsScreen> createState() => _RecordingsScreenState();
@@ -20,7 +20,7 @@ class RecordingsScreen extends StatefulWidget {
 
 class _RecordingsScreenState extends State<RecordingsScreen> {
   late final RecordingRepository _repository;
-  late Future<List<ViewveeRecording>> _recordings;
+  late Future<List<ViewVeeRecording>> _recordings;
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
   void _reload() => _recordings = _repository.loadRecordings();
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<ViewveeRecording>>(
+  Widget build(BuildContext context) => FutureBuilder<List<ViewVeeRecording>>(
     future: _recordings,
     builder: (context, snapshot) {
       if (!snapshot.hasData) {
@@ -71,7 +71,7 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
     },
   );
 
-  Future<void> _play(ViewveeRecording recording) async {
+  Future<void> _play(ViewVeeRecording recording) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => _RecordingPlayerScreen(recording: recording),
@@ -79,7 +79,7 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
     );
   }
 
-  Future<void> _share(ViewveeRecording recording, Rect origin) async {
+  Future<void> _share(ViewVeeRecording recording, Rect origin) async {
     await SharePlus.instance.share(
       ShareParams(
         title: context.vv('Nahrávka ViewVee'),
@@ -91,7 +91,7 @@ class _RecordingsScreenState extends State<RecordingsScreen> {
     );
   }
 
-  Future<void> _delete(ViewveeRecording recording) async {
+  Future<void> _delete(ViewVeeRecording recording) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -144,12 +144,12 @@ class _RecordingsIntro extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             colors.surface,
-            ViewveeColors.blue.withValues(alpha: 0.12),
-            ViewveeColors.violet.withValues(alpha: 0.09),
+            ViewVeeColors.blue.withValues(alpha: 0.12),
+            ViewVeeColors.violet.withValues(alpha: 0.09),
           ],
         ),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: ViewveeColors.blue.withValues(alpha: 0.28)),
+        border: Border.all(color: ViewVeeColors.blue.withValues(alpha: 0.28)),
       ),
       child: Row(
         children: [
@@ -158,7 +158,7 @@ class _RecordingsIntro extends StatelessWidget {
             height: 46,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [ViewveeColors.teal, ViewveeColors.blue],
+                colors: [ViewVeeColors.teal, ViewVeeColors.blue],
               ),
               borderRadius: BorderRadius.circular(10),
             ),
@@ -214,7 +214,7 @@ class _EmptyRecordings extends StatelessWidget {
         const Icon(
           Icons.videocam_off_outlined,
           size: 46,
-          color: ViewveeColors.blue,
+          color: ViewVeeColors.blue,
         ),
         const SizedBox(height: 14),
         VvText(
@@ -247,7 +247,7 @@ class _RecordingCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  final ViewveeRecording recording;
+  final ViewVeeRecording recording;
   final VoidCallback onPlay;
   final ValueChanged<Rect> onShare;
   final VoidCallback onDelete;
@@ -280,7 +280,7 @@ class _RecordingCard extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.play_circle_fill_rounded,
-                color: ViewveeColors.teal,
+                color: ViewVeeColors.teal,
                 size: 32,
               ),
             ),
@@ -369,7 +369,7 @@ class _RecordingCard extends StatelessWidget {
 class _RecordingPlayerScreen extends StatefulWidget {
   const _RecordingPlayerScreen({required this.recording});
 
-  final ViewveeRecording recording;
+  final ViewVeeRecording recording;
 
   @override
   State<_RecordingPlayerScreen> createState() => _RecordingPlayerScreenState();
@@ -421,8 +421,8 @@ class _RecordingPlayerScreenState extends State<_RecordingPlayerScreen> {
                 _controller,
                 allowScrubbing: true,
                 colors: const VideoProgressColors(
-                  playedColor: ViewveeColors.teal,
-                  bufferedColor: ViewveeColors.blue,
+                  playedColor: ViewVeeColors.teal,
+                  bufferedColor: ViewVeeColors.blue,
                 ),
               ),
               const SizedBox(height: 12),

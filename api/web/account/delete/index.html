@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Request deletion of a ViewVee account and associated server data">
+  <meta name="robots" content="index,follow">
+  <title>Delete account · ViewVee</title>
+  <link rel="icon" type="image/png" href="/viewvee-icon.png">
+  <link rel="stylesheet" href="/css/tailwind.css">
+</head>
+<body class="form-page">
+  <main class="form-shell">
+    <a class="form-wordmark" href="/"><img src="/viewvee-logo.png" alt="ViewVee — See more. Care more."></a>
+    <section class="form-card">
+      <div class="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-600 ring-1 ring-red-100">
+        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0l1 14h8l1-14M10 10v6m4-6v6"/></svg>
+      </div>
+      <p class="form-eyebrow text-red-600">Account controls</p>
+      <h1 class="form-title">Delete your account</h1>
+      <p class="form-intro">For immediate self-service deletion, open ViewVee, go to Profile, and select Delete account. Confirm the request and reauthorize with Apple if asked. No support contact is required in the app. The form below is an alternative way to contact us about deletion.</p>
+
+      <div class="form-notice"><strong>What happens next?</strong><span>This form sends your request to support@specterint.com. We will verify account ownership before processing deletion.</span></div>
+
+      <form action="/account/delete" method="post" data-deletion-form class="mt-8 space-y-6">
+        <div><label class="form-label" for="account-id">ViewVee account ID</label><input class="form-input" id="account-id" name="accountId" type="text" maxlength="255" autocomplete="username" required aria-describedby="account-id-hint"><p id="account-id-hint" class="form-hint">Filled automatically when opened from ViewVee. Otherwise, enter your account ID.</p></div>
+        <div><label class="form-label" for="email">Account email address</label><input class="form-input" id="email" name="email" type="email" maxlength="320" autocomplete="email" required><p class="form-hint">We use this address to verify ownership and contact you.</p></div>
+        <div><label class="form-label" for="details">Additional information <span class="font-normal text-slate-400">(optional)</span></label><textarea class="form-input min-h-28 resize-y" id="details" name="details" maxlength="2000" placeholder="Add information that may help us identify your account"></textarea></div>
+        <label class="confirmation-box" for="confirm-account"><input class="confirmation-checkbox" id="confirm-account" name="confirmed" value="true" type="checkbox" required><span>I request permanent deletion of this account and understand that this cannot be undone after processing.</span></label>
+        <div class="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true"><label for="website-account">Website</label><input id="website-account" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <button class="form-submit bg-red-600 shadow-red-600/20 hover:bg-red-700 focus:ring-red-200" type="submit">Send account deletion request</button>
+        <p class="status-message hidden" data-after-submit role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="form-footnote"><h2>Local recordings stay on your phones</h2><p>Delete them in ViewVee or from each device. Information legally required to be retained may be kept for the required period.</p></div>
+      <div class="form-links"><a href="/account/data-delete">Delete data only</a><span>•</span><a href="/privacy-policy.html">Privacy Policy</a></div>
+    </section>
+  </main>
+  <script src="/account/deletion.js"></script>
+</body>
+</html>

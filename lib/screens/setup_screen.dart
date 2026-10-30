@@ -58,7 +58,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Center(
-                        child: ViewveeLogo(width: 188, useDarkBackground: true),
+                        child: ViewVeeLogo(width: 188, useDarkBackground: true),
                       ),
                       const SizedBox(height: 26),
                       VvText(
@@ -93,7 +93,7 @@ class _SetupScreenState extends State<SetupScreen> {
                         title: 'Dítě',
                         subtitle: 'Spánek, pláč a jemný pohyb',
                         sensitivity: 'Vysoká citlivost',
-                        color: ViewveeColors.teal,
+                        color: ViewVeeColors.teal,
                         selected: _selectedMode == WatchMode.baby,
                         onTap: () => _select(WatchMode.baby),
                       ),
@@ -104,7 +104,7 @@ class _SetupScreenState extends State<SetupScreen> {
                         title: 'Mazlíček',
                         subtitle: 'Pohyb doma i na zahradě',
                         sensitivity: 'Vyvážená citlivost',
-                        color: ViewveeColors.blue,
+                        color: ViewVeeColors.blue,
                         selected: _selectedMode == WatchMode.pet,
                         onTap: () => _select(WatchMode.pet),
                       ),
@@ -115,7 +115,7 @@ class _SetupScreenState extends State<SetupScreen> {
                         title: 'Domov',
                         subtitle: 'Vstup, pokoj nebo kancelář',
                         sensitivity: 'Nižší citlivost',
-                        color: ViewveeColors.violet,
+                        color: ViewVeeColors.violet,
                         selected: _selectedMode == WatchMode.home,
                         onTap: () => _select(WatchMode.home),
                       ),
@@ -261,7 +261,7 @@ class _ModeTile extends StatelessWidget {
                             ? Icons.check_circle_rounded
                             : Icons.radio_button_unchecked_rounded,
                         key: ValueKey(selected),
-                        color: selected ? color : ViewveeColors.outline,
+                        color: selected ? color : ViewVeeColors.outline,
                         size: 25,
                       ),
                     ),
@@ -285,7 +285,7 @@ class _BrandAccent extends StatelessWidget {
     height: 4,
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
       ),
       borderRadius: BorderRadius.circular(2),
     ),
@@ -309,9 +309,9 @@ class _ContinueButton extends StatelessWidget {
             )
           : const LinearGradient(
               colors: [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
             ),
       borderRadius: BorderRadius.circular(8),
@@ -319,7 +319,7 @@ class _ContinueButton extends StatelessWidget {
           ? null
           : [
               BoxShadow(
-                color: ViewveeColors.blue.withValues(alpha: 0.2),
+                color: ViewVeeColors.blue.withValues(alpha: 0.2),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),

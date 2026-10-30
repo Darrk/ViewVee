@@ -1,0 +1,333 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:viewvee/purchases/premium_purchase_service.dart';
+
+class _Store extends Fake implements InAppPurchase {
+  final events = StreamController<List<PurchaseDetails>>.broadcast(sync: true);
+  final completed = <PurchaseDetails>[];
+  int restored = 0;
+  Set<String>? queried;
+  @override
+  Stream<List<PurchaseDetails>> get purchaseStream => events.stream;
+  @override
+  Future<bool> isAvailable() async => true;
+  @override
+  Future<ProductDetailsResponse> queryProductDetails(
+    Set<String> identifiers,
+  ) async {
+    queried = identifiers;
+    return ProductDetailsResponse(
+      productDetails: [
+        ProductDetails(
+          id: PremiumPurchaseService.productId,
+          title: 'Premium',
+          description: 'Lifetime',
+          price: r'$12.34',
+          rawPrice: 12.34,
+          currencyCode: 'USD',
+        ),
+      ],
+      notFoundIDs: [],
+    );
+  }
+
+  @override
+  Future<void> completePurchase(PurchaseDetails purchase) async {
+    completed.add(purchase);
+  }
+
+  @override
+  Future<void> restorePurchases({String? applicationUserName}) async {
+    restored++;
+  }
+}
+
+PurchaseDetails _purchase() => PurchaseDetails(
+  purchaseID: '42',
+  productID: PremiumPurchaseService.productId,
+  verificationData: PurchaseVerificationData(
+    localVerificationData: '',
+    serverVerificationData: 'signed-proof',
+    source: 'app_store',
+  ),
+  transactionDate: '0',
+  status: PurchaseStatus.purchased,
+)..pendingCompletePurchase = true;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+  tearDown(() {
+    debugDefaultTargetPlatformOverride = null;
+  });
+  for (final target in [TargetPlatform.iOS, TargetPlatform.android]) {
+    test('$target queries and verifies its own store product', () async {
+      debugDefaultTargetPlatformOverride = target;
+      final expectedId = target == TargetPlatform.iOS
+          ? 'viewvee_premium'
+          : 'premium';
+      final expectedPlatform = target == TargetPlatform.iOS
+          ? 'apple'
+          : 'google';
+      final store = _Store();
+      Map<String, dynamic>? submitted;
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => null,
+        verifyPurchase: (proof) async {
+          submitted = proof;
+          return true;
+        },
+      );
+      await service.initialize();
+      expect(store.queried, {expectedId});
+      store.events.add([_purchase()]);
+      await service.eventsSettled;
+      expect(submitted?['platform'], expectedPlatform);
+      expect(submitted?['productId'], expectedId);
+      expect(service.entitled, isTrue);
+      expect(store.completed, hasLength(1));
+      service.dispose();
+      await store.events.close();
+    });
+  }
+  for (final offline in [false, true]) {
+    test('guest saved proof recheck: offline=$offline', () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'purchase.verifiedPremium.v1': jsonEncode({
+          'platform': 'google',
+          'productId': 'premium',
+          'verificationData': 'saved-token',
+        }),
+      });
+      final store = _Store();
+      var checks = 0;
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => null,
+        verifyPurchase: (proof) async {
+          checks++;
+          expect(proof['verificationData'], 'saved-token');
+          if (offline) throw StateError('API unavailable');
+          return false;
+        },
+      );
+      await service.initialize();
+      expect(checks, 1);
+      expect(await service.hasEntitlement(), offline);
+      expect(service.entitled, offline);
+      service.dispose();
+      await store.events.close();
+    });
+  }
+  test('negative restored purchase clears an existing unlock', () async {
+    final store = _Store();
+    var valid = true;
+    final service = PremiumPurchaseService(
+      store: store,
+      fetchEntitlement: () async => null,
+      verifyPurchase: (_) async => valid,
+    );
+    await service.initialize();
+    store.events.add([_purchase()]);
+    await service.eventsSettled;
+    expect(await service.hasEntitlement(), isTrue);
+    valid = false;
+    store.events.add([_purchase()..status = PurchaseStatus.restored]);
+    await service.eventsSettled;
+    expect(await service.hasEntitlement(), isFalse);
+    expect(service.entitled, isFalse);
+    expect(store.completed, hasLength(1));
+    service.dispose();
+    await store.events.close();
+  });
+  test(
+    'delivery and store completion wait for successful server verification',
+    () async {
+      final store = _Store();
+      final verified = Completer<bool>();
+      final service = PremiumPurchaseService(
+        store: store,
+        verifyPurchase: (_) => verified.future,
+      );
+      await service.initialize();
+      expect(service.product!.price, r'$12.34');
+      store.events.add([_purchase()]);
+      await Future<void>.delayed(Duration.zero);
+      expect(store.completed, isEmpty);
+      expect(await service.hasEntitlement(), isFalse);
+      verified.complete(true);
+      await service.eventsSettled;
+      expect(await service.hasEntitlement(), isTrue);
+      expect(store.completed, hasLength(1));
+      // Android also restores once in the background at startup.
+      final restoredBefore = store.restored;
+      await service.restore();
+      expect(store.restored, restoredBefore + 1);
+      service.dispose();
+      await store.events.close();
+    },
+  );
+  test(
+    'failed verification never unlocks or acknowledges the transaction',
+    () async {
+      final store = _Store();
+      final service = PremiumPurchaseService(
+        store: store,
+        verifyPurchase: (_) async => false,
+      );
+      await service.initialize();
+      store.events.add([_purchase()]);
+      await service.eventsSettled;
+      expect(service.entitled, isFalse);
+      expect(store.completed, isEmpty);
+      expect(await service.hasEntitlement(), isFalse);
+      service.dispose();
+      await store.events.close();
+    },
+  );
+  test('refund clears a previously verified entitlement at startup', () async {
+    FlutterSecureStorage.setMockInitialValues({
+      'purchase.verifiedPremium.v1': jsonEncode({
+        'productId': PremiumPurchaseService.productId,
+      }),
+    });
+    final store = _Store();
+    final service = PremiumPurchaseService(
+      store: store,
+      verifyPurchase: (_) async => false,
+      fetchEntitlement: () async => false,
+    );
+    await service.initialize();
+    expect(await service.hasEntitlement(), isFalse);
+    expect(
+      (await SharedPreferences.getInstance()).getBool(
+        PremiumPurchaseService.entitlementKey,
+      ),
+      isFalse,
+    );
+    service.dispose();
+    await store.events.close();
+  });
+  test(
+    'verification rejects redirects, outages, and another product',
+    () async {
+      final service = PremiumPurchaseService(
+        getAccessToken: ({forceRefresh = false}) async => 'token',
+      );
+      for (final status in [302, 503]) {
+        final client = MockClient((request) async {
+          expect(request.followRedirects, isFalse);
+          return http.Response('', status);
+        });
+        await expectLater(service.verify({}, client: client), throwsStateError);
+      }
+      final client = MockClient(
+        (_) async => http.Response(
+          jsonEncode({'active': true, 'productId': 'another-product'}),
+          200,
+        ),
+      );
+      await expectLater(
+        service.verify({}, client: client),
+        throwsFormatException,
+      );
+      service.dispose();
+    },
+  );
+  test('verification times out while waiting for response headers', () async {
+    final service = PremiumPurchaseService(
+      requestTimeout: const Duration(milliseconds: 20),
+      getAccessToken: ({forceRefresh = false}) async => null,
+    );
+    final client = MockClient((_) => Completer<http.Response>().future);
+    await expectLater(
+      service.verify({}, client: client),
+      throwsA(isA<TimeoutException>()),
+    );
+    service.dispose();
+  });
+  test('verification sends the account token and refreshes it once', () async {
+    final refreshes = <bool>[];
+    final service = PremiumPurchaseService(
+      getAccessToken: ({forceRefresh = false}) async {
+        refreshes.add(forceRefresh);
+        return forceRefresh ? 'fresh' : 'stale';
+      },
+    );
+    final client = MockClient((request) async {
+      if (request.headers['Authorization'] == 'Bearer stale') {
+        return http.Response('', 401);
+      }
+      expect(request.headers['Authorization'], 'Bearer fresh');
+      return http.Response(
+        jsonEncode({
+          'active': true,
+          'productId': PremiumPurchaseService.productId,
+        }),
+        200,
+      );
+    });
+    expect(await service.verify({}, client: client), isTrue);
+    expect(refreshes, [false, true]);
+    service.dispose();
+  });
+  test(
+    'a receipt owned by another account is reported, not unlocked',
+    () async {
+      final service = PremiumPurchaseService(
+        getAccessToken: ({forceRefresh = false}) async => 'token',
+      );
+      final client = MockClient((_) async => http.Response('', 409));
+      await expectLater(
+        service.verify({}, client: client),
+        throwsA(isA<PurchaseOwnedElsewhere>()),
+      );
+      service.dispose();
+    },
+  );
+  test('guests verify without a token (App Store 5.1.1(v))', () async {
+    final service = PremiumPurchaseService(
+      getAccessToken: ({forceRefresh = false}) async => null,
+    );
+    final client = MockClient((request) async {
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      return http.Response(
+        jsonEncode({
+          'active': true,
+          'productId': PremiumPurchaseService.productId,
+        }),
+        200,
+      );
+    });
+    expect(await service.verify({}, client: client), isTrue);
+    service.dispose();
+  });
+  test(
+    'account entitlement unlocks a device without a local purchase',
+    () async {
+      final store = _Store();
+      final service = PremiumPurchaseService(
+        store: store,
+        fetchEntitlement: () async => true,
+      );
+      await service.initialize();
+      expect(await service.hasEntitlement(), isTrue);
+      await service.clearCachedEntitlement();
+      expect(await service.hasEntitlement(), isFalse);
+      service.dispose();
+      await store.events.close();
+    },
+  );
+}

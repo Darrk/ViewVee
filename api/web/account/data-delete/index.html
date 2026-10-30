@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Request deletion of personal data associated with a ViewVee account">
+  <meta name="robots" content="index,follow">
+  <title>Request data deletion · ViewVee</title>
+  <link rel="icon" type="image/png" href="/viewvee-icon.png">
+  <link rel="stylesheet" href="/css/tailwind.css">
+</head>
+<body class="form-page">
+  <main class="form-shell">
+    <a class="form-wordmark" href="/"><img src="/viewvee-logo.png" alt="ViewVee — See more. Care more."></a>
+    <section class="form-card">
+      <div class="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700 ring-1 ring-cyan-100">
+        <svg class="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <p class="form-eyebrow text-cyan-700">Privacy controls</p>
+      <h1 class="form-title">Request data deletion</h1>
+      <p class="form-intro">Request deletion of personal data associated with your ViewVee account without deleting the account itself.</p>
+
+      <div class="form-notice"><strong>What happens next?</strong><span>This form sends your request to support@specterint.com. We may contact you to verify ownership and clarify which records to remove.</span></div>
+
+      <form action="/account/data-delete" method="post" data-deletion-form class="mt-8 space-y-6">
+        <div><label class="form-label" for="account-id">ViewVee account ID</label><input class="form-input" id="account-id" name="accountId" type="text" maxlength="255" autocomplete="username" required aria-describedby="account-id-hint"><p id="account-id-hint" class="form-hint">Filled automatically when opened from ViewVee. Otherwise, enter your account ID.</p></div>
+        <div><label class="form-label" for="email">Account email address</label><input class="form-input" id="email" name="email" type="email" maxlength="320" autocomplete="email" required><p class="form-hint">We use this address to verify ownership and contact you.</p></div>
+        <div><label class="form-label" for="details">What data should be deleted? <span class="font-normal text-slate-400">(optional)</span></label><textarea class="form-input min-h-28 resize-y" id="details" name="details" maxlength="2000" placeholder="For example: all server data, support messages, or specific records"></textarea></div>
+        <label class="confirmation-box" for="confirm-data"><input class="confirmation-checkbox" id="confirm-data" name="confirmed" value="true" type="checkbox" required><span>I understand that support may ask me to verify ownership of this account.</span></label>
+        <div class="absolute -left-[10000px] h-px w-px overflow-hidden" aria-hidden="true"><label for="website-data">Website</label><input id="website-data" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <button class="form-submit bg-cyan-700 shadow-cyan-700/20 hover:bg-cyan-800 focus:ring-cyan-200" type="submit">Send data deletion request</button>
+        <p class="status-message hidden" data-after-submit role="status" aria-live="polite"></p>
+      </form>
+
+      <div class="form-footnote"><h2>Local recordings are not affected</h2><p>Recordings stored only on your phones are not removed by this request. Delete them directly in ViewVee or from each device.</p></div>
+      <div class="form-links"><a href="/account/delete">Delete entire account</a><span>•</span><a href="/privacy-policy.html">Privacy Policy</a></div>
+    </section>
+  </main>
+  <script src="/account/deletion.js"></script>
+</body>
+</html>

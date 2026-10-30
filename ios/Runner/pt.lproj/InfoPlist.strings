@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "O ViewVee usa a câmara para monitorização em direto e para ler códigos de emparelhamento.";
+"NSMicrophoneUsageDescription" = "O ViewVee usa o microfone para transmitir áudio em direto e falar com o dispositivo emparelhado.";
+"NSLocalNetworkUsageDescription" = "O ViewVee encontra e liga os seus dispositivos emparelhados na mesma rede Wi-Fi.";
+"NSUserTrackingUsageDescription" = "Com a sua autorização, o ViewVee usa identificadores do dispositivo para medir a publicidade.";

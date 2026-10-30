@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "ViewVee usa la cámara para la supervisión en directo y para escanear códigos de vinculación.";
+"NSMicrophoneUsageDescription" = "ViewVee usa el micrófono para transmitir audio en directo y hablar con el dispositivo vinculado.";
+"NSLocalNetworkUsageDescription" = "ViewVee busca y conecta tus dispositivos vinculados en la misma red Wi-Fi.";
+"NSUserTrackingUsageDescription" = "Con tu permiso, ViewVee usa identificadores del dispositivo para medir la publicidad.";

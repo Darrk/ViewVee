@@ -4,6 +4,7 @@ import 'package:universal_io/io.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
 import '../theme/viewvee_theme.dart';
 import '../widgets/viewvee_logo.dart';
 
@@ -186,7 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
       key: const ValueKey('authChoices'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Center(child: ViewveeLogo(width: 300, useDarkBackground: true)),
+        const Center(child: ViewVeeLogo(width: 300, useDarkBackground: true)),
         const SizedBox(height: 28),
         VvText(
           'Spolehlivý dohled, ať jste kdekoliv.',
@@ -233,70 +234,57 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         const SizedBox(height: 34),
         Row(
-          children: [
-            const Expanded(child: Divider()),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: VvText(
-                'NEBO',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const Expanded(child: Divider()),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _SocialIconButton(
-              key: const Key('signInApple'),
-              icon: const FaIcon(FontAwesomeIcons.apple, size: 23),
-              label: 'Pokračovat přes Apple',
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.white,
-              borderColor: ViewveeColors.outline,
-              onPressed: _loading || !Platform.isIOS
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.apple),
-            ),
-            const SizedBox(width: 22),
-            _SocialIconButton(
-              key: const Key('signInFacebook'),
-              icon: const FaIcon(
-                FontAwesomeIcons.facebookF,
-                size: 22,
-                color: Colors.white,
+            if (Platform.isIOS)
+              _SocialIconButton(
+                key: const Key('signInApple'),
+                icon: const FaIcon(FontAwesomeIcons.apple, size: 23),
+                label: 'Pokračovat přes Apple',
+                foregroundColor: Colors.black,
+                backgroundColor: Colors.white,
+                borderColor: ViewVeeColors.outline,
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.apple),
               ),
-              label: 'Pokračovat přes Facebook',
-              foregroundColor: Colors.white,
-              backgroundColor: const Color(0xFF1877F2),
-              borderColor: const Color(0xFF1877F2),
-              onPressed: _loading
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.facebook),
-            ),
-            const SizedBox(width: 22),
-            _SocialIconButton(
-              key: const Key('signInGoogle'),
-              icon: Image.asset(
-                'assets/branding/google_g_logo.png',
-                width: 23,
-                height: 23,
-                filterQuality: FilterQuality.high,
+            if (Config.showFacebookLogin) ...[
+              const SizedBox(width: 22),
+              _SocialIconButton(
+                key: const Key('signInFacebook'),
+                icon: const FaIcon(
+                  FontAwesomeIcons.facebookF,
+                  size: 22,
+                  color: Colors.white,
+                ),
+                label: 'Pokračovat přes Facebook',
+                foregroundColor: Colors.white,
+                backgroundColor: const Color(0xFF1877F2),
+                borderColor: const Color(0xFF1877F2),
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.facebook),
               ),
-              label: 'Pokračovat přes Google',
-              foregroundColor: Colors.black,
-              backgroundColor: Colors.white,
-              borderColor: ViewveeColors.outline,
-              onPressed: _loading
-                  ? null
-                  : () => _signInWithProvider(AuthProvider.google),
-            ),
+            ],
+            if (Config.showGoogleLogin) ...[
+              const SizedBox(width: 22),
+              _SocialIconButton(
+                key: const Key('signInGoogle'),
+                icon: Image.asset(
+                  'assets/branding/google_g_logo.png',
+                  width: 23,
+                  height: 23,
+                  filterQuality: FilterQuality.high,
+                ),
+                label: 'Pokračovat přes Google',
+                foregroundColor: Colors.black,
+                backgroundColor: Colors.white,
+                borderColor: ViewVeeColors.outline,
+                onPressed: _loading
+                    ? null
+                    : () => _signInWithProvider(AuthProvider.google),
+              ),
+            ],
           ],
         ),
         if (_loading) ...[
@@ -304,7 +292,7 @@ class _AuthScreenState extends State<AuthScreen> {
           const Center(
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: ViewveeColors.teal,
+              color: ViewVeeColors.teal,
             ),
           ),
         ],
@@ -336,12 +324,12 @@ class _AuthScreenState extends State<AuthScreen> {
                     : () => setState(() => _view = _AuthView.choices),
                 icon: const Icon(
                   Icons.arrow_back_rounded,
-                  color: ViewveeColors.navy,
+                  color: ViewVeeColors.navy,
                 ),
               ),
             ),
           ),
-          const Center(child: ViewveeLogo(width: 220, useDarkBackground: true)),
+          const Center(child: ViewVeeLogo(width: 220, useDarkBackground: true)),
           const SizedBox(height: 32),
           VvText(
             registering ? 'Registrace' : 'Přihlášení',
@@ -455,13 +443,8 @@ class _AuthScreenState extends State<AuthScreen> {
               title: const VvText('Souhlasím s podmínkami použití'),
             ),
             TextButton(
-              onPressed: () => launchUrl(
-                Uri.parse(
-                  Platform.isIOS
-                      ? 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'
-                      : 'https://www.specterint.com/wt_terms_of_use.html',
-                ),
-              ),
+              onPressed: () =>
+                  launchUrl(Uri.parse('https://viewvee.com/terms-of-use.html')),
               child: const VvText('Přečíst podmínky použití'),
             ),
           ],
@@ -532,12 +515,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       }),
                 icon: const Icon(
                   Icons.arrow_back_rounded,
-                  color: ViewveeColors.navy,
+                  color: ViewVeeColors.navy,
                 ),
               ),
             ),
           ),
-          const Center(child: ViewveeLogo(width: 220, useDarkBackground: true)),
+          const Center(child: ViewVeeLogo(width: 220, useDarkBackground: true)),
           const SizedBox(height: 28),
           const VvText(
             'Zapomenuté heslo?',
@@ -605,7 +588,7 @@ class _BrandAccent extends StatelessWidget {
     height: 4,
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
       ),
       borderRadius: BorderRadius.circular(2),
     ),
@@ -637,9 +620,9 @@ class _BrandGradientButton extends StatelessWidget {
             )
           : const LinearGradient(
               colors: [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
             ),
       borderRadius: BorderRadius.circular(8),
@@ -647,7 +630,7 @@ class _BrandGradientButton extends StatelessWidget {
           ? null
           : [
               BoxShadow(
-                color: ViewveeColors.blue.withValues(alpha: 0.2),
+                color: ViewVeeColors.blue.withValues(alpha: 0.2),
                 blurRadius: 14,
                 offset: const Offset(0, 5),
               ),
@@ -736,11 +719,11 @@ class _BrandOutlineButton extends StatelessWidget {
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: onPressed == null
-            ? const [ViewveeColors.outline, ViewveeColors.outline]
+            ? const [ViewVeeColors.outline, ViewVeeColors.outline]
             : const [
-                ViewveeColors.teal,
-                ViewveeColors.blue,
-                ViewveeColors.violet,
+                ViewVeeColors.teal,
+                ViewVeeColors.blue,
+                ViewVeeColors.violet,
               ],
       ),
       borderRadius: BorderRadius.circular(8),
@@ -815,7 +798,7 @@ class _SocialIconButton extends StatelessWidget {
           side: BorderSide(color: borderColor ?? backgroundColor),
           shape: const CircleBorder(),
           elevation: 1,
-          shadowColor: ViewveeColors.blue.withValues(alpha: 0.16),
+          shadowColor: ViewVeeColors.blue.withValues(alpha: 0.16),
         ),
       ),
     ),

@@ -8,12 +8,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'audio_pairing.dart';
+import 'audio_pairing_repository.dart';
 import 'audio_signaling.dart';
 
 class LocalAudioSignaling implements AudioSignaling {
-  LocalAudioSignaling({MethodChannel? nativeChannel})
-    : _nativeChannel =
-          nativeChannel ?? const MethodChannel('viewvee/audio_monitor');
+  LocalAudioSignaling({
+    MethodChannel? nativeChannel,
+    AudioPairingRepository? pairingRepository,
+  }) : _pairingRepository = pairingRepository ?? AudioPairingRepository(),
+       _nativeChannel =
+           nativeChannel ?? const MethodChannel('viewvee/audio_monitor');
 
   static const _serviceType = '_viewvee._tcp';
   static const _handshakeTimeout = Duration(seconds: 10);
@@ -21,6 +25,7 @@ class LocalAudioSignaling implements AudioSignaling {
   static const _pongTimeout = Duration(seconds: 20);
 
   final MethodChannel _nativeChannel;
+  final AudioPairingRepository _pairingRepository;
 
   @override
   void Function()? onPeerReady;
@@ -62,10 +67,13 @@ class LocalAudioSignaling implements AudioSignaling {
   String? get pairingUri => _credentials?.toUriString();
 
   @override
-  Future<String> createRoom() async {
-    _credentials = AudioPairingCredentials.generate(
-      mode: AudioPairingMode.wifi,
-    );
+  Future<String> createRoom({AudioPairingCredentials? credentials}) async {
+    if (credentials != null && credentials.mode != AudioPairingMode.wifi) {
+      throw ArgumentError('Pairing mode does not match transport.');
+    }
+    _credentials =
+        credentials ??
+        await _pairingRepository.cameraCredentials(AudioPairingMode.wifi);
     _isClient = false;
     await _acquireMulticastLock();
     try {
@@ -94,7 +102,7 @@ class LocalAudioSignaling implements AudioSignaling {
     await _broadcast?.stop();
     _broadcast = BonsoirBroadcast(
       service: BonsoirService(
-        name: 'Viewvee-${credentials.roomCode}',
+        name: 'ViewVee-${credentials.roomCode}',
         type: _serviceType,
         port: server.port,
         attributes: {
@@ -103,7 +111,7 @@ class LocalAudioSignaling implements AudioSignaling {
         },
       ),
     );
-    await _broadcast!.ready;
+    await _broadcast!.initialize();
     await _broadcast!.start();
   }
 
@@ -137,17 +145,16 @@ class LocalAudioSignaling implements AudioSignaling {
       unawaited(_stopDiscovery());
     });
     _discovery = BonsoirDiscovery(type: _serviceType);
-    await _discovery!.ready;
+    await _discovery!.initialize();
     _discoverySubscription = _discovery!.eventStream!.listen((event) {
       if (result.isCompleted) return;
-      if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
+      if (event is BonsoirDiscoveryServiceFoundEvent) {
         final service = event.service;
-        if (service?.name.startsWith('Viewvee-') ?? false) {
-          service!.resolve(_discovery!.serviceResolver);
+        if (service.name.startsWith('ViewVee-')) {
+          unawaited(_discovery!.serviceResolver.resolveService(service));
         }
-      } else if (event.type ==
-          BonsoirDiscoveryEventType.discoveryServiceResolved) {
-        final service = event.service as ResolvedBonsoirService;
+      } else if (event is BonsoirDiscoveryServiceResolvedEvent) {
+        final service = event.service;
         final code =
             service.attributes['code'] ??
             service.name.substring(service.name.indexOf('-') + 1);
@@ -168,7 +175,7 @@ class LocalAudioSignaling implements AudioSignaling {
   }
 
   Future<void> _connectResolved(
-    ResolvedBonsoirService service,
+    BonsoirService service,
     Completer<bool> result,
   ) async {
     await _stopDiscovery();
@@ -529,7 +536,7 @@ class LocalAudioSignaling implements AudioSignaling {
   }
 
   static void _logError(Object error) {
-    debugPrint('Viewvee LAN signaling: $error');
+    debugPrint('ViewVee LAN signaling: $error');
   }
 }
 

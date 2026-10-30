@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 export '../localization/viewvee_localizations.dart';
 
-abstract final class ViewveeColors {
+abstract final class ViewVeeColors {
   static const navy = Color(0xFF08162F);
   static const teal = Color(0xFF09BFAF);
   static const logoBlue = Color(0xFF168FE5);
@@ -14,24 +14,24 @@ abstract final class ViewveeColors {
   static const muted = Color(0xFF5C667A);
 }
 
-ThemeData buildViewveeTheme() {
+ThemeData buildViewVeeTheme() {
   const colors = ColorScheme.light(
-    primary: ViewveeColors.navy,
+    primary: ViewVeeColors.navy,
     onPrimary: Colors.white,
     primaryContainer: Color(0xFFE4F8F6),
-    onPrimaryContainer: ViewveeColors.navy,
-    secondary: ViewveeColors.teal,
-    onSecondary: ViewveeColors.navy,
+    onPrimaryContainer: ViewVeeColors.navy,
+    secondary: ViewVeeColors.teal,
+    onSecondary: ViewVeeColors.navy,
     secondaryContainer: Color(0xFFDDF8F5),
-    onSecondaryContainer: ViewveeColors.navy,
-    tertiary: ViewveeColors.violet,
+    onSecondaryContainer: ViewVeeColors.navy,
+    tertiary: ViewVeeColors.violet,
     onTertiary: Colors.white,
     tertiaryContainer: Color(0xFFEDE8FF),
-    onTertiaryContainer: ViewveeColors.navy,
-    surface: ViewveeColors.surface,
-    onSurface: ViewveeColors.navy,
-    onSurfaceVariant: ViewveeColors.muted,
-    outline: ViewveeColors.outline,
+    onTertiaryContainer: ViewVeeColors.navy,
+    surface: ViewVeeColors.surface,
+    onSurface: ViewVeeColors.navy,
+    onSurfaceVariant: ViewVeeColors.muted,
+    outline: ViewVeeColors.outline,
     error: Color(0xFFB3261E),
     onError: Colors.white,
   );
@@ -42,33 +42,33 @@ ThemeData buildViewveeTheme() {
   return ThemeData(
     useMaterial3: true,
     colorScheme: colors,
-    scaffoldBackgroundColor: ViewveeColors.canvas,
+    scaffoldBackgroundColor: ViewVeeColors.canvas,
     fontFamily: 'Avenir Next',
     appBarTheme: const AppBarTheme(
-      backgroundColor: ViewveeColors.surface,
-      foregroundColor: ViewveeColors.navy,
+      backgroundColor: ViewVeeColors.surface,
+      foregroundColor: ViewVeeColors.navy,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: ViewveeColors.surface,
+      fillColor: ViewVeeColors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: ViewveeColors.outline),
+        borderSide: const BorderSide(color: ViewVeeColors.outline),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: ViewveeColors.outline),
+        borderSide: const BorderSide(color: ViewVeeColors.outline),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: ViewveeColors.blue, width: 2),
+        borderSide: const BorderSide(color: ViewVeeColors.blue, width: 2),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: ViewveeColors.navy,
+        backgroundColor: ViewVeeColors.navy,
         foregroundColor: Colors.white,
         shape: roundedShape,
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -76,48 +76,48 @@ ThemeData buildViewveeTheme() {
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: ViewveeColors.navy,
-        side: const BorderSide(color: ViewveeColors.outline),
+        foregroundColor: ViewVeeColors.navy,
+        side: const BorderSide(color: ViewVeeColors.outline),
         shape: roundedShape,
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
     cardTheme: CardThemeData(
-      color: ViewveeColors.surface,
+      color: ViewVeeColors.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       shape: roundedShape.copyWith(
-        side: const BorderSide(color: ViewveeColors.outline),
+        side: const BorderSide(color: ViewVeeColors.outline),
       ),
     ),
-    dividerColor: ViewveeColors.outline,
+    dividerColor: ViewVeeColors.outline,
     sliderTheme: const SliderThemeData(
-      activeTrackColor: ViewveeColors.violet,
-      thumbColor: ViewveeColors.violet,
+      activeTrackColor: ViewVeeColors.violet,
+      thumbColor: ViewVeeColors.violet,
       overlayColor: Color(0x226537E8),
     ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
             ? Colors.white
-            : ViewveeColors.muted,
+            : ViewVeeColors.muted,
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? ViewveeColors.teal
-            : ViewveeColors.outline,
+            ? ViewVeeColors.teal
+            : ViewVeeColors.outline,
       ),
     ),
   );
 }
 
-ThemeData buildViewveeDarkTheme() {
+ThemeData buildViewVeeDarkTheme() {
   const colors = ColorScheme.dark(
-    primary: ViewveeColors.teal,
-    onPrimary: ViewveeColors.navy,
+    primary: ViewVeeColors.teal,
+    onPrimary: ViewVeeColors.navy,
     primaryContainer: Color(0xFF123C42),
     onPrimaryContainer: Color(0xFFD8FFFB),
-    secondary: ViewveeColors.blue,
+    secondary: ViewVeeColors.blue,
     onSecondary: Colors.white,
     secondaryContainer: Color(0xFF173652),
     onSecondaryContainer: Color(0xFFD9EDFF),
@@ -161,13 +161,13 @@ ThemeData buildViewveeDarkTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: ViewveeColors.teal, width: 2),
+        borderSide: const BorderSide(color: ViewVeeColors.teal, width: 2),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: ViewveeColors.teal,
-        foregroundColor: ViewveeColors.navy,
+        backgroundColor: ViewVeeColors.teal,
+        foregroundColor: ViewVeeColors.navy,
         shape: roundedShape,
         textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
@@ -197,12 +197,12 @@ ThemeData buildViewveeDarkTheme() {
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? ViewveeColors.navy
+            ? ViewVeeColors.navy
             : colors.onSurfaceVariant,
       ),
       trackColor: WidgetStateProperty.resolveWith(
         (states) => states.contains(WidgetState.selected)
-            ? ViewveeColors.teal
+            ? ViewVeeColors.teal
             : colors.outline,
       ),
     ),

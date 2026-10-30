@@ -1,5 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:viewvee/audio/audio_pairing.dart';
+import 'package:viewvee/audio/camera_pairing_repository.dart';
+import 'package:viewvee/monitor/saved_camera_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:viewvee/auth/auth_repository.dart';
 import 'package:viewvee/screens/account_menu_screen.dart';
@@ -7,7 +12,10 @@ import 'package:viewvee/theme/viewvee_theme.dart';
 import 'package:viewvee/widgets/viewvee_app_drawer.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
 
   Widget buildSubject({
     VoidCallback? onSignOut,
@@ -15,19 +23,21 @@ void main() {
     Future<void> Function(ThemeMode mode)? onThemeModeChanged,
     Future<void> Function(String email)? onPasswordReset,
     Future<void> Function(DevicePairingAction action)? onAddDevice,
-    ViewveeDrawerDestination initialDestination =
-        ViewveeDrawerDestination.account,
+    ViewVeeDrawerDestination initialDestination =
+        ViewVeeDrawerDestination.account,
     ThemeMode themeMode = ThemeMode.light,
     bool isPremium = true,
+    int? accountId,
   }) {
     return MaterialApp(
-      theme: buildViewveeTheme(),
-      darkTheme: buildViewveeDarkTheme(),
+      theme: buildViewVeeTheme(),
+      darkTheme: buildViewVeeDarkTheme(),
       themeMode: themeMode,
       home: AccountMenuScreen(
         key: UniqueKey(),
         isGuest: false,
         isPremium: isPremium,
+        accountId: accountId,
         watchMode: WatchMode.baby,
         themeMode: themeMode,
         initialDestination: initialDestination,
@@ -39,6 +49,71 @@ void main() {
       ),
     );
   }
+
+  testWidgets(
+    'devices page restores both roles and modes and updates saved pairings live',
+    (tester) async {
+      final cameras = SavedCameraRepository();
+      final monitors = CameraPairingRepository();
+      final wifi = AudioPairingCredentials.generate(
+        mode: AudioPairingMode.wifi,
+      );
+      final internet = AudioPairingCredentials.generate();
+      final monitor = AudioPairingCredentials.generate(
+        mode: AudioPairingMode.wifi,
+      );
+      final pending = AudioPairingCredentials.generate();
+      final saved = (await cameras.remember(wifi.toUriString())).single;
+      await cameras.rename(saved.id, 'Dětský pokoj');
+      await cameras.remember(internet.toUriString());
+      await monitors.remember(monitor.toUriString());
+      await monitors.markPaired(monitor.toUriString());
+      await monitors.remember(pending.toUriString());
+
+      await tester.pumpWidget(
+        buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Dětský pokoj'), findsOneWidget);
+      expect(find.text('Kamera ${internet.roomCode}'), findsOneWidget);
+      expect(find.text('Monitor ${monitor.roomCode}'), findsOneWidget);
+      expect(find.text('Monitor ${pending.roomCode}'), findsNothing);
+      expect(find.text('Kamera • Stejná Wi‑Fi'), findsOneWidget);
+      expect(find.text('Kamera • Internet'), findsOneWidget);
+      // A monitor can finish pairing while the drawer page remains open.
+      await monitors.markPaired(pending.toUriString());
+      await tester.pumpAndSettle();
+      expect(find.text('Monitor ${pending.roomCode}'), findsOneWidget);
+      await cameras.rename(saved.id, 'Ložnice');
+      await tester.pumpAndSettle();
+      expect(find.text('Ložnice'), findsOneWidget);
+      expect(find.text('Dětský pokoj'), findsNothing);
+      await cameras.remove(saved.id);
+      await tester.pumpAndSettle();
+      expect(find.text('Ložnice'), findsNothing);
+      // Reopening the page uses persisted entries, not a transient UI list.
+      await tester.pumpWidget(
+        buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Monitor ${pending.roomCode}'), findsOneWidget);
+      expect(find.text('Kamera ${internet.roomCode}'), findsOneWidget);
+      for (final credentials in [wifi, internet, monitor, pending]) {
+        expect(find.textContaining(credentials.secret), findsNothing);
+      }
+    },
+  );
+
+  testWidgets('empty devices page keeps the add-device action available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Zatím nemáte spárované zařízení.'), findsOneWidget);
+    expect(find.byKey(const Key('addDeviceMenuItem')), findsOneWidget);
+  });
 
   testWidgets('profile destination shows only profile content', (tester) async {
     await tester.pumpWidget(buildSubject());
@@ -115,33 +190,46 @@ void main() {
     expect(preferences.getString('profile.phone'), isNull);
   });
 
-  testWidgets('account deletion requires confirmation and opens a request', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({
-      'profile.firstName': 'Jana',
-      'profile.lastName': 'Nováková',
-      'profile.email': 'jana@example.cz',
-    });
-    await tester.pumpWidget(buildSubject());
-    await tester.pumpAndSettle();
+  testWidgets(
+    'account deletion requires confirmation and invokes self-service deletion',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'profile.firstName': 'Jana',
+        'profile.lastName': 'Nováková',
+        'profile.email': 'jana@example.cz',
+      });
+      var deleted = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildViewVeeTheme(),
+          home: AccountMenuScreen(
+            isGuest: false,
+            isPremium: true,
+            accountId: 42,
+            watchMode: WatchMode.baby,
+            themeMode: ThemeMode.light,
+            onWatchModeChanged: (_) async {},
+            onThemeModeChanged: (_) async {},
+            onPasswordReset: (_) async {},
+            onAddDevice: (_) async {},
+            onSignOut: () {},
+            onDeleteAccount: () async => deleted = true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('deleteAccountMenuItem')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('deleteAccountMenuItem')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Smazat účet?'), findsOneWidget);
-    expect(find.text('Zrušit'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('continueAccountDeletionButton')));
-    await tester.pumpAndSettle();
+      expect(find.text('Smazat účet?'), findsOneWidget);
+      expect(find.text('Zrušit'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('continueAccountDeletionButton')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Smazání účtu'), findsOneWidget);
-    expect(find.text('support@specterint.com'), findsOneWidget);
-    expect(find.text('Žádost o smazání účtu'), findsOneWidget);
-    expect(
-      find.textContaining('Žádám o trvalé smazání svého účtu ViewVee'),
-      findsOneWidget,
-    );
-  });
+      expect(deleted, isTrue);
+    },
+  );
 
   testWidgets('changes watch mode directly from the drawer without leaving', (
     tester,
@@ -170,7 +258,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.devices),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.devices),
     );
 
     expect(find.byKey(const Key('devicesPage')), findsOneWidget);
@@ -183,7 +271,7 @@ void main() {
     DevicePairingAction? selectedAction;
     await tester.pumpWidget(
       buildSubject(
-        initialDestination: ViewveeDrawerDestination.devices,
+        initialDestination: ViewVeeDrawerDestination.devices,
         onAddDevice: (action) async => selectedAction = action,
       ),
     );
@@ -203,7 +291,7 @@ void main() {
 
   testWidgets('changes language only in the local UI', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.preferences),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.preferences),
     );
 
     expect(find.byKey(const Key('languageSettingsTile')), findsOneWidget);
@@ -222,7 +310,7 @@ void main() {
     ThemeMode? selectedMode;
     await tester.pumpWidget(
       buildSubject(
-        initialDestination: ViewveeDrawerDestination.preferences,
+        initialDestination: ViewVeeDrawerDestination.preferences,
         onThemeModeChanged: (mode) async => selectedMode = mode,
       ),
     );
@@ -237,38 +325,20 @@ void main() {
     expect(selector.selected, {ThemeMode.dark});
   });
 
-  testWidgets('drawer selection shows only subscription content', (
-    tester,
-  ) async {
+  testWidgets('drawer opens the existing subscription page', (tester) async {
     await tester.pumpWidget(buildSubject());
 
     await tester.tap(find.byKey(const Key('accountMenuButton')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('drawerSubscription')));
-    await tester.pumpAndSettle();
 
+    final subscription = find.byKey(const Key('drawerSubscription'));
+    expect(subscription, findsOneWidget);
+    await tester.ensureVisible(subscription);
+    await tester.tap(subscription);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('subscriptionPage')), findsOneWidget);
     expect(find.byKey(const Key('freePlanCard')), findsOneWidget);
     expect(find.byKey(const Key('premiumPlanCard')), findsOneWidget);
-    expect(find.text('Wi-Fi monitoring • 1 hodina'), findsOneWidget);
-    expect(find.text('SD kvalita'), findsOneWidget);
-    expect(find.text('Internet pouze s Premium'), findsOneWidget);
-    expect(find.text('Bez nahrávání videa'), findsOneWidget);
-    expect(find.text('Reklama po každé hodině sledování'), findsOneWidget);
-    expect(find.byKey(const Key('premiumLocalizedPrice')), findsOneWidget);
-    expect(find.text('Víc klidu. Bez omezení.'), findsOneWidget);
-    expect(find.text('jednou navždy'), findsOneWidget);
-    expect(find.text('Neomezený internet'), findsOneWidget);
-    expect(find.text('HD video'), findsOneWidget);
-    expect(find.text('Nahrávání videa • pouze lokálně'), findsOneWidget);
-    expect(find.text('Obousměrný zvuk'), findsOneWidget);
-    expect(find.text('Žádné reklamy'), findsOneWidget);
-    expect(find.text('Neomezená délka spojení'), findsOneWidget);
-    expect(find.byKey(const Key('startSubscriptionButton')), findsOneWidget);
-    expect(find.text('Získat Premium'), findsOneWidget);
-    expect(find.text('149 Kč / měsíc'), findsNothing);
-    expect(find.byKey(const Key('profilePage')), findsNothing);
-    expect(find.byKey(const Key('languageMenuItem')), findsNothing);
-    expect(find.text('Jak vám můžeme pomoci?'), findsNothing);
   });
 
   testWidgets('recordings are locked for the free plan', (tester) async {
@@ -293,7 +363,7 @@ void main() {
 
   testWidgets('about has separate content', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.about),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.about),
     );
     await tester.pumpAndSettle();
 
@@ -303,7 +373,7 @@ void main() {
 
   testWidgets('support follows the grouped settings layout', (tester) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
 
     expect(find.byKey(const Key('supportPage')), findsOneWidget);
@@ -325,7 +395,7 @@ void main() {
       'profile.email': 'jana@example.cz',
     });
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
     await tester.pumpAndSettle();
 
@@ -342,31 +412,36 @@ void main() {
     expect(find.text('jana@example.cz'), findsOneWidget);
   });
 
-  testWidgets('app rating stores the selected number of stars', (tester) async {
+  testWidgets('app rating requests the system review flow', (tester) async {
+    final calls = <MethodCall>[];
+    const channel = MethodChannel('dev.britannio.in_app_review');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'isAvailable') return true;
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
-
     await tester.ensureVisible(find.byKey(const Key('rateAppItem')));
     await tester.tap(find.byKey(const Key('rateAppItem')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('ratingColorHeader')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('ratingStar5')));
-    await tester.pump();
-    expect(find.text('Děkujeme za vaše hodnocení.'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('submitRatingButton')));
-    await tester.pumpAndSettle();
-
-    final preferences = await SharedPreferences.getInstance();
-    expect(preferences.getInt('feedback.appRating'), 5);
-    expect(find.text('Děkujeme za vaše hodnocení.'), findsOneWidget);
+    expect(calls.map((call) => call.method), contains('requestReview'));
+    expect(find.byKey(const Key('ratingStar5')), findsNothing);
+    expect(
+      (await SharedPreferences.getInstance()).getInt('feedback.appRating'),
+      isNull,
+    );
   });
 
   testWidgets('frequently asked questions contain expandable answers', (
     tester,
   ) async {
     await tester.pumpWidget(
-      buildSubject(initialDestination: ViewveeDrawerDestination.support),
+      buildSubject(initialDestination: ViewVeeDrawerDestination.support),
     );
 
     await tester.ensureVisible(find.byKey(const Key('faqItem')));

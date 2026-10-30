@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "ViewVee käyttää kameraa reaaliaikaiseen valvontaan ja laitteiden pariliitoskoodien skannaamiseen.";
+"NSMicrophoneUsageDescription" = "ViewVee käyttää mikrofonia äänen suoratoistoon ja puhumiseen pariliitetylle laitteelle.";
+"NSLocalNetworkUsageDescription" = "ViewVee etsii ja yhdistää pariliitetyt laitteesi samassa Wi-Fi-verkossa.";
+"NSUserTrackingUsageDescription" = "Luvallasi ViewVee käyttää laitetunnisteita mainonnan mittaamiseen.";

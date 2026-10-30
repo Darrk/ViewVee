@@ -7,7 +7,7 @@
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
-		<string>Viewvee</string>
+		<string>ViewVee</string>
 		<!-- Google sample app ID. Replace with ViewVee's AdMob app ID for release. -->
 		<key>GADApplicationIdentifier</key>
 		<string>ca-app-pub-3940256099942544~1458002511</string>
@@ -29,12 +29,14 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
+		<key>NSUserTrackingUsageDescription</key>
+		<string>With your permission, ViewVee uses device identifiers to measure advertising.</string>
 		<key>NSMicrophoneUsageDescription</key>
-		<string>Viewvee používá mikrofon pro živý a obousměrný přenos zvuku.</string>
+		<string>ViewVee uses the microphone to transmit live audio and let you talk to the paired device.</string>
 		<key>NSCameraUsageDescription</key>
-		<string>Viewvee používá kameru pro živý dohled a párování zařízení.</string>
+		<string>ViewVee uses the camera for live monitoring and to scan device pairing codes.</string>
 		<key>NSLocalNetworkUsageDescription</key>
-		<string>Viewvee vyhledává druhý telefon ve stejné Wi-Fi síti.</string>
+		<string>ViewVee finds and connects to your paired devices on the same Wi-Fi network.</string>
 		<key>NSBonjourServices</key>
 		<array>
 			<string>_viewvee._tcp</string>

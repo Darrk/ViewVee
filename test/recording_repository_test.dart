@@ -57,7 +57,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: buildViewveeTheme(),
+        theme: buildViewVeeTheme(),
         home: Scaffold(
           body: RecordingsScreen(
             repository: repository,

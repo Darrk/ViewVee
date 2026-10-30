@@ -6,6 +6,7 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,6 +18,10 @@ import 'package:working_timer_core/working_timer_core.dart';
 
 class _FakeWorkingTimerAuth implements WorkingTimerAuth {
   String? signUpError;
+  bool signedIn = false;
+
+  @override
+  Future<String> getAccessToken() async => 'test-access-token';
 
   @override
   Future<WorkingTimerUser?> getLocalUser() async => null;
@@ -25,10 +30,10 @@ class _FakeWorkingTimerAuth implements WorkingTimerAuth {
   Future<String> getLastEmail() async => '';
 
   @override
-  Future<bool> hasAccount() async => false;
+  Future<bool> hasAccount() async => signedIn;
 
   @override
-  Future<bool> isAccessTokenExpired() async => true;
+  Future<bool> isAccessTokenExpired() async => false;
 
   @override
   Future<bool> hasConnection() async => true;
@@ -37,7 +42,10 @@ class _FakeWorkingTimerAuth implements WorkingTimerAuth {
   Future<bool> trySilentSignIn() async => false;
 
   @override
-  Future<String> signIn(String email, String password) async => '';
+  Future<String> signIn(String email, String password) async {
+    signedIn = true;
+    return '';
+  }
 
   @override
   Future<ApiResult<UserModel>?> signUp(
@@ -76,16 +84,57 @@ class _FakeWorkingTimerAuth implements WorkingTimerAuth {
 
 void main() {
   setUp(() {
+    FlutterSecureStorage.setMockInitialValues({});
     SharedPreferences.setMockInitialValues({
-      ViewveeLocaleController.preferenceKey: 'cs',
+      ViewVeeLocaleController.preferenceKey: 'cs',
     });
+  });
+
+  testWidgets('login with a saved mode offers all monitoring types', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      ViewVeeLocaleController.preferenceKey: 'cs',
+      'profile.watchMode': 'baby',
+    });
+    await tester.pumpWidget(
+      ViewVeeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('openSignIn')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('emailField')),
+      'user@example.com',
+    );
+    await tester.enterText(find.byKey(const Key('passwordField')), 'password1');
+    await tester.ensureVisible(find.byKey(const Key('authSubmit')));
+    await tester.tap(find.byKey(const Key('authSubmit')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('modeBaby')), findsOneWidget);
+    expect(find.byKey(const Key('modePet')), findsOneWidget);
+    expect(find.byKey(const Key('modeHome')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('modeHome')));
+    await tester.tap(find.byKey(const Key('modeHome')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('continueSetup')));
+    await tester.tap(find.byKey(const Key('continueSetup')));
+    await tester.pumpAndSettle();
+
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getString('profile.watchMode'), 'home');
+    expect(find.text('Kamera'), findsOneWidget);
+    expect(find.text('Monitor'), findsOneWidget);
+    expect(find.text('Miminko'), findsNothing);
+    expect(find.text('Rodič'), findsNothing);
   });
 
   testWidgets('shows animated logo during initial session restore', (
     tester,
   ) async {
     await tester.pumpWidget(
-      ViewveeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
+      ViewVeeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
     );
     await tester.pump();
 
@@ -101,10 +150,10 @@ void main() {
   testWidgets('restores the saved dark appearance globally', (tester) async {
     SharedPreferences.setMockInitialValues({
       'preferences.themeMode': ThemeMode.dark.name,
-      ViewveeLocaleController.preferenceKey: 'cs',
+      ViewVeeLocaleController.preferenceKey: 'cs',
     });
 
-    await tester.pumpWidget(const ViewveeApp(previewAuthenticated: true));
+    await tester.pumpWidget(const ViewVeeApp(previewAuthenticated: true));
     await tester.pumpAndSettle();
 
     final context = tester.element(find.text('Režim sledování'));
@@ -115,16 +164,16 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      ViewveeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
+      ViewVeeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
     );
     await tester.pumpAndSettle();
 
     expect(find.text('Spolehlivý dohled, ať jste kdekoliv.'), findsOneWidget);
     expect(find.text('Přihlaste se nebo si vytvořte účet.'), findsNothing);
     expect(find.text('Pokračovat bez přihlášení'), findsOneWidget);
-    expect(find.byKey(const Key('signInApple')), findsOneWidget);
-    expect(find.byKey(const Key('signInFacebook')), findsOneWidget);
-    expect(find.byKey(const Key('signInGoogle')), findsOneWidget);
+    expect(find.byKey(const Key('signInApple')), findsNothing);
+    expect(find.byKey(const Key('signInFacebook')), findsNothing);
+    expect(find.byKey(const Key('signInGoogle')), findsNothing);
     expect(find.text('Pokračovat přes Apple'), findsNothing);
     expect(find.text('Pokračovat přes Facebook'), findsNothing);
     expect(find.text('Pokračovat přes Google'), findsNothing);
@@ -148,7 +197,7 @@ void main() {
     final auth = _FakeWorkingTimerAuth()
       ..signUpError = 'User with the given email already exists.';
     await tester.pumpWidget(
-      ViewveeApp(authRepository: AuthRepository(auth: auth)),
+      ViewVeeApp(authRepository: AuthRepository(auth: auth)),
     );
     await tester.pumpAndSettle();
 
@@ -183,7 +232,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      ViewveeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
+      ViewVeeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
     );
     await tester.pumpAndSettle();
 
@@ -222,10 +271,10 @@ void main() {
 
   testWidgets('sign-in form is fully localized in English', (tester) async {
     SharedPreferences.setMockInitialValues({
-      ViewveeLocaleController.preferenceKey: 'en',
+      ViewVeeLocaleController.preferenceKey: 'en',
     });
     await tester.pumpWidget(
-      ViewveeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
+      ViewVeeApp(authRepository: AuthRepository(auth: _FakeWorkingTimerAuth())),
     );
     await tester.pumpAndSettle();
 
@@ -268,7 +317,7 @@ void main() {
     tester,
   ) async {
     final repository = AuthRepository(auth: _FakeWorkingTimerAuth());
-    await tester.pumpWidget(ViewveeApp(authRepository: repository));
+    await tester.pumpWidget(ViewVeeApp(authRepository: repository));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('continueAsGuest')));

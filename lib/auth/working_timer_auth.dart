@@ -1,58 +1,22 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:universal_io/io.dart';
+import '../config.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
-class ViewveeAuthConfig implements AuthConfig, ServicesConfig {
+class ViewVeeAuthConfig extends Config {
   @override
-  String get authClientId => 'working-timer-app';
-
+  String get authScopes => const String.fromEnvironment(
+    'VIEWVEE_AUTH_SCOPES',
+    defaultValue: 'openid email profile offline_access viewvee-api',
+  );
   @override
-  String get authClientSecret => '33fd7b5d-5be2-4649-a20d-c5f740e87575';
-
-  @override
-  String get authClientExtId => 'working-timer-app-ext';
-
-  @override
-  String get authClientExtSecret => '377d51c7-cad8-4e46-a692-7b4d63e7a4ae';
-
-  @override
-  String get authScopes =>
-      'openid email profile offline_access working-timer-api';
-
-  @override
-  String get identityUrl => 'https://identity.specterint.com/';
-
-  @override
-  String get keyPKCEVerifier => 'keyPKCEVerifier';
-
-  @override
-  String get googleClientId => Platform.isAndroid
-      ? '1091619601783-8esuvmlepls892s565mj4rcgt9lea17m.apps.googleusercontent.com'
-      : '';
-
-  @override
-  String get appleClientId => 'com.specterinteractive.workingtimer';
-
-  @override
-  String get microsoftClientId => '';
-
-  @override
-  bool get enableExternalAuth => true;
-
-  @override
-  String get authRedirectUri => 'http://localhost:43507/signin-oidc';
-
-  @override
-  String get homeUri => 'http://localhost:43507/';
-
-  @override
-  String get appUrl => 'http://localhost:43507/';
-
-  @override
-  String get apiUrl => 'https://wt-api.specterint.com/';
+  String get identityUrl => const String.fromEnvironment(
+    'VIEWVEE_IDENTITY_URL',
+    defaultValue: 'https://identity.specterint.com/',
+  );
 }
 
 abstract class WorkingTimerAuth {
+  Future<String> getAccessToken();
   Future<bool> hasAccount();
   Future<bool> isAccessTokenExpired();
   Future<bool> hasConnection();
@@ -89,7 +53,12 @@ class WorkingTimerUser {
 }
 
 class SpecterWorkingTimerAuth implements WorkingTimerAuth {
-  SpecterWorkingTimerAuth() : _services = _createServices();
+  SpecterWorkingTimerAuth() : _services = _sharedServices ??= _createServices();
+
+  // LocalStorage.init() assigns a `late final` static, so the services must be
+  // created once per process and shared by every instance.
+  static Future<({Identity identity, IdentityService identityService})>?
+  _sharedServices;
 
   final Future<({Identity identity, IdentityService identityService})>
   _services;
@@ -101,22 +70,24 @@ class SpecterWorkingTimerAuth implements WorkingTimerAuth {
     // shared authentication client usable without initializing Firebase-only
     // analytics from Working Timer Core.
     Analytics.isTest = true;
-    final config = ViewveeAuthConfig();
+    final config = ViewVeeAuthConfig();
     final identityService = IdentityService(
       config: config,
       analytics: Analytics(),
     );
     final localStorage = LocalStorage(
       useOnlySecured: true,
-      secureStorage: const FlutterSecureStorage(
-        aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      ),
+      secureStorage: const FlutterSecureStorage(),
     );
     return (
       identity: Identity(identityService, config, localStorage),
       identityService: identityService,
     );
   }
+
+  @override
+  Future<String> getAccessToken() async =>
+      (await _services).identity.getAccessToken();
 
   @override
   Future<bool> hasAccount() async => (await _services).identity.hasAccount();

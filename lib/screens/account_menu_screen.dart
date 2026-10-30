@@ -1,17 +1,23 @@
+import '../auth/account_deletion_service.dart';
+import '../purchases/premium_purchase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:in_app_review/in_app_review.dart';
+import '../ads/ad_consent_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../auth/auth_repository.dart';
+import '../config.dart';
+import '../monitor/device_limits.dart';
 import 'recordings_screen.dart';
 import '../theme/viewvee_theme.dart';
 import '../widgets/viewvee_app_drawer.dart';
 import '../widgets/viewvee_logo.dart';
+import '../widgets/paired_device_list.dart';
 
 enum DevicePairingAction { camera, monitor }
 
-Future<WatchMode?> showViewveeWatchModePicker(
+Future<WatchMode?> showViewVeeWatchModePicker(
   BuildContext context,
   WatchMode? selected,
 ) => showModalBottomSheet<WatchMode>(
@@ -25,6 +31,7 @@ class AccountMenuScreen extends StatefulWidget {
     super.key,
     required this.isGuest,
     required this.isPremium,
+    this.accountId,
     required this.watchMode,
     required this.themeMode,
     required this.onWatchModeChanged,
@@ -32,11 +39,14 @@ class AccountMenuScreen extends StatefulWidget {
     required this.onPasswordReset,
     required this.onAddDevice,
     required this.onSignOut,
-    this.initialDestination = ViewveeDrawerDestination.account,
+    this.openExternalUrl,
+    this.onDeleteAccount,
+    this.initialDestination = ViewVeeDrawerDestination.account,
   });
 
   final bool isGuest;
   final bool isPremium;
+  final int? accountId;
   final WatchMode? watchMode;
   final ThemeMode themeMode;
   final Future<void> Function(WatchMode mode) onWatchModeChanged;
@@ -44,7 +54,9 @@ class AccountMenuScreen extends StatefulWidget {
   final Future<void> Function(String email) onPasswordReset;
   final Future<void> Function(DevicePairingAction action) onAddDevice;
   final VoidCallback onSignOut;
-  final ViewveeDrawerDestination initialDestination;
+  final Future<void> Function(Uri uri)? openExternalUrl;
+  final Future<void> Function()? onDeleteAccount;
+  final ViewVeeDrawerDestination initialDestination;
 
   @override
   State<AccountMenuScreen> createState() => _AccountMenuScreenState();
@@ -59,7 +71,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
   late ThemeMode _themeMode;
   WatchMode? _watchMode;
   _PersonalDetails _personalDetails = const _PersonalDetails();
-  late ViewveeDrawerDestination _activeDestination;
+  late ViewVeeDrawerDestination _activeDestination;
 
   @override
   void initState() {
@@ -68,13 +80,13 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     _themeMode = widget.themeMode;
     _activeDestination =
         !widget.isPremium &&
-            widget.initialDestination == ViewveeDrawerDestination.recordings
-        ? ViewveeDrawerDestination.subscription
+            widget.initialDestination == ViewVeeDrawerDestination.recordings
+        ? ViewVeeDrawerDestination.subscription
         : widget.initialDestination;
-    final locale = ViewveeLocaleController.instance.locale;
+    final locale = ViewVeeLocaleController.instance.locale;
     _languageCode = locale == null
         ? 'system'
-        : ViewveeLocaleController.codeOf(locale);
+        : ViewVeeLocaleController.codeOf(locale);
     _loadPersonalDetails();
   }
 
@@ -113,29 +125,33 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
   }
 
   String get _pageTitle => switch (_activeDestination) {
-    ViewveeDrawerDestination.monitor => 'Režim sledování',
-    ViewveeDrawerDestination.devices => 'Připojená zařízení',
-    ViewveeDrawerDestination.recordings => 'Nahrávky',
-    ViewveeDrawerDestination.account => 'Profil',
-    ViewveeDrawerDestination.subscription => 'Předplatné',
-    ViewveeDrawerDestination.preferences => 'Jazyk a vzhled',
-    ViewveeDrawerDestination.support => 'Podpora',
-    ViewveeDrawerDestination.about => 'O aplikaci',
+    ViewVeeDrawerDestination.monitor => 'Režim sledování',
+    ViewVeeDrawerDestination.devices => 'Připojená zařízení',
+    ViewVeeDrawerDestination.recordings => 'Nahrávky',
+    ViewVeeDrawerDestination.account => 'Profil',
+    ViewVeeDrawerDestination.subscription => 'Předplatné',
+    ViewVeeDrawerDestination.preferences => 'Jazyk a vzhled',
+    ViewVeeDrawerDestination.support => 'Podpora',
+    ViewVeeDrawerDestination.about => 'O aplikaci',
   };
 
   Widget _buildDestinationBody() => switch (_activeDestination) {
-    ViewveeDrawerDestination.monitor => _buildProfilePage(),
-    ViewveeDrawerDestination.devices => _buildDevicesPage(),
-    ViewveeDrawerDestination.recordings =>
-      widget.isPremium ? const RecordingsScreen() : const _SubscriptionSheet(),
-    ViewveeDrawerDestination.account => _buildProfilePage(),
-    ViewveeDrawerDestination.subscription => const _SubscriptionSheet(),
-    ViewveeDrawerDestination.preferences => _buildPreferencesPage(),
-    ViewveeDrawerDestination.support => _SupportPage(
+    ViewVeeDrawerDestination.monitor => _buildProfilePage(),
+    ViewVeeDrawerDestination.devices => _buildDevicesPage(),
+    ViewVeeDrawerDestination.recordings =>
+      widget.isPremium
+          ? const RecordingsScreen()
+          : _SubscriptionSheet(isPremium: widget.isPremium),
+    ViewVeeDrawerDestination.account => _buildProfilePage(),
+    ViewVeeDrawerDestination.subscription => _SubscriptionSheet(
+      isPremium: widget.isPremium,
+    ),
+    ViewVeeDrawerDestination.preferences => _buildPreferencesPage(),
+    ViewVeeDrawerDestination.support => _SupportPage(
       name: _personalDetails.fullName,
       email: _personalDetails.email,
     ),
-    ViewveeDrawerDestination.about => const _AboutPage(),
+    ViewVeeDrawerDestination.about => const _AboutPage(),
   };
 
   Widget _buildProfilePage() => ListView(
@@ -154,7 +170,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('profileMenuItem'),
             icon: Icons.badge_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: _personalDetails.isEmpty
                 ? 'Doplnit osobní údaje'
                 : 'Upravit osobní údaje',
@@ -165,7 +181,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('securityMenuItem'),
             icon: Icons.lock_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Zabezpečení',
             subtitle: 'Obnovení přístupového hesla',
             onTap: _showSecurityForm,
@@ -202,17 +218,19 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     children: [
       const _PageIntro(
         icon: Icons.devices_rounded,
-        color: ViewveeColors.teal,
+        color: ViewVeeColors.teal,
         title: 'Vaše zařízení',
         subtitle: 'Spravujte telefony používané jako kamera nebo monitor.',
       ),
       const SizedBox(height: 20),
+      const PairedDeviceList(),
+      const SizedBox(height: 12),
       _SettingsGroup(
         children: [
           _MenuTile(
             key: const Key('addDeviceMenuItem'),
             icon: Icons.add_circle_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Přidat zařízení',
             subtitle: 'Spárovat další kameru nebo monitor',
             onTap: _showAddDeviceOptions,
@@ -228,7 +246,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     children: [
       const _PageIntro(
         icon: Icons.palette_outlined,
-        color: ViewveeColors.logoBlue,
+        color: ViewVeeColors.logoBlue,
         title: 'Přizpůsobení aplikace',
         subtitle: 'Vyberte jazyk a způsob zobrazení ViewVee.',
       ),
@@ -239,11 +257,11 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
           _MenuTile(
             key: const Key('languageMenuItem'),
             icon: Icons.language_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Jazyk',
             subtitle: _languageCode == 'system'
                 ? context.vv('Podle systému')
-                : ViewveeLocaleController.languageNames[_languageCode] ??
+                : ViewVeeLocaleController.languageNames[_languageCode] ??
                       _languageCode,
             onTap: _showLanguagePicker,
           ),
@@ -262,7 +280,7 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
                   children: [
                     const _MenuIcon(
                       icon: Icons.contrast_rounded,
-                      color: ViewveeColors.violet,
+                      color: ViewVeeColors.violet,
                     ),
                     const SizedBox(width: 14),
                     VvText(
@@ -293,30 +311,30 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
     ],
   );
 
-  Widget _buildAppDrawer() => ViewveeAppDrawer(
+  Widget _buildAppDrawer() => ViewVeeAppDrawer(
     watchMode: _watchMode,
     activeDestination: _activeDestination,
     isPremium: widget.isPremium,
     profileName: _personalDetails.fullName,
     profileEmail: _personalDetails.email,
     onOpenMonitor: _openWatchModeFromDrawer,
-    onOpenDevices: () => _selectDestination(ViewveeDrawerDestination.devices),
+    onOpenDevices: () => _selectDestination(ViewVeeDrawerDestination.devices),
     onOpenRecordings: () => _selectDestination(
       widget.isPremium
-          ? ViewveeDrawerDestination.recordings
-          : ViewveeDrawerDestination.subscription,
+          ? ViewVeeDrawerDestination.recordings
+          : ViewVeeDrawerDestination.subscription,
     ),
-    onOpenAccount: () => _selectDestination(ViewveeDrawerDestination.account),
+    onOpenAccount: () => _selectDestination(ViewVeeDrawerDestination.account),
     onOpenSubscription: () =>
-        _selectDestination(ViewveeDrawerDestination.subscription),
+        _selectDestination(ViewVeeDrawerDestination.subscription),
     onOpenPreferences: () =>
-        _selectDestination(ViewveeDrawerDestination.preferences),
-    onOpenSupport: () => _selectDestination(ViewveeDrawerDestination.support),
-    onOpenAbout: () => _selectDestination(ViewveeDrawerDestination.about),
+        _selectDestination(ViewVeeDrawerDestination.preferences),
+    onOpenSupport: () => _selectDestination(ViewVeeDrawerDestination.support),
+    onOpenAbout: () => _selectDestination(ViewVeeDrawerDestination.about),
     onSignOut: widget.onSignOut,
   );
 
-  void _selectDestination(ViewveeDrawerDestination destination) {
+  void _selectDestination(ViewVeeDrawerDestination destination) {
     if (mounted) setState(() => _activeDestination = destination);
   }
 
@@ -327,12 +345,12 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
       builder: (context) => _LanguageSheet(selected: _languageCode),
     );
     if (selected == null) return;
-    await ViewveeLocaleController.instance.setLanguage(selected);
+    await ViewVeeLocaleController.instance.setLanguage(selected);
     if (mounted) setState(() => _languageCode = selected);
   }
 
   Future<void> _showWatchModePicker() async {
-    final selected = await showViewveeWatchModePicker(context, _watchMode);
+    final selected = await showViewVeeWatchModePicker(context, _watchMode);
     if (selected == null || selected == _watchMode) return;
     await widget.onWatchModeChanged(selected);
     if (mounted) setState(() => _watchMode = selected);
@@ -434,21 +452,20 @@ class _AccountMenuScreenState extends State<AccountMenuScreen> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _ContactSupportSheet(
-        name: _personalDetails.fullName,
-        email: _personalDetails.email,
-        title: 'Smazání účtu',
-        description:
-            'Odešlete žádost z e-mailu spojeného s účtem. Podpora vám potvrdí jeho trvalé smazání.',
-        initialSubject: 'Žádost o smazání účtu',
-        initialMessage:
-            'Žádám o trvalé smazání svého účtu ViewVee a souvisejících osobních údajů.',
-      ),
-    );
+    try {
+      await (widget.onDeleteAccount?.call() ??
+          AccountDeletionService().delete());
+      if (!mounted) return;
+      widget.onSignOut();
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: VvText('Něco se pokazilo. Zkuste to prosím znovu.'),
+        ),
+      );
+    }
   }
 }
 
@@ -482,7 +499,7 @@ class _AddDeviceSheet extends StatelessWidget {
           _DeviceRoleChoice(
             key: const Key('addCameraDevice'),
             icon: Icons.videocam_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Jako kamera',
             subtitle: 'Zobrazit QR kód pro druhý telefon',
             onTap: () => Navigator.pop(context, DevicePairingAction.camera),
@@ -491,7 +508,7 @@ class _AddDeviceSheet extends StatelessWidget {
           _DeviceRoleChoice(
             key: const Key('addMonitorDevice'),
             icon: Icons.qr_code_scanner_rounded,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Jako monitor',
             subtitle: 'Naskenovat QR kód z telefonu s kamerou',
             onTap: () => Navigator.pop(context, DevicePairingAction.monitor),
@@ -929,7 +946,7 @@ class _AboutPage extends StatelessWidget {
     key: const Key('aboutPage'),
     padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
     children: [
-      const Center(child: ViewveeLogo(width: 190)),
+      const Center(child: ViewVeeLogo(width: 190)),
       const SizedBox(height: 20),
       VvText(
         'Bezpečné spojení s tím, na čem vám záleží.',
@@ -945,7 +962,7 @@ class _AboutPage extends StatelessWidget {
         children: [
           _MenuTile(
             icon: Icons.info_outline_rounded,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Verze aplikace',
             subtitle: '1.0.0 (1)',
             onTap: () {},
@@ -953,10 +970,24 @@ class _AboutPage extends StatelessWidget {
           const _GroupDivider(),
           _MenuTile(
             icon: Icons.shield_outlined,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Soukromí a podmínky',
             subtitle: 'Právní informace ViewVee',
-            onTap: () {},
+            onTap: () =>
+                launchUrl(Uri.parse('https://viewvee.com/privacy-policy.html')),
+          ),
+          ListenableBuilder(
+            listenable: AdConsentService.instance,
+            builder: (context, _) =>
+                AdConsentService.instance.privacyOptionsRequired
+                ? _MenuTile(
+                    icon: Icons.privacy_tip_outlined,
+                    color: ViewVeeColors.teal,
+                    title: 'Nastavení soukromí reklam',
+                    subtitle: '',
+                    onTap: AdConsentService.instance.showPrivacyOptions,
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -981,14 +1012,14 @@ class _ProfileHeader extends StatelessWidget {
           end: Alignment.centerRight,
           colors: [
             colors.surface,
-            ViewveeColors.logoBlue.withValues(alpha: 0.2),
+            ViewVeeColors.logoBlue.withValues(alpha: 0.2),
             colors.surface,
           ],
           stops: const [0, 0.5, 1],
         ),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: ViewveeColors.logoBlue.withValues(alpha: 0.36),
+          color: ViewVeeColors.logoBlue.withValues(alpha: 0.36),
         ),
       ),
       child: Row(
@@ -1003,13 +1034,13 @@ class _ProfileHeader extends StatelessWidget {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: ViewveeColors.navy.withValues(alpha: 0.08),
+                  color: ViewVeeColors.navy.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const ViewveeMark(size: 42),
+            child: const ViewVeeMark(size: 42),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1223,7 +1254,7 @@ class _LanguageSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          for (final entry in ViewveeLocaleController.languageNames.entries)
+          for (final entry in ViewVeeLocaleController.languageNames.entries)
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.translate_rounded),
@@ -1235,7 +1266,7 @@ class _LanguageSheet extends StatelessWidget {
               trailing: entry.key == selected
                   ? const Icon(
                       Icons.check_circle_rounded,
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                     )
                   : null,
               onTap: () => Navigator.pop(context, entry.key),
@@ -1284,7 +1315,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModeBaby'),
             icon: Icons.child_friendly_rounded,
             label: 'Dítě',
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             selected: selected == WatchMode.baby,
             onTap: () => Navigator.pop(context, WatchMode.baby),
           ),
@@ -1293,7 +1324,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModePet'),
             icon: Icons.pets_rounded,
             label: 'Mazlíček',
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             selected: selected == WatchMode.pet,
             onTap: () => Navigator.pop(context, WatchMode.pet),
           ),
@@ -1302,7 +1333,7 @@ class _WatchModeSheet extends StatelessWidget {
             key: const Key('watchModeHome'),
             icon: Icons.home_rounded,
             label: 'Domov',
-            color: ViewveeColors.violet,
+            color: ViewVeeColors.violet,
             selected: selected == WatchMode.home,
             onTap: () => Navigator.pop(context, WatchMode.home),
           ),
@@ -1372,69 +1403,157 @@ class _WatchModeChoice extends StatelessWidget {
   );
 }
 
-class _SubscriptionSheet extends StatelessWidget {
-  const _SubscriptionSheet();
+class _SubscriptionSheet extends StatefulWidget {
+  const _SubscriptionSheet({required this.isPremium});
+  final bool isPremium;
+  @override
+  State<_SubscriptionSheet> createState() => _SubscriptionSheetState();
+}
+
+class _SubscriptionSheetState extends State<_SubscriptionSheet> {
+  @override
+  void initState() {
+    super.initState();
+    PremiumPurchaseService.instance.initialize();
+  }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
-    child: SingleChildScrollView(
-      key: const Key('subscriptionPage'),
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const _PageIntro(
-            icon: Icons.workspace_premium_rounded,
-            color: ViewveeColors.logoBlue,
-            title: 'Vyberte si tarif',
-            subtitle: 'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
-          ),
-          const SizedBox(height: 16),
-          const _FreePlanCard(
-            key: Key('freePlanCard'),
-            title: 'Zdarma',
-            subtitle: 'Aktuální tarif',
-            color: ViewveeColors.blue,
-            features: [
-              _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
-              _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
-              _PlanFeature(
-                Icons.lock_outline_rounded,
-                'Internet pouze s Premium',
-              ),
-              _PlanFeature(Icons.videocam_off_outlined, 'Bez nahrávání videa'),
-              _PlanFeature(
-                Icons.campaign_outlined,
-                'Reklama po každé hodině sledování',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _PremiumPlanCard(
-            key: const Key('premiumPlanCard'),
-            features: const [
-              _PlanFeature(Icons.public_rounded, 'Neomezený internet'),
-              _PlanFeature(Icons.hd_rounded, 'HD video'),
-              _PlanFeature(
-                Icons.video_library_rounded,
-                'Nahrávání videa • pouze lokálně',
-              ),
-              _PlanFeature(Icons.record_voice_over_outlined, 'Obousměrný zvuk'),
-              _PlanFeature(Icons.block_rounded, 'Žádné reklamy'),
-              _PlanFeature(
-                Icons.all_inclusive_rounded,
-                'Neomezená délka spojení',
-              ),
-            ],
-          ),
-        ],
-      ),
-    ),
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: PremiumPurchaseService.instance,
+    builder: (context, _) => _build(context),
   );
+  Widget _build(BuildContext context) {
+    final isPremium = (PremiumPurchaseService.instance.entitlementLoaded
+        ? PremiumPurchaseService.instance.entitled
+        : widget.isPremium);
+    return SafeArea(
+      child: SingleChildScrollView(
+        key: const Key('subscriptionPage'),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _PageIntro(
+              icon: Icons.workspace_premium_rounded,
+              color: ViewVeeColors.logoBlue,
+              title: 'Vyberte si tarif',
+              subtitle:
+                  'Premium zaplatíte pouze jednou. Žádné měsíční poplatky.',
+            ),
+            const SizedBox(height: 16),
+            _FreePlanCard(
+              key: const Key('freePlanCard'),
+              title: 'Zdarma',
+              subtitle: isPremium
+                  ? 'Wi-Fi monitoring • 1 hodina'
+                  : 'Aktuální tarif',
+              color: ViewVeeColors.blue,
+              features: [
+                _PlanFeature(Icons.wifi_rounded, 'Wi-Fi monitoring • 1 hodina'),
+                _PlanFeature(Icons.sd_rounded, 'SD kvalita'),
+                _PlanFeature(Icons.devices_rounded, '1 kamera a 1 monitor'),
+                _PlanFeature(
+                  Icons.lock_outline_rounded,
+                  'Internet pouze s Premium',
+                ),
+                _PlanFeature(
+                  Icons.videocam_off_outlined,
+                  'Bez nahrávání videa',
+                ),
+                _PlanFeature(
+                  Icons.campaign_outlined,
+                  'Reklama po každé hodině sledování',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _PremiumPlanCard(
+              key: const Key('premiumPlanCard'),
+              isCurrent: isPremium,
+              features: [
+                _PlanFeature(Icons.public_rounded, 'Neomezený internet'),
+                _PlanFeature(Icons.hd_rounded, 'HD video'),
+                _PlanFeature(
+                  Icons.devices_rounded,
+                  '${context.vv('Kamera')} × ${DeviceLimits.cameras} • ${context.vv('Monitor')} × ${DeviceLimits.monitors}',
+                ),
+                _PlanFeature(
+                  Icons.video_library_rounded,
+                  'Nahrávání videa • pouze lokálně',
+                ),
+                _PlanFeature(
+                  Icons.record_voice_over_outlined,
+                  'Obousměrný zvuk',
+                ),
+                _PlanFeature(Icons.block_rounded, 'Žádné reklamy'),
+                _PlanFeature(
+                  Icons.all_inclusive_rounded,
+                  'Neomezená délka spojení',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (PremiumPurchaseService.instance.busy)
+              const Center(child: CircularProgressIndicator()),
+            if (PremiumPurchaseService.instance.error != null)
+              VvText(
+                PremiumPurchaseService.instance.error!,
+                textAlign: TextAlign.center,
+              ),
+            TextButton(
+              key: const Key('restorePurchases'),
+              onPressed: PremiumPurchaseService.instance.busy
+                  ? null
+                  : PremiumPurchaseService.instance.restore,
+              child: const VvText('Obnovit nákup'),
+            ),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              children: [
+                TextButton(
+                  key: const Key('premiumPrivacyPolicy'),
+                  onPressed: () => launchUrl(
+                    Uri.parse(Config.privacyPolicyUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const VvText('Zásady ochrany osobních údajů'),
+                ),
+                ListenableBuilder(
+                  listenable: AdConsentService.instance,
+                  builder: (context, _) =>
+                      AdConsentService.instance.privacyOptionsRequired
+                      ? TextButton(
+                          onPressed:
+                              AdConsentService.instance.showPrivacyOptions,
+                          child: const VvText('Nastavení soukromí reklam'),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                TextButton(
+                  key: const Key('premiumTermsOfUse'),
+                  onPressed: () => launchUrl(
+                    Uri.parse(Config.termsUri),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const VvText('Podmínky použití'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PremiumPlanCard extends StatelessWidget {
-  const _PremiumPlanCard({super.key, required this.features});
+  const _PremiumPlanCard({
+    super.key,
+    required this.features,
+    this.isCurrent = false,
+  });
+  final bool isCurrent;
 
   final List<_PlanFeature> features;
 
@@ -1444,14 +1563,14 @@ class _PremiumPlanCard extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [ViewveeColors.teal, ViewveeColors.blue, ViewveeColors.violet],
+        colors: [ViewVeeColors.teal, ViewVeeColors.blue, ViewVeeColors.violet],
         stops: [0, 0.5, 1],
       ),
       borderRadius: BorderRadius.circular(20),
       border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       boxShadow: [
         BoxShadow(
-          color: ViewveeColors.violet.withValues(alpha: 0.28),
+          color: ViewVeeColors.violet.withValues(alpha: 0.28),
           blurRadius: 28,
           offset: const Offset(0, 12),
         ),
@@ -1468,8 +1587,8 @@ class _PremiumPlanCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    ViewveeColors.navy.withValues(alpha: 0.16),
-                    ViewveeColors.navy.withValues(alpha: 0.32),
+                    ViewVeeColors.navy.withValues(alpha: 0.16),
+                    ViewVeeColors.navy.withValues(alpha: 0.32),
                   ],
                 ),
               ),
@@ -1546,12 +1665,7 @@ class _PremiumPlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     VvText(
-                      NumberFormat.currency(
-                        locale: Localizations.localeOf(context).toLanguageTag(),
-                        name: 'EUR',
-                        symbol: '€',
-                        decimalDigits: 2,
-                      ).format(9.99),
+                      PremiumPurchaseService.instance.product?.price ?? '—',
                       key: const Key('premiumLocalizedPrice'),
                       style: TextStyle(
                         color: Colors.white,
@@ -1603,10 +1717,15 @@ class _PremiumPlanCard extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton.icon(
                   key: const Key('startSubscriptionButton'),
-                  onPressed: () {},
+                  onPressed:
+                      isCurrent ||
+                          PremiumPurchaseService.instance.busy ||
+                          PremiumPurchaseService.instance.product == null
+                      ? null
+                      : PremiumPurchaseService.instance.buy,
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: ViewveeColors.violet,
+                    foregroundColor: ViewVeeColors.violet,
                     minimumSize: const Size.fromHeight(54),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -1617,7 +1736,9 @@ class _PremiumPlanCard extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.workspace_premium_rounded),
-                  label: const VvText('Získat Premium'),
+                  label: VvText(
+                    isCurrent ? 'Aktuální tarif' : 'Získat Premium',
+                  ),
                 ),
                 const SizedBox(height: 11),
                 VvText(
@@ -1717,7 +1838,7 @@ class _FreePlanCard extends StatelessWidget {
       border: Border.all(color: color.withValues(alpha: 0.2)),
       boxShadow: [
         BoxShadow(
-          color: ViewveeColors.navy.withValues(alpha: 0.05),
+          color: ViewVeeColors.navy.withValues(alpha: 0.05),
           blurRadius: 18,
           offset: const Offset(0, 7),
         ),
@@ -1898,7 +2019,7 @@ class _SupportPage extends StatelessWidget {
     children: [
       const _PageIntro(
         icon: Icons.support_agent_rounded,
-        color: ViewveeColors.violet,
+        color: ViewVeeColors.violet,
         title: 'Jak vám můžeme pomoci?',
         subtitle: 'Vyberte nejrychlejší cestu k odpovědi nebo nám napište.',
       ),
@@ -1910,7 +2031,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('contactSupportItem'),
             icon: Icons.chat_bubble_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Kontaktovat podporu',
             subtitle: 'Odpovíme obvykle do 24 hodin',
             onTap: () => _showContactForm(context),
@@ -1925,7 +2046,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('faqItem'),
             icon: Icons.quiz_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Časté dotazy',
             subtitle: 'Rychlé odpovědi a praktické tipy',
             onTap: () => Navigator.of(
@@ -1942,7 +2063,7 @@ class _SupportPage extends StatelessWidget {
           _MenuTile(
             key: const Key('rateAppItem'),
             icon: Icons.star_outline_rounded,
-            color: ViewveeColors.teal,
+            color: ViewVeeColors.teal,
             title: 'Ohodnotit aplikaci',
             subtitle: 'Řekněte nám, jak se vám ViewVee líbí',
             onTap: () => _showRating(context),
@@ -1961,44 +2082,27 @@ class _SupportPage extends StatelessWidget {
       );
 
   Future<void> _showRating(BuildContext context) async {
-    final rating = await showModalBottomSheet<int>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _RatingSheet(),
-    );
-    if (rating == null) return;
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt('feedback.appRating', rating);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: VvText('Děkujeme za vaše hodnocení.')),
-    );
+    try {
+      final review = InAppReview.instance;
+      if (await review.isAvailable()) await review.requestReview();
+    } catch (_) {
+      // StoreKit controls whether a prompt can be displayed.
+    }
   }
 }
 
 class _ContactSupportSheet extends StatefulWidget {
-  const _ContactSupportSheet({
-    required this.name,
-    required this.email,
-    this.title = 'Kontaktovat podporu',
-    this.description = 'Popište nám, s čím potřebujete pomoci.',
-    this.initialSubject = '',
-    this.initialMessage = '',
-  });
+  const _ContactSupportSheet({required this.name, required this.email});
 
   final String name;
   final String email;
-  final String title;
-  final String description;
-  final String initialSubject;
-  final String initialMessage;
 
   @override
   State<_ContactSupportSheet> createState() => _ContactSupportSheetState();
 }
 
 class _ContactSupportSheetState extends State<_ContactSupportSheet> {
+  static const _supportDescription = 'Popište nám, s čím potřebujete pomoci.';
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
@@ -2012,8 +2116,8 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
     super.initState();
     _nameController = TextEditingController(text: widget.name);
     _emailController = TextEditingController(text: widget.email);
-    _subjectController = TextEditingController(text: widget.initialSubject);
-    _messageController = TextEditingController(text: widget.initialMessage);
+    _subjectController = TextEditingController();
+    _messageController = TextEditingController();
   }
 
   @override
@@ -2042,7 +2146,7 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               VvText(
-                widget.title,
+                'Kontaktovat podporu',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 22,
@@ -2051,7 +2155,7 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
               ),
               const SizedBox(height: 6),
               VvText(
-                widget.description,
+                _supportDescription,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
@@ -2064,17 +2168,17 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: ViewveeColors.teal.withValues(alpha: 0.07),
+                  color: ViewVeeColors.teal.withValues(alpha: 0.07),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: ViewveeColors.teal.withValues(alpha: 0.2),
+                    color: ViewVeeColors.teal.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
                   children: [
                     const Icon(
                       Icons.alternate_email_rounded,
-                      color: ViewveeColors.teal,
+                      color: ViewVeeColors.teal,
                       size: 21,
                     ),
                     const SizedBox(width: 11),
@@ -2221,164 +2325,6 @@ class _ContactSupportSheetState extends State<_ContactSupportSheet> {
   }
 }
 
-class _RatingSheet extends StatefulWidget {
-  const _RatingSheet();
-
-  @override
-  State<_RatingSheet> createState() => _RatingSheetState();
-}
-
-class _RatingSheetState extends State<_RatingSheet> {
-  int _rating = 0;
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    child: Container(
-      key: const Key('ratingColorHeader'),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            ViewveeColors.navy,
-            Color(0xFF075F75),
-            ViewveeColors.blue,
-            ViewveeColors.violet,
-          ],
-          stops: [0, 0.34, 0.68, 1],
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 42,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.44),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Row(
-              children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: Padding(
-                      padding: EdgeInsets.all(7),
-                      child: ViewveeMark(size: 42),
-                    ),
-                  ),
-                ),
-                SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      VvText(
-                        'Jak se vám ViewVee líbí?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          height: 1.15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      VvText(
-                        'Vaše hodnocení nám pomáhá aplikaci zlepšovat.',
-                        style: TextStyle(
-                          color: Color(0xD9FFFFFF),
-                          fontSize: 13,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            VvText(
-              _ratingLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (var value = 1; value <= 5; value++)
-                    IconButton(
-                      key: Key('ratingStar$value'),
-                      tooltip: '$value / 5',
-                      onPressed: () => setState(() => _rating = value),
-                      iconSize: 38,
-                      color: value <= _rating
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.4),
-                      icon: Icon(
-                        value <= _rating
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            FilledButton(
-              key: const Key('submitRatingButton'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: ViewveeColors.violet,
-                disabledBackgroundColor: Colors.white.withValues(alpha: 0.2),
-                disabledForegroundColor: Colors.white.withValues(alpha: 0.55),
-                minimumSize: const Size.fromHeight(52),
-                textStyle: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              onPressed: _rating == 0
-                  ? null
-                  : () => Navigator.of(context).pop(_rating),
-              child: const VvText('Odeslat hodnocení'),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  String get _ratingLabel =>
-      _rating == 0 ? 'Jak se vám ViewVee líbí?' : 'Děkujeme za vaše hodnocení.';
-}
-
 class _FaqPage extends StatelessWidget {
   const _FaqPage();
 
@@ -2448,7 +2394,7 @@ class _FaqPage extends StatelessWidget {
         children: [
           const _PageIntro(
             icon: Icons.quiz_outlined,
-            color: ViewveeColors.blue,
+            color: ViewVeeColors.blue,
             title: 'Rychlé odpovědi',
             subtitle: 'Nejčastější otázky k používání ViewVee.',
           ),
@@ -2485,14 +2431,14 @@ class _FaqItem extends StatelessWidget {
     decoration: BoxDecoration(
       color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: ViewveeColors.blue.withValues(alpha: 0.2)),
+      border: Border.all(color: ViewVeeColors.blue.withValues(alpha: 0.2)),
     ),
     child: ExpansionTile(
       shape: const Border(),
       collapsedShape: const Border(),
       tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
-      leading: _MenuIcon(icon: icon, color: ViewveeColors.blue),
+      leading: _MenuIcon(icon: icon, color: ViewVeeColors.blue),
       title: VvText(
         question,
         style: TextStyle(
@@ -2501,7 +2447,7 @@ class _FaqItem extends StatelessWidget {
           fontWeight: FontWeight.w700,
         ),
       ),
-      iconColor: ViewveeColors.blue,
+      iconColor: ViewVeeColors.blue,
       collapsedIconColor: Theme.of(context).colorScheme.onSurfaceVariant,
       children: [
         Align(

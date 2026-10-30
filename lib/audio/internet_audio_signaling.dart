@@ -6,10 +6,15 @@ import 'package:web_socket_channel/status.dart' as websocket_status;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'audio_pairing.dart';
+import 'audio_pairing_repository.dart';
 import 'audio_signaling.dart';
 
 class InternetAudioSignaling implements AudioSignaling {
-  InternetAudioSignaling({required Uri serverUri}) : _serverUri = serverUri {
+  InternetAudioSignaling({
+    required Uri serverUri,
+    AudioPairingRepository? pairingRepository,
+  }) : _serverUri = serverUri,
+       _pairingRepository = pairingRepository ?? AudioPairingRepository() {
     if (serverUri.scheme != 'wss' &&
         !(kDebugMode && serverUri.scheme == 'ws')) {
       throw ArgumentError('Audio signaling requires a secure wss:// URL.');
@@ -20,6 +25,7 @@ class InternetAudioSignaling implements AudioSignaling {
   static const _joinTimeout = Duration(seconds: 35);
 
   final Uri _serverUri;
+  final AudioPairingRepository _pairingRepository;
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _subscription;
   Completer<void>? _registered;
@@ -49,10 +55,13 @@ class InternetAudioSignaling implements AudioSignaling {
   String? get pairingUri => _credentials?.toUriString();
 
   @override
-  Future<String> createRoom() async {
-    _credentials = AudioPairingCredentials.generate(
-      mode: AudioPairingMode.internet,
-    );
+  Future<String> createRoom({AudioPairingCredentials? credentials}) async {
+    if (credentials != null && credentials.mode != AudioPairingMode.internet) {
+      throw ArgumentError('Pairing mode does not match transport.');
+    }
+    _credentials =
+        credentials ??
+        await _pairingRepository.cameraCredentials(AudioPairingMode.internet);
     _role = 'transmitter';
     await _connectAndRegister();
     return roomCode!;
@@ -83,14 +92,23 @@ class InternetAudioSignaling implements AudioSignaling {
     _hadPeer = false;
     _registered = Completer<void>();
     _peerReady = role == 'receiver' ? Completer<void>() : null;
+    // Registration can fail before joinRoom starts awaiting peer readiness.
+    _peerReady?.future.ignore();
 
     final channel = WebSocketChannel.connect(_serverUri);
     _channel = channel;
     _subscription = channel.stream.listen(
-      _handleMessage,
-      onError: _handleSocketFailure,
-      onDone: () =>
-          _handleSocketFailure(StateError('Signaling connection closed.')),
+      (raw) {
+        if (identical(_channel, channel)) _handleMessage(raw);
+      },
+      onError: (Object error) {
+        if (identical(_channel, channel)) _handleSocketFailure(error);
+      },
+      onDone: () {
+        if (identical(_channel, channel)) {
+          _handleSocketFailure(StateError('Signaling connection closed.'));
+        }
+      },
       cancelOnError: true,
     );
     await channel.ready.timeout(_connectTimeout);
@@ -110,8 +128,9 @@ class InternetAudioSignaling implements AudioSignaling {
         throw const FormatException('Invalid signaling frame.');
       }
       final decoded = jsonDecode(raw);
-      if (decoded is! Map)
+      if (decoded is! Map) {
         throw const FormatException('Invalid signaling JSON.');
+      }
       final message = Map<String, dynamic>.from(decoded);
       switch (message['type']) {
         case 'registered':
@@ -152,7 +171,6 @@ class InternetAudioSignaling implements AudioSignaling {
       }
     } catch (error) {
       _handleSocketFailure(error);
-      unawaited(_closeSocket(notifyPeer: true));
     }
   }
 
@@ -183,10 +201,7 @@ class InternetAudioSignaling implements AudioSignaling {
     if (codec == null) throw StateError('Remote device is not ready.');
     _sendRaw({
       'type': 'relay',
-      'payload': codec.encode({
-        'type': type,
-        if (payload != null) 'payload': payload,
-      }),
+      'payload': codec.encode({'type': type, 'payload': ?payload}),
     });
   }
 
@@ -212,9 +227,9 @@ class InternetAudioSignaling implements AudioSignaling {
   @override
   Future<void> rearmForNewPeer() async {
     if (_role != 'transmitter' || _credentials == null) return;
-    if (_channel == null) {
-      await _connectAndRegister();
-    }
+    // A failed socket may still have a channel object. Re-register the same
+    // session to obtain a fresh peer-ready event and encryption epoch.
+    await _connectAndRegister();
   }
 
   @override
@@ -256,9 +271,10 @@ class InternetAudioSignaling implements AudioSignaling {
   void _handleSocketFailure(Object error) {
     _completeError(_registered, error);
     _completeError(_peerReady, error);
-    if (!_closing && _hadPeer) onRemoteHangup?.call();
-    _hadPeer = false;
-    _codec = null;
+    final notify = !_closing;
+    // Detach even when no peer was connected, so a camera can re-register.
+    unawaited(_closeSocket(notifyPeer: false));
+    if (notify) onRemoteHangup?.call();
   }
 
   static void _complete(Completer<void>? completer) {
@@ -266,7 +282,8 @@ class InternetAudioSignaling implements AudioSignaling {
   }
 
   static void _completeError(Completer<void>? completer, Object error) {
-    if (completer != null && !completer.isCompleted)
+    if (completer != null && !completer.isCompleted) {
       completer.completeError(error);
+    }
   }
 }

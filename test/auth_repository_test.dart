@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:viewvee/auth/auth_repository.dart';
+import 'package:viewvee/audio/audio_pairing.dart';
+import 'package:viewvee/audio/audio_pairing_repository.dart';
+import 'package:viewvee/audio/camera_pairing_repository.dart';
+import 'package:viewvee/monitor/saved_camera_repository.dart';
 import 'package:viewvee/auth/working_timer_auth.dart';
 import 'package:working_timer_core/working_timer_core.dart';
 
@@ -17,6 +22,9 @@ class FakeWorkingTimerAuth implements WorkingTimerAuth {
   List<String>? signUpArguments;
   var silentSignInCalls = 0;
   var signInCalls = 0;
+
+  @override
+  Future<String> getAccessToken() async => 'test-access-token';
 
   @override
   Future<bool> hasAccount() async => account;
@@ -91,7 +99,120 @@ UserModel _user() => UserModel(
 );
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+  });
+
+  test(
+    'sign out clears automatic session restoration and pairing secrets',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'auth.guest': true,
+        'monitor.activeRole': 'camera',
+        'monitor.activeMode': 'wifi',
+      });
+      final pairings = AudioPairingRepository();
+      final old = await pairings.cameraCredentials(AudioPairingMode.wifi);
+      await pairings.rememberMonitor(old.toUriString());
+      await CameraPairingRepository().remember(old.toUriString());
+      await SavedCameraRepository().remember(old.toUriString());
+      await AuthRepository(auth: FakeWorkingTimerAuth()).signOut();
+      expect(await CameraPairingRepository().load(old.mode), isEmpty);
+      expect(await SavedCameraRepository().load(), isEmpty);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString('monitor.activeRole'), isNull);
+      expect(preferences.getString('monitor.activeMode'), isNull);
+      expect(await pairings.monitorPairing(AudioPairingMode.wifi), isNull);
+      expect(
+        (await pairings.cameraCredentials(AudioPairingMode.wifi)).secret,
+        isNot(old.secret),
+      );
+    },
+  );
+
+  test('API token refreshes expired identity credentials silently', () async {
+    final auth = FakeWorkingTimerAuth()
+      ..account = true
+      ..expired = true;
+    final repository = AuthRepository(auth: auth);
+    expect(await repository.getAccessToken(), 'test-access-token');
+    expect(auth.silentSignInCalls, 1);
+  });
+
+  test(
+    'API 401 can force refresh even if local token appears unexpired',
+    () async {
+      final auth = FakeWorkingTimerAuth()..account = true;
+      final repository = AuthRepository(auth: auth);
+      await repository.getAccessToken(forceRefresh: true);
+      expect(auth.silentSignInCalls, 1);
+    },
+  );
+
+  test('failed silent refresh prevents sending expired credentials', () async {
+    final auth = FakeWorkingTimerAuth()
+      ..account = true
+      ..expired = true
+      ..silentSignInResult = false;
+    await expectLater(
+      AuthRepository(auth: auth).getAccessToken(),
+      throwsA(isA<AuthException>()),
+    );
+  });
+
+  test(
+    'guest session never exposes a previously stored access token',
+    () async {
+      SharedPreferences.setMockInitialValues({'auth.guest': true});
+      final auth = FakeWorkingTimerAuth()..account = true;
+      expect(await AuthRepository(auth: auth).getAccessToken(), isNull);
+      expect(auth.silentSignInCalls, 0);
+    },
+  );
+  test('legacy preferences alone cannot unlock Premium', () async {
+    SharedPreferences.setMockInitialValues({});
+    final repository = AuthRepository(auth: FakeWorkingTimerAuth());
+    await repository.continueAsGuest();
+    expect((await repository.restoreSession()).isPremium, isFalse);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(AuthRepository.premiumUnlockedKey, true);
+    expect((await repository.restoreSession()).isPremium, isFalse);
+  });
+
+  for (final method in ['email', 'apple', 'facebook', 'google', 'guest']) {
+    test('$method login requires a fresh monitoring choice', () async {
+      SharedPreferences.setMockInitialValues({'profile.watchMode': 'baby'});
+      final repository = AuthRepository(
+        auth: FakeWorkingTimerAuth()..account = true,
+      );
+      if (method == 'email') {
+        await repository.signIn(
+          email: 'user@example.com',
+          password: 'password1',
+        );
+      } else if (method == 'guest') {
+        await repository.continueAsGuest();
+      } else {
+        await repository.signInWithProvider(AuthProvider.values.byName(method));
+      }
+      expect((await repository.restoreSession()).watchMode, isNull);
+      await repository.saveWatchMode(WatchMode.pet);
+      expect((await repository.restoreSession()).watchMode, WatchMode.pet);
+    });
+  }
+
+  test('failed login preserves the existing monitoring choice', () async {
+    SharedPreferences.setMockInitialValues({'profile.watchMode': 'home'});
+    final repository = AuthRepository(
+      auth: FakeWorkingTimerAuth()..signInError = 'Invalid credentials',
+    );
+    await expectLater(
+      repository.signIn(email: 'user@example.com', password: 'password1'),
+      throwsA(isA<AuthException>()),
+    );
+    expect((await repository.restoreSession()).watchMode, WatchMode.home);
+  });
 
   test('existing unexpired Working Timer account restores session', () async {
     final auth = FakeWorkingTimerAuth()..account = true;
@@ -114,7 +235,7 @@ void main() {
     expect(auth.silentSignInCalls, 1);
   });
 
-  test('registration uses Working Timer arguments and signs in', () async {
+  test('registration uses the ViewVee application and signs in', () async {
     final auth = FakeWorkingTimerAuth()
       ..signUpResult = ApiResult<UserModel>.success(_user());
 
@@ -130,7 +251,7 @@ void main() {
       'password1',
       'Jan',
       'Novak',
-      'workingtimer',
+      'viewvee',
     ]);
     expect(auth.signInCalls, 1);
   });
@@ -169,9 +290,10 @@ void main() {
         email: 'jana@example.cz',
       );
 
-    await AuthRepository(auth: auth).restoreSession();
+    final session = await AuthRepository(auth: auth).restoreSession();
 
     final preferences = await SharedPreferences.getInstance();
+    expect(session.accountId, 42);
     expect(preferences.getString(AuthRepository.profileFirstNameKey), 'Jana');
     expect(
       preferences.getString(AuthRepository.profileLastNameKey),

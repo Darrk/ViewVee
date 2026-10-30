@@ -1,0 +1,5 @@
+// iOS system permission descriptions.
+"NSCameraUsageDescription" = "ViewVee ใช้กล้องเพื่อตรวจดูแบบสดและสแกนรหัสจับคู่อุปกรณ์";
+"NSMicrophoneUsageDescription" = "ViewVee ใช้ไมโครโฟนเพื่อส่งเสียงสดและพูดไปยังอุปกรณ์ที่จับคู่";
+"NSLocalNetworkUsageDescription" = "ViewVee ค้นหาและเชื่อมต่ออุปกรณ์ที่จับคู่บนเครือข่าย Wi-Fi เดียวกัน";
+"NSUserTrackingUsageDescription" = "เมื่อคุณอนุญาต ViewVee จะใช้ตัวระบุอุปกรณ์เพื่อวัดผลโฆษณา";
